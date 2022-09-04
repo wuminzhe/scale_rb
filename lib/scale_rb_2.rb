@@ -1,0 +1,129 @@
+require 'scale_rb_2/version'
+
+class String
+  def to_bytes
+    data = start_with?('0x') ? self[2..] : self
+    raise 'Not valid hex string' if data.length.odd? || data =~ /[^\da-f]+/i
+
+    data.scan(/../).map(&:hex)
+  end
+end
+
+class Array
+  def to_hex
+    raise 'Not a byte array' unless byte_array?
+
+    reduce('0x') { |hex, byte| hex + byte.to_s(16).rjust(2, '0') }
+  end
+
+  def to_bin
+    raise 'Not a byte array' unless byte_array?
+
+    reduce('0b') { |bin, byte| bin + byte.to_s(2).rjust(8, '0') }
+  end
+
+  def to_utf8
+    raise 'Not a byte array' unless byte_array?
+
+    pack('C*').force_encoding('utf-8')
+  end
+
+  def to_scale_uint
+    reverse.to_hex.to_i(16)
+  end
+
+  def byte_array?
+    all? { |e| e >= 0 and e <= 255 }
+  end
+end
+
+def fixed_array?(type)
+  type[0] == '[' && type[type.length - 1] == ']'
+end
+
+def fixed_uint?(type)
+  type[0] == 'u' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
+end
+
+def parse_fixed_array(type)
+  scan_out = type.scan(/\A\[\s*(.+)\s*;\s*(\d+)\s*\]\z/)
+  raise ScaleRb2::TypeParseError, type if scan_out.empty?
+  raise ScaleRb2::TypeParseError, type if scan_out[0].length != 2
+
+  inner_type = scan_out[0][0]
+  length = scan_out[0][1].to_i
+  [inner_type, length]
+end
+
+module ScaleRb2
+  class Error < StandardError; end
+  class NotImplemented < Error; end
+  class TypeParseError < Error; end
+  class NotEnoughBytesError < Error; end
+  class Unreachable < Error; end
+
+  def self.decode(type, bytes)
+    if type == 'Compact'
+      decode_compact(bytes)
+    elsif fixed_uint?(type)
+      bits = type[1..].to_i
+      decode_fixed_uint(bits, bytes)
+    elsif fixed_array?(type)
+      inner_type, length = parse_fixed_array(type)
+      decode_fixed_array(inner_type, length.to_i, bytes)
+    else
+      raise NotImplemented
+    end
+  end
+
+  def self.decode_compact(bytes)
+    case bytes[0] & 3
+    when 0
+      bytes[0] >> 2
+    when 1
+      bytes[0..1].to_scale_uint >> 2
+    when 2
+      bytes[0..4].to_scale_uint >> 2
+    when 3
+      length = 4 + (bytes[0] >> 2)
+      bytes[1..length + 2].to_scale_uint
+    else
+      raise Unreachable, "Compact, #{bytes}"
+    end
+  end
+
+  def self.decode_fixed_array(inner_type, length, bytes)
+    if length >= 1
+      value, remaining_bytes = decode(inner_type, bytes)
+      arr, remaining_bytes = decode_fixed_array(inner_type, length - 1, remaining_bytes)
+      [[value] + arr, remaining_bytes]
+    else
+      [[], bytes]
+    end
+  end
+
+  def self.decode_fixed_uint(bits, bytes)
+    width = bits / 8
+    raise NotEnoughBytesError, "type: u#{bits}, bytes: #{bytes}" if bytes.length < width
+
+    [
+      bytes[0...width].to_scale_uint,
+      bytes[width..]
+    ]
+  end
+
+  def self.encode_fixed_uint(bits, value)
+    byte_length = bits / 8
+    hex = value.to_s(16).rjust(byte_length * 2, '0')
+    hex.to_bytes.reverse
+  end
+
+  def self.encode(type, value)
+    if fixed_uint?(type)
+      bits = type[1..].to_i
+      encode_fixed_uint(bits, value)
+    else
+      raise NotImplemented
+    end
+  end
+end
