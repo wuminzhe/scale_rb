@@ -67,6 +67,16 @@ module ScaleRb2
   class Unreachable < Error; end
 
   def self.decode(type, bytes)
+    puts '============================================================================================================='
+    puts "           type: #{type}"
+    puts "          bytes: #{bytes}"
+    value, remaining_bytes = do_decode(type, bytes)
+    puts "        decoded: #{value}"
+    puts "remaining bytes: #{remaining_bytes}"
+    [value, remaining_bytes]
+  end
+
+  def self.do_decode(type, bytes)
     if type == 'Compact'
       decode_compact(bytes)
     elsif fixed_uint?(type)
@@ -87,7 +97,7 @@ module ScaleRb2
       [{}, bytes]
     else
       key, type = struct.first
-      value, remaining_bytes = decode(type, bytes)
+      value, remaining_bytes = do_decode(type, bytes)
       remaining_struct = struct.slice(*struct.keys[1..])
       values, remaining_bytes = decode_struct(remaining_struct, remaining_bytes)
       [
@@ -114,10 +124,10 @@ module ScaleRb2
     when 1
       [bytes[0..1].to_scale_uint >> 2, bytes[2..]]
     when 2
-      [bytes[0..4].to_scale_uint >> 2, bytes[5..]]
+      [bytes[0..3].to_scale_uint >> 2, bytes[4..]]
     when 3
       length = 4 + (bytes[0] >> 2)
-      [bytes[1..length + 2].to_scale_uint, bytes[length + 3..]]
+      [bytes[1..length].to_scale_uint, bytes[length + 1..]]
     else
       raise Unreachable, "Compact, #{bytes}"
     end
@@ -125,7 +135,7 @@ module ScaleRb2
 
   def self.decode_fixed_array(inner_type, length, bytes)
     if length >= 1
-      value, remaining_bytes = decode(inner_type, bytes)
+      value, remaining_bytes = do_decode(inner_type, bytes)
       arr, remaining_bytes = decode_fixed_array(inner_type, length - 1, remaining_bytes)
       [[value] + arr, remaining_bytes]
     else
