@@ -194,9 +194,9 @@ RSpec.describe ScaleRb2 do
     expect { ScaleRb2.decode(enum, [0x02, 0x15, 0x01]) }.to raise_error(ScaleRb2::IndexOutOfRangeError)
   end
 
-  # it 'can correctly decode vec' do
-  #   arr, remaining_bytes = ScaleRb2.decode('Vec<u8>', '0x0c003afe'.to_bytes)
-  #   expect(arr).to eql([0, 58, 254])
-  #   expect(remaining_bytes).to eql([])
-  # end
+  it 'can correctly decode vec' do
+    arr, remaining_bytes = ScaleRb2.decode('Vec<u8>', '0x0c003afe'.to_bytes)
+    expect(arr).to eql([0, 58, 254])
+    expect(remaining_bytes).to eql([])
+  end
 end

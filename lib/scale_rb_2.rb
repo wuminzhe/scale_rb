@@ -48,12 +48,16 @@ class Array
   end
 end
 
-def fixed_array?(type)
+def array?(type)
   type[0] == '[' && type[type.length - 1] == ']'
 end
 
-def fixed_uint?(type)
+def uint?(type)
   type[0] == 'u' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
+end
+
+def vec?(type)
+  type[0..3] == 'Vec<' && type[-1] == '>'
 end
 
 def struct?(type)
@@ -96,21 +100,14 @@ module ScaleRb2
   end
 
   def self.do_decode(type, bytes)
-    if type == 'Compact'
-      decode_compact(bytes)
-    elsif fixed_uint?(type)
-      bits = type[1..].to_i
-      decode_fixed_uint(bits, bytes)
-    elsif fixed_array?(type)
-      inner_type, length = parse_fixed_array(type)
-      decode_fixed_array(inner_type, length.to_i, bytes)
-    elsif enum?(type)
-      decode_enum(type, bytes)
-    elsif struct?(type)
-      decode_struct(type, bytes)
-    else
-      raise NotImplemented
-    end
+    return decode_compact(bytes) if type == 'Compact'
+    return decode_uint(type, bytes) if uint?(type) # u8, u16...
+    return decode_array(type, bytes) if array?(type) # [u8; 3]
+    return decode_vec(type, bytes) if vec?(type) # Vec<u8>
+    return decode_enum(type, bytes) if enum?(type)
+    return decode_struct(type, bytes) if struct?(type)
+
+    raise NotImplemented
   end
 
   def self.decode_enum(enum, bytes)
@@ -165,6 +162,11 @@ module ScaleRb2
     end
   end
 
+  def self.decode_array(type, bytes)
+    inner_type, length = parse_fixed_array(type)
+    decode_fixed_array(inner_type, length, bytes)
+  end
+
   def self.decode_fixed_array(inner_type, length, bytes)
     if length >= 1
       value, remaining_bytes = do_decode(inner_type, bytes)
@@ -173,6 +175,19 @@ module ScaleRb2
     else
       [[], bytes]
     end
+  end
+
+  def self.decode_vec(type, bytes)
+    inner_type = type.scan(/\AVec<(.+)>\z/).first.first
+    length, remaining_bytes = decode_compact(bytes)
+    decode_fixed_array(inner_type, length, remaining_bytes)
+  end
+
+  def self.encode_array(type, array)
+    inner_type, length = parse_fixed_array(type)
+    raise LengthNotEqualErr, "type: #{type}, value: #{array}" if length != array.length
+
+    encode_fixed_array(inner_type, array)
   end
 
   def self.encode_fixed_array(inner_type, array)
@@ -184,19 +199,21 @@ module ScaleRb2
     end
   end
 
-  def self.decode_fixed_uint(bits, bytes)
-    width = bits / 8
-    raise NotEnoughBytesError, "type: u#{bits}, bytes: #{bytes}" if bytes.length < width
+  def self.decode_uint(type, bytes)
+    bits_len = type[1..].to_i
+    bytes_len = bits_len / 8
+    raise NotEnoughBytesError, "type: #{type}, bytes: #{bytes}" if bytes.length < bytes_len
 
     [
-      bytes[0...width].to_scale_uint,
-      bytes[width..]
+      bytes[0...bytes_len].to_scale_uint,
+      bytes[bytes_len..]
     ]
   end
 
-  def self.encode_fixed_uint(bits, value)
-    byte_length = bits / 8
-    hex = value.to_s(16).rjust(byte_length * 2, '0')
+  def self.encode_uint(type, value)
+    bits_len = type[1..].to_i
+    bytes_len = bits_len / 8
+    hex = value.to_s(16).rjust(bytes_len * 2, '0')
     hex.to_bytes.flip
   end
 
@@ -205,34 +222,21 @@ module ScaleRb2
   end
 
   def self.do_encode(type, value)
-    if type == 'Compact'
-      encode_compact(value)
-    elsif fixed_uint?(type)
-      bits = type[1..].to_i
-      encode_fixed_uint(bits, value)
-    elsif fixed_array?(type)
-      inner_type, length = parse_fixed_array(type)
-      raise LengthNotEqualErr, "type: #{type}, value: #{array}" if length != value.length
+    return encode_compact(value) if type == 'Compact'
+    return encode_uint(type, value) if uint?(type)
+    return encode_array(type, value) if array?(type)
+    return encode_struct(type, value) if struct?(type)
 
-      encode_fixed_array(inner_type, value)
-    elsif struct?(type)
-      encode_struct(type, value)
-    else
-      raise NotImplemented
-    end
+    raise NotImplemented
   end
 
   def self.encode_compact(value)
-    if (value >= 0) && (value < 64)
-      [value << 2]
-    elsif value < 2**14
-      ((value << 2) + 1).to_bytes.flip
-    elsif value < 2**30
-      ((value << 2) + 2).to_bytes.flip
-    else
-      bytes = value.to_bytes.flip
-      [(((bytes.length - 4) << 2) + 3)] + bytes
-    end
+    return [value << 2] if (value >= 0) && (value < 64)
+    return ((value << 2) + 1).to_bytes.flip if value < 2**14
+    return ((value << 2) + 2).to_bytes.flip if value < 2**30
+
+    bytes = value.to_bytes.flip
+    [(((bytes.length - 4) << 2) + 3)] + bytes
   end
 
   def self.encode_struct(type, value)
