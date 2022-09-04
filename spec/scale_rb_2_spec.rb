@@ -108,6 +108,21 @@ RSpec.describe ScaleRb2 do
     expect(value).to eql(1_073_741_824)
   end
 
+  it 'can decode struct' do
+    struct = {
+      item3: 'Compact',
+      item1: '[u16; 2]',
+      item2: 'Compact'
+    }
+    bytes = [0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01]
+    value, = ScaleRb2.decode(struct, bytes)
+    expect(value).to eql({
+                           item3: 63,
+                           item1: [64_302, 64_302],
+                           item2: 69
+                         })
+  end
+
   # it 'can correctly decode vec' do
   #   arr, remaining_bytes = ScaleRb2.decode('Vec<u8>', '0x0c003afe'.to_bytes)
   #   expect(arr).to eql([0, 58, 254])

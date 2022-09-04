@@ -45,6 +45,10 @@ def fixed_uint?(type)
   type[0] == 'u' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
 end
 
+def struct?(type)
+  type.instance_of?(Hash)
+end
+
 def parse_fixed_array(type)
   scan_out = type.scan(/\A\[\s*(.+)\s*;\s*(\d+)\s*\]\z/)
   raise ScaleRb2::TypeParseError, type if scan_out.empty?
@@ -71,22 +75,49 @@ module ScaleRb2
     elsif fixed_array?(type)
       inner_type, length = parse_fixed_array(type)
       decode_fixed_array(inner_type, length.to_i, bytes)
+    elsif struct?(type)
+      decode_struct(type, bytes)
     else
       raise NotImplemented
+    end
+  end
+
+  def self.decode_struct(struct, bytes)
+    if struct.empty?
+      [{}, bytes]
+    else
+      key, type = struct.first
+      value, remaining_bytes = decode(type, bytes)
+      remaining_struct = struct.slice(*struct.keys[1..])
+      values, remaining_bytes = decode_struct(remaining_struct, remaining_bytes)
+      [
+        { key => value }.merge(values),
+        remaining_bytes
+      ]
+    end
+  end
+
+  def self.decode_types(types, bytes)
+    if types.empty?
+      [[], bytes]
+    else
+      value, remaining_bytes = encode(types[0], bytes)
+      value_arr, remaining_bytes = decode_types(types[1..], remaining_bytes)
+      [[value] + value_arr, remaining_bytes]
     end
   end
 
   def self.decode_compact(bytes)
     case bytes[0] & 3
     when 0
-      bytes[0] >> 2
+      [bytes[0] >> 2, bytes[1..]]
     when 1
-      bytes[0..1].to_scale_uint >> 2
+      [bytes[0..1].to_scale_uint >> 2, bytes[2..]]
     when 2
-      bytes[0..4].to_scale_uint >> 2
+      [bytes[0..4].to_scale_uint >> 2, bytes[5..]]
     when 3
       length = 4 + (bytes[0] >> 2)
-      bytes[1..length + 2].to_scale_uint
+      [bytes[1..length + 2].to_scale_uint, bytes[length + 3..]]
     else
       raise Unreachable, "Compact, #{bytes}"
     end
