@@ -49,6 +49,10 @@ def struct?(type)
   type.instance_of?(Hash)
 end
 
+def enum?(type)
+  type.instance_of?(Hash) && type.key?(:_enum)
+end
+
 def parse_fixed_array(type)
   scan_out = type.scan(/\A\[\s*(.+)\s*;\s*(\d+)\s*\]\z/)
   raise ScaleRb2::TypeParseError, type if scan_out.empty?
@@ -65,6 +69,7 @@ module ScaleRb2
   class TypeParseError < Error; end
   class NotEnoughBytesError < Error; end
   class Unreachable < Error; end
+  class IndexOutOfRangeError < Error; end
 
   def self.decode(type, bytes)
     puts '============================================================================================================='
@@ -85,11 +90,24 @@ module ScaleRb2
     elsif fixed_array?(type)
       inner_type, length = parse_fixed_array(type)
       decode_fixed_array(inner_type, length.to_i, bytes)
+    elsif enum?(type)
+      decode_enum(type, bytes)
     elsif struct?(type)
       decode_struct(type, bytes)
     else
       raise NotImplemented
     end
+  end
+
+  def self.decode_enum(enum, bytes)
+    index = bytes[0]
+    raise IndexOutOfRangeError, "type: #{enum}, bytes: #{bytes}" if index > enum[:_enum].length - 1
+
+    key = enum[:_enum].keys[index]
+    type = enum[:_enum].values[index]
+
+    value, remaining_bytes = do_decode(type, bytes[1..])
+    [{ key => value }, remaining_bytes]
   end
 
   def self.decode_struct(struct, bytes)

@@ -123,6 +123,29 @@ RSpec.describe ScaleRb2 do
                          })
   end
 
+  it 'can decode enum' do
+    enum = {
+      _enum: {
+        Int: 'u16',
+        Compact: 'Compact'
+      }
+    }
+
+    bytes = [0x00, 0x2e, 0xfb]
+    value, = ScaleRb2.decode(enum, bytes)
+    expect(value).to eql({
+                           Int: 64_302
+                         })
+
+    bytes = [0x01, 0x15, 0x01]
+    value, = ScaleRb2.decode(enum, bytes)
+    expect(value).to eql({
+                           Compact: 69
+                         })
+
+    expect { ScaleRb2.decode(enum, [0x02, 0x15, 0x01]) }.to raise_error(ScaleRb2::IndexOutOfRangeError)
+  end
+
   # it 'can correctly decode vec' do
   #   arr, remaining_bytes = ScaleRb2.decode('Vec<u8>', '0x0c003afe'.to_bytes)
   #   expect(arr).to eql([0, 58, 254])
