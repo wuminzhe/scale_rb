@@ -157,19 +157,19 @@ RSpec.describe ScaleRb2 do
     expect(bytes).to eql('0x0300000040'.to_bytes)
   end
 
-  # it 'can encode struct' do
-  #   struct = {
-  #     item3: 'Compact',
-  #     item1: '[u16; 2]',
-  #     item2: 'Compact'
-  #   }
-  #   bytes = ScaleRb2.encode(struct, {
-  #                             item3: 63,
-  #                             item1: [64_302, 64_302],
-  #                             item2: 69
-  #                           })
-  #   expect(bytes).to eql([0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
-  # end
+  it 'can encode struct' do
+    struct = {
+      item3: 'Compact',
+      item1: '[u16; 2]',
+      item2: 'Compact'
+    }
+    bytes = ScaleRb2.encode(struct, {
+                              item3: 63,
+                              item1: [64_302, 64_302],
+                              item2: 69
+                            })
+    expect(bytes).to eql([0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
+  end
 
   it 'can decode enum' do
     enum = {
