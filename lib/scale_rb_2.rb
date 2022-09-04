@@ -39,6 +39,10 @@ class Array
     reverse.to_hex.to_i(16)
   end
 
+  def flip
+    reverse
+  end
+
   def byte_array?
     all? { |e| e >= 0 and e <= 255 }
   end
@@ -193,7 +197,7 @@ module ScaleRb2
   def self.encode_fixed_uint(bits, value)
     byte_length = bits / 8
     hex = value.to_s(16).rjust(byte_length * 2, '0')
-    hex.to_bytes.reverse
+    hex.to_bytes.flip
   end
 
   def self.encode(type, value)
@@ -222,11 +226,11 @@ module ScaleRb2
     if (value >= 0) && (value < 64)
       [value << 2]
     elsif value < 2**14
-      ((value << 2) + 1).to_bytes.reverse
+      ((value << 2) + 1).to_bytes.flip
     elsif value < 2**30
-      ((value << 2) + 2).to_bytes.reverse
+      ((value << 2) + 2).to_bytes.flip
     else
-      bytes = value.to_bytes.reverse
+      bytes = value.to_bytes.flip
       [(((bytes.length - 4) << 2) + 3)] + bytes
     end
   end
