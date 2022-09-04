@@ -79,6 +79,11 @@ RSpec.describe ScaleRb2 do
     expect(remaining_bytes).to eql([])
   end
 
+  it 'can encode fixed array' do
+    bytes = ScaleRb2.encode('[u8; 3]', [0x12, 0x34, 0x56])
+    expect(bytes).to eql([0x12, 0x34, 0x56])
+  end
+
   it 'can correctly decode single-byte compact uint' do
     value, = ScaleRb2.decode('Compact', [0x00])
     expect(value).to eql(0)
@@ -122,6 +127,49 @@ RSpec.describe ScaleRb2 do
                            item2: 69
                          })
   end
+
+  it 'can encode single-byte compact' do
+    bytes = ScaleRb2.encode('Compact', 0)
+    expect(bytes).to eql([0x00])
+
+    bytes = ScaleRb2.encode('Compact', 1)
+    expect(bytes).to eql([0x04])
+
+    bytes = ScaleRb2.encode('Compact', 42)
+    expect(bytes).to eql([0xa8])
+
+    bytes = ScaleRb2.encode('Compact', 63)
+    expect(bytes).to eql([0xfc])
+  end
+
+  it 'can encode two-byte compact' do
+    bytes = ScaleRb2.encode('Compact', 69)
+    expect(bytes).to eql([0x15, 0x01])
+  end
+
+  it 'can encode four-byte compact' do
+    bytes = ScaleRb2.encode('Compact', 1_073_741_823)
+    expect(bytes).to eql('0xfeffffff'.to_bytes)
+  end
+
+  it 'can encode big-integer compact' do
+    bytes = ScaleRb2.encode('Compact', 1_073_741_824)
+    expect(bytes).to eql('0x0300000040'.to_bytes)
+  end
+
+  # it 'can encode struct' do
+  #   struct = {
+  #     item3: 'Compact',
+  #     item1: '[u16; 2]',
+  #     item2: 'Compact'
+  #   }
+  #   bytes = ScaleRb2.encode(struct, {
+  #                             item3: 63,
+  #                             item1: [64_302, 64_302],
+  #                             item2: 69
+  #                           })
+  #   expect(bytes).to eql([0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
+  # end
 
   it 'can decode enum' do
     enum = {
