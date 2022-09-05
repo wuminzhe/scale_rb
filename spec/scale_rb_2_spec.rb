@@ -215,4 +215,14 @@ RSpec.describe ScaleRb2 do
     bytes = ScaleRb2.encode('Vec<u8>', [0, 58, 254])
     expect(bytes).to eql('0x0c003afe'.to_bytes)
   end
+
+  it 'can correctly decode tuple' do
+    value, = ScaleRb2.decode('(Compact, [u16; 2], Compact)', [0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
+    expect(value).to eql([63, [64_302, 64_302], 69])
+  end
+
+  it 'can correctly encode tuple' do
+    bytes = ScaleRb2.encode('(Compact, [u16; 2], Compact)', [63, [64_302, 64_302], 69])
+    expect(bytes).to eql([0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
+  end
 end

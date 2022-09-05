@@ -5,7 +5,7 @@ require 'monkey_patching'
 require 'logger'
 
 def array?(type)
-  type[0] == '[' && type[type.length - 1] == ']'
+  type[0] == '[' && type[-1] == ']'
 end
 
 def uint?(type)
@@ -14,6 +14,10 @@ end
 
 def vec?(type)
   type[0..3] == 'Vec<' && type[-1] == '>'
+end
+
+def tuple?(type)
+  type[0] == '(' && type[-1] == ')'
 end
 
 def struct?(type)
@@ -37,13 +41,11 @@ end
 # main module
 module ScaleRb2
   class Error < StandardError; end
-  # decoding errors
   class NotImplemented < Error; end
   class TypeParseError < Error; end
   class NotEnoughBytesError < Error; end
   class Unreachable < Error; end
   class IndexOutOfRangeError < Error; end
-  # encoding errors
   class LengthNotEqualErr < Error; end
 
   class << self
@@ -78,6 +80,7 @@ module ScaleRb2
     return decode_uint(type, bytes) if uint?(type) # u8, u16...
     return decode_array(type, bytes) if array?(type) # [u8; 3]
     return decode_vec(type, bytes) if vec?(type) # Vec<u8>
+    return decode_tuple(type, bytes) if tuple?(type) # (u8, u8)
     return decode_enum(type, bytes) if enum?(type)
     return decode_struct(type, bytes) if struct?(type)
 
@@ -103,9 +106,21 @@ module ScaleRb2
     ]
   end
 
-  def self.decode_tuple(type, bytes)
-    inner_types = type.scan(/\A\s*(.+)\s*\z/)[0][0].split(',').map(:strip)
+  def self.decode_tuple(tuple_type, bytes)
+    inner_types = tuple_type.scan(/\A\(\s*(.+)\s*\)\z/)[0][0].split(',').map(&:strip)
     decode_types(inner_types, bytes)
+  end
+
+  def self.encode_tuple(tuple_type, tuple)
+    inner_types = tuple_type.scan(/\A\(\s*(.+)\s*\)\z/)[0][0].split(',').map(&:strip)
+    raise LengthNotEqualErr, "type: #{tuple_type}, value: #{tuple}" if inner_types.length != tuple.length
+
+    result = []
+    inner_types.each_with_index do |inner_type, i|
+      inner_value = tuple[i]
+      result += do_encode(inner_type, inner_value)
+    end
+    result
   end
 
   # # tail recursion
@@ -213,10 +228,11 @@ module ScaleRb2
     return encode_uint(type, value) if uint?(type)
     return encode_array(type, value) if array?(type)
     return encode_vec(type, value) if vec?(type)
+    return encode_tuple(type, value) if tuple?(type)
     return encode_enum(type, value) if enum?(type)
     return encode_struct(type, value) if struct?(type)
 
-    raise NotImplemented, "type: #{enum}, value: #{value}"
+    raise NotImplemented, "type: #{type}, value: #{value}"
   end
 
   def self.encode_compact(value)
