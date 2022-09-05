@@ -12,8 +12,11 @@ class String
 end
 
 class Integer
-  def to_bytes
-    to_s(16).to_bytes
+  def to_bytes(bit_length = nil)
+    return to_s(16).to_bytes unless bit_length
+
+    hex = to_s(16).rjust(bit_length / 4, '0')
+    hex.to_bytes
   end
 end
 
@@ -36,8 +39,8 @@ class Array
     pack('C*').force_encoding('utf-8')
   end
 
-  def to_scale_uint
-    reverse.to_hex.to_i(16)
+  def to_uint
+    flip.to_hex.to_i(16)
   end
 
   def flip

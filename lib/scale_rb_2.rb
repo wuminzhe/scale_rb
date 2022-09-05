@@ -153,12 +153,12 @@ module ScaleRb2
     when 0
       [bytes[0] >> 2, bytes[1..]]
     when 1
-      [bytes[0..1].to_scale_uint >> 2, bytes[2..]]
+      [bytes[0..1].to_uint >> 2, bytes[2..]]
     when 2
-      [bytes[0..3].to_scale_uint >> 2, bytes[4..]]
+      [bytes[0..3].to_uint >> 2, bytes[4..]]
     when 3
       length = 4 + (bytes[0] >> 2)
-      [bytes[1..length].to_scale_uint, bytes[length + 1..]]
+      [bytes[1..length].to_uint, bytes[length + 1..]]
     else
       raise Unreachable, "type: Compact, bytes: #{bytes}"
     end
@@ -215,16 +215,14 @@ module ScaleRb2
     raise NotEnoughBytesError, "type: #{type}, bytes: #{bytes}" if bytes.length < bytes_len
 
     [
-      bytes[0...bytes_len].to_scale_uint,
+      bytes[0...bytes_len].to_uint,
       bytes[bytes_len..]
     ]
   end
 
   def self.encode_uint(type, value)
-    bits_len = type[1..].to_i
-    bytes_len = bits_len / 8
-    hex = value.to_s(16).rjust(bytes_len * 2, '0')
-    hex.to_bytes.flip
+    bit_length = type[1..].to_i
+    value.to_bytes(bit_length).flip
   end
 
   def self.do_encode(type, value)
