@@ -253,15 +253,10 @@ module ScaleRb2
     value = enum.values.first
     value_type = enum_type[:_enum][key]
     index = enum_type[:_enum].keys.index(key)
-    do_encode('u8', index) +
-      do_encode(value_type, value)
+    do_encode('u8', index) + do_encode(value_type, value)
   end
 
-  def self.encode_struct(type, value)
-    type.keys.reduce([]) do |bytes, key|
-      item_type = type[key]
-      item_value = value[key]
-      bytes + do_encode(item_type, item_value)
-    end
+  def self.encode_struct(struct_type, struct)
+    encode_types(struct_type.values, struct.values)
   end
 end
