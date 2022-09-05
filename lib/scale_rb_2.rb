@@ -54,13 +54,22 @@ module ScaleRb2
     end
 
     def decode(type, bytes)
-      logger.debug 'DECODING ========================================================================================='
+      logger.debug '========================================================================================= >>>'
       logger.debug "           type: #{type}"
       logger.debug "          bytes: #{bytes}"
       value, remaining_bytes = do_decode(type, bytes)
       logger.debug "        decoded: #{value}"
       logger.debug "remaining bytes: #{remaining_bytes}"
       [value, remaining_bytes]
+    end
+
+    def encode(type, value)
+      logger.debug '>>> ========================================================================================='
+      logger.debug "           type: #{type}"
+      logger.debug "          value: #{value}"
+      bytes = do_encode(type, value)
+      logger.debug "        encoded: #{bytes}"
+      bytes
     end
   end
 
@@ -98,6 +107,17 @@ module ScaleRb2
     inner_types = type.scan(/\A\s*(.+)\s*\z/)[0][0].split(',').map(:strip)
     decode_types(inner_types, bytes)
   end
+
+  # # tail recursion
+  # def self.decode_types_2(types, bytes, result = [])
+  #   if types.empty?
+  #     result
+  #   else
+  #     value, remaining_bytes = do_decode(types[0], bytes)
+  #     new_result = result.empty? ? [[value], remaining_bytes] : [result[0] + [value], remaining_bytes]
+  #     decode_types(types[1..], remaining_bytes, new_result)
+  #   end
+  # end
 
   def self.decode_types(types, bytes)
     if types.empty?
@@ -153,6 +173,14 @@ module ScaleRb2
     encode_fixed_array(inner_type, array)
   end
 
+  def self.encode_vec(type, array)
+    inner_type = type.scan(/\AVec<(.+)>\z/).first.first
+    do_encode('Compact', array.length) +
+      array.reduce([]) do |bytes, value|
+        bytes + do_encode(inner_type, value)
+      end
+  end
+
   def self.encode_fixed_array(inner_type, array)
     if array.length >= 1
       bytes = do_encode(inner_type, array[0])
@@ -180,14 +208,12 @@ module ScaleRb2
     hex.to_bytes.flip
   end
 
-  def self.encode(type, value)
-    do_encode(type, value)
-  end
-
   def self.do_encode(type, value)
     return encode_compact(value) if type == 'Compact'
     return encode_uint(type, value) if uint?(type)
     return encode_array(type, value) if array?(type)
+    return encode_vec(type, value) if vec?(type)
+    return encode_enum(type, value) if enum?(type)
     return encode_struct(type, value) if struct?(type)
 
     raise NotImplemented, "type: #{enum}, value: #{value}"
@@ -200,6 +226,15 @@ module ScaleRb2
 
     bytes = value.to_bytes.flip
     [(((bytes.length - 4) << 2) + 3)] + bytes
+  end
+
+  def self.encode_enum(enum_type, enum)
+    key = enum.keys.first
+    value = enum.values.first
+    value_type = enum_type[:_enum][key]
+    index = enum_type[:_enum].keys.index(key)
+    do_encode('u8', index) +
+      do_encode(value_type, value)
   end
 
   def self.encode_struct(type, value)
