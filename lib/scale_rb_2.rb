@@ -113,14 +113,18 @@ module ScaleRb2
 
   def self.encode_tuple(tuple_type, tuple)
     inner_types = tuple_type.scan(/\A\(\s*(.+)\s*\)\z/)[0][0].split(',').map(&:strip)
-    raise LengthNotEqualErr, "type: #{tuple_type}, value: #{tuple}" if inner_types.length != tuple.length
+    encode_types(inner_types, tuple)
+  end
 
-    result = []
-    inner_types.each_with_index do |inner_type, i|
-      inner_value = tuple[i]
-      result += do_encode(inner_type, inner_value)
+  def self.encode_types(type_list, value_list)
+    raise LengthNotEqualErr, "type: #{type_list}, value: #{value_list}" if type_list.length != value_list.length
+
+    if type_list.empty?
+      []
+    else
+      bytes = do_encode(type_list.first, value_list.first)
+      bytes + encode_types(type_list[1..], value_list[1..])
     end
-    result
   end
 
   # # tail recursion
@@ -134,13 +138,13 @@ module ScaleRb2
   #   end
   # end
 
-  def self.decode_types(types, bytes)
-    if types.empty?
+  def self.decode_types(type_list, bytes)
+    if type_list.empty?
       [[], bytes]
     else
-      value, remaining_bytes = do_decode(types[0], bytes)
-      value_arr, remaining_bytes = decode_types(types[1..], remaining_bytes)
-      [[value] + value_arr, remaining_bytes]
+      value, remaining_bytes = do_decode(type_list.first, bytes)
+      value_list, remaining_bytes = decode_types(type_list[1..], remaining_bytes)
+      [[value] + value_list, remaining_bytes]
     end
   end
 
