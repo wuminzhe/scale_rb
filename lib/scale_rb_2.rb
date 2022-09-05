@@ -64,7 +64,6 @@ module ScaleRb2
     end
   end
 
-
   def self.do_decode(type, bytes)
     return decode_compact(bytes) if type == 'Compact'
     return decode_uint(type, bytes) if uint?(type) # u8, u16...
@@ -73,7 +72,7 @@ module ScaleRb2
     return decode_enum(type, bytes) if enum?(type)
     return decode_struct(type, bytes) if struct?(type)
 
-    raise NotImplemented
+    raise NotImplemented, "type: #{enum}, bytes: #{bytes}"
   end
 
   def self.decode_enum(enum, bytes)
@@ -88,25 +87,23 @@ module ScaleRb2
   end
 
   def self.decode_struct(struct, bytes)
-    if struct.empty?
-      [{}, bytes]
-    else
-      key, type = struct.first
-      value, remaining_bytes = do_decode(type, bytes)
-      remaining_struct = struct.slice(*struct.keys[1..])
-      values, remaining_bytes = decode_struct(remaining_struct, remaining_bytes)
-      [
-        { key => value }.merge(values),
-        remaining_bytes
-      ]
-    end
+    values, remaining_bytes = decode_types(struct.values, bytes)
+    [
+      [struct.keys, values].transpose.to_h,
+      remaining_bytes
+    ]
+  end
+
+  def self.decode_tuple(type, bytes)
+    inner_types = type.scan(/\A\s*(.+)\s*\z/)[0][0].split(',').map(:strip)
+    decode_types(inner_types, bytes)
   end
 
   def self.decode_types(types, bytes)
     if types.empty?
       [[], bytes]
     else
-      value, remaining_bytes = encode(types[0], bytes)
+      value, remaining_bytes = do_decode(types[0], bytes)
       value_arr, remaining_bytes = decode_types(types[1..], remaining_bytes)
       [[value] + value_arr, remaining_bytes]
     end
@@ -193,7 +190,7 @@ module ScaleRb2
     return encode_array(type, value) if array?(type)
     return encode_struct(type, value) if struct?(type)
 
-    raise NotImplemented
+    raise NotImplemented, "type: #{enum}, value: #{value}"
   end
 
   def self.encode_compact(value)
