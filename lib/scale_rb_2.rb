@@ -47,6 +47,7 @@ class Array
     all? { |e| e >= 0 and e <= 255 }
   end
 end
+require 'scale_rb_2/version'
 
 def array?(type)
   type[0] == '[' && type[type.length - 1] == ']'
