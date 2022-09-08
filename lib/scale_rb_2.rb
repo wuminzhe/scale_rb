@@ -44,9 +44,11 @@ module ScaleRb2
   class NotImplemented < Error; end
   class TypeParseError < Error; end
   class NotEnoughBytesError < Error; end
+  class InvalidBytesError < Error; end
   class Unreachable < Error; end
   class IndexOutOfRangeError < Error; end
   class LengthNotEqualErr < Error; end
+  class InvalidValueError < Error; end
 
   class << self
     attr_writer :logger
@@ -63,6 +65,9 @@ module ScaleRb2
       logger.debug "        decoded: #{value}"
       logger.debug "remaining bytes: #{remaining_bytes}"
       [value, remaining_bytes]
+    rescue Error => e
+      logger.error "          error: #{e.class}: #{e.message}"
+      raise e
     end
 
     def encode(type, value)
@@ -72,10 +77,14 @@ module ScaleRb2
       bytes = do_encode(type, value)
       logger.debug "        encoded: #{bytes}"
       bytes
+    rescue Error => e
+      logger.error "          error: #{e.class}: #{e.message}"
+      raise e
     end
   end
 
   def self.do_decode(type, bytes)
+    return decode_boolean(bytes) if type == 'Boolean'
     return decode_string(bytes) if type == 'String'
     return decode_compact(bytes) if type == 'Compact'
     return decode_uint(type, bytes) if uint?(type) # u8, u16...
@@ -88,9 +97,23 @@ module ScaleRb2
     raise NotImplemented, "type: #{enum}, bytes: #{bytes}"
   end
 
+  def self.decode_boolean(bytes)
+    return [false, bytes[1..]] if bytes[0] == 0x00
+    return [true, bytes[1..]] if bytes[0] == 0x01
+
+    raise InvalidBytesError, "type: Boolean, bytes: #{bytes}"
+  end
+
+  def self.encode_boolean(value)
+    return [0x00] if value == false
+    return [0x01] if value == true
+
+    raise InvalidValueError, "type: Boolean, value: #{value.inspect}"
+  end
+
   def self.decode_string(bytes)
     length, remaining_bytes = decode_compact(bytes)
-    raise NotEnoughBytesError, "type: #{type}, bytes: #{bytes}" if remaining_bytes.length < length
+    raise NotEnoughBytesError, "type: String, bytes: #{bytes}" if remaining_bytes.length < length
 
     [
       remaining_bytes[0...length].pack('C*').force_encoding('utf-8'),
@@ -104,12 +127,12 @@ module ScaleRb2
     prefix + body
   end
 
-  def self.decode_enum(enum, bytes)
+  def self.decode_enum(enum_type, bytes)
     index = bytes[0]
-    raise IndexOutOfRangeError, "type: #{enum}, bytes: #{bytes}" if index > enum[:_enum].length - 1
+    raise IndexOutOfRangeError, "type: #{enum_type}, bytes: #{bytes}" if index > enum_type[:_enum].length - 1
 
-    key = enum[:_enum].keys[index]
-    type = enum[:_enum].values[index]
+    key = enum_type[:_enum].keys[index]
+    type = enum_type[:_enum].values[index]
 
     value, remaining_bytes = do_decode(type, bytes[1..])
     [{ key => value }, remaining_bytes]
@@ -134,7 +157,7 @@ module ScaleRb2
   end
 
   def self.encode_types(type_list, value_list)
-    raise LengthNotEqualErr, "type: #{type_list}, value: #{value_list}" if type_list.length != value_list.length
+    raise LengthNotEqualErr, "type: #{type_list}, value: #{value_list.inspect}" if type_list.length != value_list.length
 
     if type_list.empty?
       []
@@ -226,7 +249,8 @@ module ScaleRb2
   end
 
   def self.do_encode(type, value)
-    return encode_string(bytes) if type == 'String'
+    return encode_boolean(value) if type == 'Boolean'
+    return encode_string(value) if type == 'String'
     return encode_compact(value) if type == 'Compact'
     return encode_uint(type, value) if uint?(type)
     return encode_array(type, value) if array?(type)
@@ -235,12 +259,12 @@ module ScaleRb2
     return encode_enum(type, value) if enum?(type)
     return encode_struct(type, value) if struct?(type)
 
-    raise NotImplemented, "type: #{type}, value: #{value}"
+    raise NotImplemented, "type: #{type}, value: #{value.inspect}"
   end
 
   def self.encode_array(type, array)
     inner_type, length = parse_fixed_array(type)
-    raise LengthNotEqualErr, "type: #{type}, value: #{array}" if length != array.length
+    raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array.length
 
     encode_fixed_array(inner_type, array)
   end

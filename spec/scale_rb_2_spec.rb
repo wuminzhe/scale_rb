@@ -241,4 +241,24 @@ RSpec.describe ScaleRb2 do
     bytes = ScaleRb2.encode_string('你好')
     expect(bytes).to eql([24, 228, 189, 160, 229, 165, 189])
   end
+
+  it 'can decode boolean' do
+    value, = ScaleRb2.decode('Boolean', [0x00])
+    expect(value).to eql(false)
+
+    value, = ScaleRb2.decode('Boolean', [0x01])
+    expect(value).to eql(true)
+
+    expect { ScaleRb2.decode('Boolean', [0x02]) }.to raise_error(ScaleRb2::InvalidBytesError)
+  end
+
+  it 'can encode boolean' do
+    bytes = ScaleRb2.encode('Boolean', false)
+    expect(bytes).to eql([0x00])
+
+    bytes = ScaleRb2.encode('Boolean', true)
+    expect(bytes).to eql([0x01])
+
+    expect { ScaleRb2.encode('Boolean', nil) }.to raise_error(ScaleRb2::InvalidValueError)
+  end
 end
