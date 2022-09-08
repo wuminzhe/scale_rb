@@ -225,4 +225,20 @@ RSpec.describe ScaleRb2 do
     bytes = ScaleRb2.encode('(Compact, [u16; 2], Compact)', [63, [64_302, 64_302], 69])
     expect(bytes).to eql([0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
   end
+
+  it 'can correctly decode string' do
+    value, = ScaleRb2.decode_string([20, 104, 101, 108, 108, 111])
+    expect(value).to eql('hello')
+
+    value, = ScaleRb2.decode_string([24, 228, 189, 160, 229, 165, 189])
+    expect(value).to eql('你好')
+  end
+
+  it 'can correctly encode string' do
+    bytes = ScaleRb2.encode_string('hello')
+    expect(bytes).to eql([20, 104, 101, 108, 108, 111])
+
+    bytes = ScaleRb2.encode_string('你好')
+    expect(bytes).to eql([24, 228, 189, 160, 229, 165, 189])
+  end
 end

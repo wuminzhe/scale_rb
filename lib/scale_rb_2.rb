@@ -56,7 +56,7 @@ module ScaleRb2
     end
 
     def decode(type, bytes)
-      logger.debug '========================================================================================= >>>'
+      logger.debug '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
       logger.debug "           type: #{type}"
       logger.debug "          bytes: #{bytes}"
       value, remaining_bytes = do_decode(type, bytes)
@@ -66,7 +66,7 @@ module ScaleRb2
     end
 
     def encode(type, value)
-      logger.debug '>>> ========================================================================================='
+      logger.debug '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
       logger.debug "           type: #{type}"
       logger.debug "          value: #{value}"
       bytes = do_encode(type, value)
@@ -76,6 +76,7 @@ module ScaleRb2
   end
 
   def self.do_decode(type, bytes)
+    return decode_string(bytes) if type == 'String'
     return decode_compact(bytes) if type == 'Compact'
     return decode_uint(type, bytes) if uint?(type) # u8, u16...
     return decode_array(type, bytes) if array?(type) # [u8; 3]
@@ -85,6 +86,22 @@ module ScaleRb2
     return decode_struct(type, bytes) if struct?(type)
 
     raise NotImplemented, "type: #{enum}, bytes: #{bytes}"
+  end
+
+  def self.decode_string(bytes)
+    length, remaining_bytes = decode_compact(bytes)
+    raise NotEnoughBytesError, "type: #{type}, bytes: #{bytes}" if remaining_bytes.length < length
+
+    [
+      remaining_bytes[0...length].pack('C*').force_encoding('utf-8'),
+      remaining_bytes[length..]
+    ]
+  end
+
+  def self.encode_string(string)
+    body = string.unpack('C*')
+    prefix = encode_compact(body.length)
+    prefix + body
   end
 
   def self.decode_enum(enum, bytes)
@@ -138,6 +155,18 @@ module ScaleRb2
   #   end
   # end
 
+  # def self.decode_2(type)
+  #   lambda do |bytes|
+  #     value = type.to_s
+  #     [value, bytes[1..]]
+  #   end
+  # end
+  #
+  # {
+  #   bytes = [1, 2, 3]
+  #   decode_2('Compact').call(bytes)
+  # }
+  #
   def self.decode_types(type_list, bytes)
     if type_list.empty?
       [[], bytes]
@@ -185,6 +214,30 @@ module ScaleRb2
     decode_fixed_array(inner_type, length, remaining_bytes)
   end
 
+  def self.decode_uint(type, bytes)
+    bits_len = type[1..].to_i
+    bytes_len = bits_len / 8
+    raise NotEnoughBytesError, "type: #{type}, bytes: #{bytes}" if bytes.length < bytes_len
+
+    [
+      bytes[0...bytes_len].to_uint,
+      bytes[bytes_len..]
+    ]
+  end
+
+  def self.do_encode(type, value)
+    return encode_string(bytes) if type == 'String'
+    return encode_compact(value) if type == 'Compact'
+    return encode_uint(type, value) if uint?(type)
+    return encode_array(type, value) if array?(type)
+    return encode_vec(type, value) if vec?(type)
+    return encode_tuple(type, value) if tuple?(type)
+    return encode_enum(type, value) if enum?(type)
+    return encode_struct(type, value) if struct?(type)
+
+    raise NotImplemented, "type: #{type}, value: #{value}"
+  end
+
   def self.encode_array(type, array)
     inner_type, length = parse_fixed_array(type)
     raise LengthNotEqualErr, "type: #{type}, value: #{array}" if length != array.length
@@ -209,32 +262,9 @@ module ScaleRb2
     end
   end
 
-  def self.decode_uint(type, bytes)
-    bits_len = type[1..].to_i
-    bytes_len = bits_len / 8
-    raise NotEnoughBytesError, "type: #{type}, bytes: #{bytes}" if bytes.length < bytes_len
-
-    [
-      bytes[0...bytes_len].to_uint,
-      bytes[bytes_len..]
-    ]
-  end
-
   def self.encode_uint(type, value)
     bit_length = type[1..].to_i
     value.to_bytes(bit_length).flip
-  end
-
-  def self.do_encode(type, value)
-    return encode_compact(value) if type == 'Compact'
-    return encode_uint(type, value) if uint?(type)
-    return encode_array(type, value) if array?(type)
-    return encode_vec(type, value) if vec?(type)
-    return encode_tuple(type, value) if tuple?(type)
-    return encode_enum(type, value) if enum?(type)
-    return encode_struct(type, value) if struct?(type)
-
-    raise NotImplemented, "type: #{type}, value: #{value}"
   end
 
   def self.encode_compact(value)
