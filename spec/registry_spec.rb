@@ -50,4 +50,22 @@ RSpec.describe ScaleRb2 do
                        ])
     expect(remaining_bytes).to eql([0x78])
   end
+
+  it 'encode complex array' do
+    registry = {
+      'CustomType1' => 'Type1',
+      'Type1' => 'Compact',
+      'CustomType2' => 'u16'
+    }
+    type = '[([CustomType1; 3], CustomType2); 2]'
+    value = [
+      [[1, 1_073_741_824, 69], 64_302],
+      [[63, 42, 1_073_741_823], 64_302]
+    ]
+    bytes = ScaleRb2.do_encode(type, value, registry)
+    expect(bytes).to eql([
+                           0x04, 0x03, 0x00, 0x00, 0x00, 0x40, 0x15, 0x01, 0x2e, 0xfb,
+                           0xfc, 0xa8, 0xfe, 0xff, 0xff, 0xff, 0x2e, 0xfb
+                         ])
+  end
 end
