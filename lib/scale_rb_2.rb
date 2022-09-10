@@ -124,7 +124,7 @@ module ScaleRb2
       return decode_tuple(type, bytes, registry) if tuple?(type) # (u8, u8)
 
       registry_type = get_final_type_from_registry(registry, type)
-      do_decode(registry_type, bytes, registry) if registry_type
+      return do_decode(registry_type, bytes, registry) if registry_type
     elsif type.instance_of?(Hash)
       return decode_enum(type, bytes, registry) if enum?(type)
       return decode_struct(type, bytes, registry) if struct?(type)
@@ -290,7 +290,7 @@ module ScaleRb2
       return encode_tuple(type, value, registry) if tuple?(type)
 
       registry_type = get_final_type_from_registry(registry, type)
-      do_encode(registry_type, value, registry) if registry_type
+      return do_encode(registry_type, value, registry) if registry_type
     elsif type.instance_of?(Hash)
       return encode_enum(type, value, registry) if enum?(type)
       return encode_struct(type, value, registry) if struct?(type)
