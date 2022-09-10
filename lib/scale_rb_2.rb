@@ -126,8 +126,8 @@ module ScaleRb2
       registry_type = get_final_type_from_registry(registry, type)
       do_decode(registry_type, bytes, registry) if registry_type
     elsif type.instance_of?(Hash)
-      return decode_enum(type, bytes) if enum?(type)
-      return decode_struct(type, bytes) if struct?(type)
+      return decode_enum(type, bytes, registry) if enum?(type)
+      return decode_struct(type, bytes, registry) if struct?(type)
     end
 
     raise NotImplemented, "type: #{type.inspect}, bytes: #{bytes}"
@@ -279,42 +279,45 @@ module ScaleRb2
     ]
   end
 
-  def self.do_encode(type, value)
+  def self.do_encode(type, value, registry = {})
     if type.instance_of?(String)
       return encode_boolean(value) if boolean?(type)
       return encode_string(value) if string?(type)
       return encode_compact(value) if compact?(type)
       return encode_uint(type, value) if uint?(type)
-      return encode_array(type, value) if array?(type)
-      return encode_vec(type, value) if vec?(type)
-      return encode_tuple(type, value) if tuple?(type)
+      return encode_array(type, value, registry) if array?(type)
+      return encode_vec(type, value, registry) if vec?(type)
+      return encode_tuple(type, value, registry) if tuple?(type)
+
+      registry_type = get_final_type_from_registry(registry, type)
+      do_encode(registry_type, value, registry) if registry_type
     elsif type.instance_of?(Hash)
-      return encode_enum(type, value) if enum?(type)
-      return encode_struct(type, value) if struct?(type)
+      return encode_enum(type, value, registry) if enum?(type)
+      return encode_struct(type, value, registry) if struct?(type)
     end
 
     raise NotImplemented, "type: #{type}, value: #{value.inspect}"
   end
 
-  def self.encode_array(type, array)
+  def self.encode_array(type, array, registry = {})
     inner_type, length = parse_fixed_array(type)
     raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array.length
 
-    encode_fixed_array(inner_type, array)
+    encode_fixed_array(inner_type, array, registry)
   end
 
-  def self.encode_vec(type, array)
+  def self.encode_vec(type, array, registry = {})
     inner_type = type.scan(/\AVec<(.+)>\z/).first.first
-    do_encode('Compact', array.length) +
+    encode_compact(array.length) +
       array.reduce([]) do |bytes, value|
-        bytes + do_encode(inner_type, value)
+        bytes + do_encode(inner_type, value, registry)
       end
   end
 
-  def self.encode_fixed_array(inner_type, array)
+  def self.encode_fixed_array(inner_type, array, registry = {})
     if array.length >= 1
-      bytes = do_encode(inner_type, array[0])
-      bytes + encode_fixed_array(inner_type, array[1..])
+      bytes = do_encode(inner_type, array[0], registry)
+      bytes + encode_fixed_array(inner_type, array[1..], registry)
     else
       []
     end
@@ -334,31 +337,31 @@ module ScaleRb2
     [(((bytes.length - 4) << 2) + 3)] + bytes
   end
 
-  def self.encode_enum(enum_type, enum)
+  def self.encode_enum(enum_type, enum, registry = {})
     key = enum.keys.first
     value = enum.values.first
     value_type = enum_type[:_enum][key]
     index = enum_type[:_enum].keys.index(key)
-    encode_uint('u8', index) + do_encode(value_type, value)
+    encode_uint('u8', index) + do_encode(value_type, value, registry)
   end
 
-  def self.encode_tuple(tuple_type, tuple)
+  def self.encode_tuple(tuple_type, tuple, registry = {})
     inner_types = tuple_type.scan(/\A\(\s*(.+)\s*\)\z/)[0][0].split(',').map(&:strip)
-    encode_types(inner_types, tuple)
+    encode_types(inner_types, tuple, registry)
   end
 
-  def self.encode_types(type_list, value_list)
+  def self.encode_types(type_list, value_list, registry = {})
     raise LengthNotEqualErr, "type: #{type_list}, value: #{value_list.inspect}" if type_list.length != value_list.length
 
     if type_list.empty?
       []
     else
-      bytes = do_encode(type_list.first, value_list.first)
-      bytes + encode_types(type_list[1..], value_list[1..])
+      bytes = do_encode(type_list.first, value_list.first, registry)
+      bytes + encode_types(type_list[1..], value_list[1..], registry)
     end
   end
 
-  def self.encode_struct(struct_type, struct)
-    encode_types(struct_type.values, struct.values)
+  def self.encode_struct(struct_type, struct, registry = {})
+    encode_types(struct_type.values, struct.values, registry)
   end
 end
