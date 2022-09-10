@@ -18,6 +18,32 @@ class Integer
     hex = to_s(16).rjust(bit_length / 4, '0')
     hex.to_bytes
   end
+
+  # unsigned to signed
+  def to_signed(bit_length)
+    unsigned_mid = 2**(bit_length - 1)
+    unsigned_ceiling = 2**bit_length
+    self >= unsigned_mid ? self - unsigned_ceiling : self
+  end
+
+  # signed to unsigned
+  def to_unsigned(bit_length)
+    unsigned_mid = 2**(bit_length - 1)
+    unsigned_ceiling = 2**bit_length
+    raise 'out of scope' if self >= unsigned_mid || self <= -unsigned_mid
+
+    negative? ? unsigned_ceiling + self : self
+  end
+
+  # unix timestamp to utc
+  def to_utc
+    Time.at(self).utc.asctime
+  end
+
+  # utc to unix timestamp
+  def from_utc(utc_asctime)
+    Time.parse(utc_asctime)
+  end
 end
 
 class Array
@@ -40,7 +66,11 @@ class Array
   end
 
   def to_uint
-    flip.to_hex.to_i(16)
+    to_hex.to_i(16)
+  end
+
+  def to_int(bit_length)
+    to_uint.to_signed(bit_length)
   end
 
   def flip
