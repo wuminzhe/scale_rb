@@ -4,6 +4,10 @@ require 'scale_rb_2/version'
 require 'monkey_patching'
 require 'logger'
 
+def bytes?(type)
+  type.downcase == 'bytes'
+end
+
 def boolean?(type)
   type.downcase == 'boolean'
 end
@@ -114,9 +118,10 @@ module ScaleRb2
 
   def self.do_decode(type, bytes, registry = {})
     if type.instance_of?(String)
-      return decode_boolean(bytes) if boolean?(type)
-      return decode_string(bytes) if string?(type)
-      return decode_compact(bytes) if compact?(type)
+      return decode_bytes(bytes) if bytes?(type) # Bytes
+      return decode_boolean(bytes) if boolean?(type) # Boolean
+      return decode_string(bytes) if string?(type) # String
+      return decode_compact(bytes) if compact?(type) # Compact
       return decode_int(type, bytes) if int?(type) # i8, i16...
       return decode_uint(type, bytes) if uint?(type) # u8, u16...
       return decode_array(type, bytes, registry) if array?(type) # [u8; 3]
@@ -131,6 +136,14 @@ module ScaleRb2
     end
 
     raise NotImplemented, "type: #{type.inspect}, bytes: #{bytes}"
+  end
+
+  def self.decode_bytes(bytes)
+    length, remaining_bytes = decode_compact(bytes)
+    [
+      remaining_bytes[0...length],
+      remaining_bytes[length..]
+    ]
   end
 
   def self.decode_boolean(bytes)
@@ -281,6 +294,7 @@ module ScaleRb2
 
   def self.do_encode(type, value, registry = {})
     if type.instance_of?(String)
+      return encode_bytes(value) if bytes?(type)
       return encode_boolean(value) if boolean?(type)
       return encode_string(value) if string?(type)
       return encode_compact(value) if compact?(type)
@@ -297,6 +311,10 @@ module ScaleRb2
     end
 
     raise NotImplemented, "type: #{type}, value: #{value.inspect}"
+  end
+
+  def self.encode_bytes(value)
+    encode_compact(value.length) + value
   end
 
   def self.encode_array(type, array, registry = {})

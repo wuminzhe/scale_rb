@@ -173,10 +173,10 @@ RSpec.describe ScaleRb2 do
       item2: 'Compact'
     }
     bytes = ScaleRb2.do_encode(struct, {
-                              item3: 63,
-                              item1: [64_302, 64_302],
-                              item2: 69
-                            })
+                                 item3: 63,
+                                 item1: [64_302, 64_302],
+                                 item2: 69
+                               })
     expect(bytes).to eql([0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
   end
 
@@ -269,5 +269,15 @@ RSpec.describe ScaleRb2 do
     expect(bytes).to eql([0x01])
 
     expect { ScaleRb2.do_encode('Boolean', nil) }.to raise_error(ScaleRb2::InvalidValueError)
+  end
+
+  it 'can decode bytes' do
+    value, = ScaleRb2.do_decode('Bytes', '0x14436166c3a9'.to_bytes)
+    expect(value).to eql('0x436166c3a9'.to_bytes)
+  end
+
+  it 'can encode bytes' do
+    bytes = ScaleRb2.do_encode('Bytes', '0x436166c3a9'.to_bytes)
+    expect(bytes).to eql('0x14436166c3a9'.to_bytes)
   end
 end
