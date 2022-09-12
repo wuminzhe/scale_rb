@@ -68,4 +68,51 @@ RSpec.describe ScaleRb2 do
                            0xfc, 0xa8, 0xfe, 0xff, 0xff, 0xff, 0x2e, 0xfb
                          ])
   end
+
+  it 'build registry' do
+    config = {
+      shared_types: {
+        TAssetBalance: 'u128'
+      },
+      versioned: [
+        {
+          minmax: 0..3,
+          types: {
+            DispatchError: 'DispatchErrorPre6First'
+          }
+        },
+        {
+          minmax: 4..5,
+          types: {
+            DispatchError: 'DispatchError'
+          }
+        },
+        {
+          minmax: 500..,
+          types: {
+            DispatchError: 'DispatchErrorAfter'
+          }
+        }
+      ]
+    }
+    registry = ScaleRb2.build_registry_from_config(config, 3)
+    expect(registry).to eql({
+                              DispatchError: 'DispatchErrorPre6First',
+                              TAssetBalance: 'u128'
+                            })
+    registry = ScaleRb2.build_registry_from_config(config, 4)
+    expect(registry).to eql({
+                              DispatchError: 'DispatchError',
+                              TAssetBalance: 'u128'
+                            })
+    registry = ScaleRb2.build_registry_from_config(config, 500)
+    expect(registry).to eql({
+                              DispatchError: 'DispatchErrorAfter',
+                              TAssetBalance: 'u128'
+                            })
+    registry = ScaleRb2.build_registry_from_config(config, 6)
+    expect(registry).to eql({
+                              TAssetBalance: 'u128'
+                            })
+  end
 end

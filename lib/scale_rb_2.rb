@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'scale_rb_2/version'
+require 'registry'
 require 'monkey_patching'
 require 'logger'
 
