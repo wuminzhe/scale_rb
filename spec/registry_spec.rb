@@ -115,4 +115,88 @@ RSpec.describe ScaleRb2 do
                               TAssetBalance: 'u128'
                             })
   end
+
+  # https://github.com/polkadot-js/api/blob/master/packages/types-support/src/metadata/v14/kusama-json.json
+  # https://raw.githubusercontent.com/polkadot-js/api/master/packages/types-support/src/metadata/v14/kusama-types.json
+  it 'hello' do
+    types = [
+      {
+        id: 0,
+        type: {
+          path: [
+            'sp_core',
+            'crypto',
+            'AccountId32'
+          ],
+          params: [],
+          def: {
+            Composite: {
+              fields: [
+                {
+                  name: null,
+                  type: 1,
+                  typeName: '[u8; 32]',
+                  docs: []
+                }
+              ]
+            }
+          },
+          docs: []
+        }
+      },
+      {
+        id: 1,
+        type: {
+          path: [],
+          params: [],
+          def: {
+            Array: {
+              len: 32,
+              type: 2
+            }
+          },
+          docs: []
+        }
+      },
+      {
+        id: 2,
+        type: {
+          path: [],
+          params: [],
+          def: {
+            Primitive: U8
+          },
+          docs: []
+        }
+      }
+    ]
+
+    # {
+    #   'Array_CustomType1_32' => {
+    #     _array: {
+    #       len: 32,
+    #       type: 'CustomType1'
+    #     }
+    #   }
+    # }
+    # {
+    #   'FrameSystemAccountInfo' => {
+    #     _struct: {
+    #       
+    #     }
+    #   }
+    # }
+
+    type_name, type_def = ScaleRb2.get_type(types, 0)
+    expect(type_name).to eql('SpCoreCryptoAccountId32')
+    expect(type_def).to eql('[U8; 32]')
+
+    # type_name, type_def = ScaleRb2.get_type(types, 2)
+    # expect(type_name).to eql('U8')
+    # expect(type_def).to eql('U8')
+    #
+    # type_name, type_def = ScaleRb2.get_type(types, 1)
+    # expect(type_name).to eql('[U8; 32]')
+    # expect(type_def).to eql('U8')
+  end
 end

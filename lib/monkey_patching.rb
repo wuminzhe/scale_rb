@@ -9,6 +9,10 @@ class String
     data = "0#{data}" if data.length.odd?
     data.scan(/../).map(&:hex)
   end
+
+  def to_camel
+    split('_').collect(&:capitalize).join
+  end
 end
 
 class Integer
