@@ -3,6 +3,7 @@
 require 'scale_rb_2/version'
 require 'registry'
 require 'monkey_patching'
+require 'build_type_names'
 require 'logger'
 
 def bytes?(type)
@@ -320,23 +321,23 @@ module ScaleRb2
 
   def self.encode_array(type, array, registry = {})
     inner_type, length = parse_fixed_array(type)
-    raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array.length
+    raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array_def.length
 
-    encode_fixed_array(inner_type, array, registry)
+    encode_fixed_array(inner_type, array_def, registry)
   end
 
-  def self.encode_vec(type, array, registry = {})
+  def self.encode_vec(type, array_def, registry = {})
     inner_type = type.scan(/\AVec<(.+)>\z/).first.first
-    encode_compact(array.length) +
-      array.reduce([]) do |bytes, value|
+    encode_compact(array_def.length) +
+      array_def.reduce([]) do |bytes, value|
         bytes + do_encode(inner_type, value, registry)
       end
   end
 
   def self.encode_fixed_array(inner_type, array, registry = {})
-    if array.length >= 1
-      bytes = do_encode(inner_type, array[0], registry)
-      bytes + encode_fixed_array(inner_type, array[1..], registry)
+    if array_def.length >= 1
+      bytes = do_encode(inner_type, array_def[0], registry)
+      bytes + encode_fixed_array(inner_type, array_def[1..], registry)
     else
       []
     end
