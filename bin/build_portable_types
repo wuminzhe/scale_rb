@@ -1,20 +1,27 @@
 #!/usr/bin/env ruby
 
-require "bundler/setup"
-require "scale_rb_2"
-require "json"
+require 'bundler/setup'
+require 'scale_rb_2'
+require 'json'
 
 types = JSON.parse(File.open('./substrate-types.json').read)
 # types = JSON.parse(File.open('./kusama-types.json').read)
 types = types.map { |type| [type['id'], type['type']] }.to_h
 
-id_name_map = {}
-name_id_map = {}
-build_type_names(types, id_name_map, name_id_map)
-
-id_name_map.each do |id, name|
-  puts "#{id}: #{name}" # if name.nil?
+types.each do |id, type|
+  unless type['path'].empty?
+    if type['params'].find_index { |param| param['type'].nil? }
+      p "#{id}, #{type['path'].join("::")}"
+    end
+  end
 end
+# id_name_map = {}
+# name_id_map = {}
+# build_type_names(types, id_name_map, name_id_map)
+#
+# id_name_map.each do |id, name|
+#   puts "#{id}: #{name}" # if name.nil?
+# end
 
 # id_name_map
 #   .values

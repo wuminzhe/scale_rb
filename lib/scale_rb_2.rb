@@ -4,6 +4,7 @@ require 'scale_rb_2/version'
 require 'registry'
 require 'monkey_patching'
 require 'build_type_names'
+require 'portable_types'
 require 'logger'
 
 def bytes?(type)
@@ -11,11 +12,11 @@ def bytes?(type)
 end
 
 def boolean?(type)
-  type.downcase == 'boolean'
+  type.downcase == 'bool' || type.downcase == 'boolean'
 end
 
 def string?(type)
-  type.downcase == 'string'
+  type.downcase == 'str' || type.downcase == 'string'
 end
 
 def compact?(type)
@@ -123,9 +124,9 @@ module ScaleRb2
       return decode_bytes(bytes) if bytes?(type) # Bytes
       return decode_boolean(bytes) if boolean?(type) # Boolean
       return decode_string(bytes) if string?(type) # String
-      return decode_compact(bytes) if compact?(type) # Compact
       return decode_int(type, bytes) if int?(type) # i8, i16...
       return decode_uint(type, bytes) if uint?(type) # u8, u16...
+      return decode_compact(bytes) if compact?(type) # Compact
       return decode_array(type, bytes, registry) if array?(type) # [u8; 3]
       return decode_vec(type, bytes, registry) if vec?(type) # Vec<u8>
       return decode_tuple(type, bytes, registry) if tuple?(type) # (u8, u8)

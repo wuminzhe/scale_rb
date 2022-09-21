@@ -49,11 +49,10 @@ end
 def get_type(id, types, result)
   # TODO: id check
   if result[:types][id].nil?
-    puts id
     type = build_type(types[id], types, result)
 
     # fix type name if need
-    type[:name] = get_type_name(id, type[:name], result[:name_id_map])
+    type[:name] = fix_type_name(id, type[:name], result[:name_id_map])
     result[:name_id_map][type[:name]] = id
 
     result[:types][id] = type
@@ -61,7 +60,7 @@ def get_type(id, types, result)
   result[:types][id]
 end
 
-def get_type_name(id, name, name_id_map)
+def fix_type_name(id, name, name_id_map)
   if name_id_map.key?(name)
     exist_id = name_id_map[name]
     if exist_id != id
@@ -110,7 +109,7 @@ def build_array(array_def, types, result)
   len = array_def['len']
   inner_type_id = array_def['type']
 
-  inner_type = get_type(inner_type_id, types, result)
+  inner_type = get_type_name(inner_type_id, types, result)
   inner_type_name = inner_type[:name]
 
   {
