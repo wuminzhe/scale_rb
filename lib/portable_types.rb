@@ -65,7 +65,7 @@ module PortableTypes
 
       type_value_list, remaining_bytes = _decode_types(type_id_list, bytes, registry)
       [
-        [type_name_list, type_value_list].transpose,
+        type_name_list.all?(&:nil?) ? type_value_list : [type_name_list, type_value_list].transpose,
         remaining_bytes
       ]
     end
@@ -81,7 +81,7 @@ module PortableTypes
       item, remaining_bytes = decode_composite(item_variant, bytes[1..], registry)
 
       [
-        item.empty? ? item_name : [item_name, item.to_h.values],
+        item.empty? ? item_name : [item_name, item],
         remaining_bytes
       ]
     end

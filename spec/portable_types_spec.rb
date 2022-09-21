@@ -27,9 +27,12 @@ RSpec.describe PortableTypes do
     expect(remaining_bytes).to eql([])
   end
 
-  it 'can decode sequence' do
+  it 'can decode composite1' do
+    # AccountId32
     value, remaining_bytes = PortableTypes.decode 0, [0x12, 0x34, 0x56, 0x78] * 8, @registry
-    expect(value).to eql([[nil, [0x12, 0x34, 0x56, 0x78] * 8]])
+    expect(value).to eql([
+                           [0x12, 0x34, 0x56, 0x78] * 8
+                         ])
     expect(remaining_bytes).to eql([])
   end
 
@@ -39,14 +42,14 @@ RSpec.describe PortableTypes do
     value, remaining_bytes = PortableTypes.decode 55, bytes, @registry
     expect(value).to eql([
                            [
-                             [nil, [0x12, 0x34, 0x56, 0x78] * 8]
+                             [0x12, 0x34, 0x56, 0x78] * 8
                            ], # composite
                            18_446_744_073_709_551_115 # u128
                          ])
     expect(remaining_bytes).to eql([])
   end
 
-  it 'can decode composite' do
+  it 'can decode composite2' do
     # has name
     bytes = [0x00, 0xe4, 0x0b, 0x54, 0x03, 0x00, 0x00, 0x00]
     value, = PortableTypes.decode 8, bytes, @registry
