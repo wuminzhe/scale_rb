@@ -316,6 +316,7 @@ module ScaleRb2
       return encode_string(value) if string?(type)
       return encode_compact(value) if compact?(type)
       return encode_uint(type, value) if uint?(type)
+      return encode_option(type, value, registry) if option?(type)
       return encode_array(type, value, registry) if array?(type)
       return encode_vec(type, value, registry) if vec?(type)
       return encode_tuple(type, value, registry) if tuple?(type)
@@ -334,6 +335,13 @@ module ScaleRb2
     encode_compact(value.length) + value
   end
 
+  def self.encode_option(type, value, registry = {})
+    return [0x00] if value.nil?
+
+    inner_type = type.scan(/\A[O|o]ption<(.+)>\z/).first.first
+    [0x01] + do_encode(inner_type, value, registry)
+  end
+
   def self.encode_array(type, array, registry = {})
     inner_type, length = parse_fixed_array(type)
     raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array.length
@@ -342,7 +350,7 @@ module ScaleRb2
   end
 
   def self.encode_vec(type, array, registry = {})
-    inner_type = type.scan(/\AVec<(.+)>\z/).first.first
+    inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
     encode_compact(array.length) +
       array.reduce([]) do |bytes, value|
         bytes + do_encode(inner_type, value, registry)

@@ -291,4 +291,11 @@ RSpec.describe ScaleRb2 do
     expect { ScaleRb2.do_decode('Option<Compact>', '0x02') }.to raise_error(ScaleRb2::InvalidBytesError)
   end
 
+  it 'can encode option' do
+    bytes = ScaleRb2.do_encode('Option<Compact>', nil)
+    expect(bytes).to eql([0x00])
+
+    bytes = ScaleRb2.do_encode('Option<Compact>', 69)
+    expect(bytes).to eql([0x01, 0x15, 0x01])
+  end
 end
