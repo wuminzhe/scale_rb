@@ -268,23 +268,13 @@ module ScaleRb2
 
   def self.decode_array(type, bytes, registry = {})
     inner_type, length = parse_fixed_array(type)
-    decode_fixed_array(inner_type, length, bytes, registry)
-  end
-
-  def self.decode_fixed_array(inner_type, length, bytes, registry = {})
-    if length >= 1
-      value, remaining_bytes = do_decode(inner_type, bytes, registry)
-      arr, remaining_bytes = decode_fixed_array(inner_type, length - 1, remaining_bytes, registry)
-      [[value] + arr, remaining_bytes]
-    else
-      [[], bytes]
-    end
+    decode_types([inner_type] * length, bytes, registry)
   end
 
   def self.decode_vec(type, bytes, registry = {})
     inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
     length, remaining_bytes = decode_compact(bytes)
-    decode_fixed_array(inner_type, length, remaining_bytes, registry)
+    decode_types([inner_type] * length, remaining_bytes, registry)
   end
 
   def self.decode_int(type, bytes)
