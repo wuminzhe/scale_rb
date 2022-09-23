@@ -215,7 +215,7 @@ RSpec.describe ScaleRb2 do
   end
 
   it 'can decode vec' do
-    arr, remaining_bytes = ScaleRb2.do_decode('Vec<u8>', '0x0c003afe'.to_bytes)
+    arr, remaining_bytes = ScaleRb2.do_decode('vec<u8>', '0x0c003afe'.to_bytes)
     expect(arr).to eql([0, 58, 254])
     expect(remaining_bytes).to eql([])
   end
@@ -280,4 +280,15 @@ RSpec.describe ScaleRb2 do
     bytes = ScaleRb2.do_encode('Bytes', '0x436166c3a9'.to_bytes)
     expect(bytes).to eql('0x14436166c3a9'.to_bytes)
   end
+
+  it 'can decode option' do
+    value, = ScaleRb2.do_decode('Option<Compact>', '0x00'.to_bytes)
+    expect(value).to eql(nil)
+
+    value, = ScaleRb2.do_decode('Option<Compact>', '0x011501'.to_bytes)
+    expect(value).to eql(69)
+
+    expect { ScaleRb2.do_decode('Option<Compact>', '0x02') }.to raise_error(ScaleRb2::InvalidBytesError)
+  end
+
 end

@@ -6,6 +6,7 @@ require 'monkey_patching'
 require 'build_type_names'
 require 'portable_types'
 require 'logger'
+# require 'metadata_decode'
 
 def bytes?(type)
   type.downcase == 'bytes'
@@ -13,6 +14,10 @@ end
 
 def boolean?(type)
   type.downcase == 'bool' || type.downcase == 'boolean'
+end
+
+def option?(type)
+  type[0..6].downcase == 'option<' && type[-1] == '>'
 end
 
 def string?(type)
@@ -126,7 +131,8 @@ module ScaleRb2
       return decode_string(bytes) if string?(type) # String
       return decode_int(type, bytes) if int?(type) # i8, i16...
       return decode_uint(type, bytes) if uint?(type) # u8, u16...
-      return decode_compact(bytes) if compact?(type) # Compact
+      return decode_compact(bytes) if compact?(type) # Compact<>
+      return decode_option(type, bytes, registry) if option?(type) # Option<>
       return decode_array(type, bytes, registry) if array?(type) # [u8; 3]
       return decode_vec(type, bytes, registry) if vec?(type) # Vec<u8>
       return decode_tuple(type, bytes, registry) if tuple?(type) # (u8, u8)
@@ -203,6 +209,14 @@ module ScaleRb2
     decode_types(inner_types, bytes, registry)
   end
 
+  def self.decode_option(type, bytes, registry = {})
+    inner_type = type.scan(/\A[O|o]ption<(.+)>\z/).first.first
+    return nil if bytes[0] == 0x00
+    return do_decode(inner_type, bytes[1..], registry) if bytes[0] == 0x01
+
+    raise InvalidBytesError, "type: #{type}, bytes: #{bytes}"
+  end
+
   # # tail recursion
   # def self.decode_types_2(types, bytes, result = [])
   #   if types.empty?
@@ -268,7 +282,7 @@ module ScaleRb2
   end
 
   def self.decode_vec(type, bytes, registry = {})
-    inner_type = type.scan(/\AVec<(.+)>\z/).first.first
+    inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
     length, remaining_bytes = decode_compact(bytes)
     decode_fixed_array(inner_type, length, remaining_bytes, registry)
   end
@@ -322,23 +336,23 @@ module ScaleRb2
 
   def self.encode_array(type, array, registry = {})
     inner_type, length = parse_fixed_array(type)
-    raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array_def.length
+    raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array.length
 
-    encode_fixed_array(inner_type, array_def, registry)
+    encode_fixed_array(inner_type, array, registry)
   end
 
-  def self.encode_vec(type, array_def, registry = {})
+  def self.encode_vec(type, array, registry = {})
     inner_type = type.scan(/\AVec<(.+)>\z/).first.first
-    encode_compact(array_def.length) +
-      array_def.reduce([]) do |bytes, value|
+    encode_compact(array.length) +
+      array.reduce([]) do |bytes, value|
         bytes + do_encode(inner_type, value, registry)
       end
   end
 
   def self.encode_fixed_array(inner_type, array, registry = {})
-    if array_def.length >= 1
-      bytes = do_encode(inner_type, array_def[0], registry)
-      bytes + encode_fixed_array(inner_type, array_def[1..], registry)
+    if array.length >= 1
+      bytes = do_encode(inner_type, array[0], registry)
+      bytes + encode_fixed_array(inner_type, array[1..], registry)
     else
       []
     end
