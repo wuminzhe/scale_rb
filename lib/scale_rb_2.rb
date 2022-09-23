@@ -336,24 +336,13 @@ module ScaleRb2
     inner_type, length = parse_fixed_array(type)
     raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array.length
 
-    encode_fixed_array(inner_type, array, registry)
+    encode_types([inner_type] * length, array, registry)
   end
 
   def self.encode_vec(type, array, registry = {})
     inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
-    encode_compact(array.length) +
-      array.reduce([]) do |bytes, value|
-        bytes + do_encode(inner_type, value, registry)
-      end
-  end
-
-  def self.encode_fixed_array(inner_type, array, registry = {})
-    if array.length >= 1
-      bytes = do_encode(inner_type, array[0], registry)
-      bytes + encode_fixed_array(inner_type, array[1..], registry)
-    else
-      []
-    end
+    length_bytes = encode_compact(array.length)
+    length_bytes + encode_types([inner_type] * array.length, array, registry)
   end
 
   def self.encode_uint(type, value)
