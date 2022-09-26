@@ -147,7 +147,7 @@ module ScaleRb2
   def self.decode_bytes(bytes)
     length, remaining_bytes = decode_compact(bytes)
     [
-      remaining_bytes[0...length],
+      remaining_bytes[0...length].to_hex,
       remaining_bytes[length..]
     ]
   end
