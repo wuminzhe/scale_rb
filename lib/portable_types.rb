@@ -74,7 +74,10 @@ module PortableTypes
       variants = variant_type['variants']
 
       index = bytes[0]
-      raise ScaleRb2::IndexOutOfRangeError, "type: #{variant_type}, bytes: #{bytes}" if index > variants.length - 1
+      puts index
+      puts (variants.length - 1)
+      raise ScaleRb2::IndexOutOfRangeError, "type: #{variant_type}, bytes: #{bytes}" if index > (variants.length - 1)
+      puts '------------------'
 
       item_variant = variants.find { |v| v['index'] == index }
       item_name = item_variant['name']

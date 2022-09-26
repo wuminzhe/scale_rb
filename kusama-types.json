@@ -144,13 +144,13 @@
               "docs": []
             },
             {
-              "name": "misc_frozen",
+              "name": "free_kton",
               "type": 6,
               "typeName": "Balance",
               "docs": []
             },
             {
-              "name": "fee_frozen",
+              "name": "reserved_kton",
               "type": 6,
               "typeName": "Balance",
               "docs": []

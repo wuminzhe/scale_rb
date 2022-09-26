@@ -6,7 +6,7 @@ require 'monkey_patching'
 require 'build_type_names'
 require 'portable_types'
 require 'logger'
-# require 'metadata_decode'
+require 'metadata_decode'
 
 def bytes?(type)
   type.downcase == 'bytes'
@@ -21,7 +21,7 @@ def option?(type)
 end
 
 def string?(type)
-  type.downcase == 'str' || type.downcase == 'string'
+  type.downcase == 'str' || type.downcase == 'string' || type.downcase == 'text'
 end
 
 def compact?(type)
@@ -99,15 +99,12 @@ module ScaleRb2
       end
     end
 
-    def decode(type, bytes)
-      logger.debug '<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<'
-      logger.debug "           type: #{type}"
-      logger.debug "          bytes: #{bytes}"
+    def decode(type, bytes, registry = {})
+      logger.debug '--------------------------------------------------'
+      logger.debug "decoding type: #{type}"
+      logger.debug "        bytes: #{bytes&.length}"
 
-      value, remaining_bytes = do_decode(type, bytes)
-
-      logger.debug "        decoded: #{value}"
-      logger.debug "remaining bytes: #{remaining_bytes}"
+      value, remaining_bytes = do_decode(type, bytes, registry)
 
       [value, remaining_bytes]
     end
@@ -138,13 +135,13 @@ module ScaleRb2
       return decode_tuple(type, bytes, registry) if tuple?(type) # (u8, u8)
 
       registry_type = get_final_type_from_registry(registry, type)
-      return do_decode(registry_type, bytes, registry) if registry_type
+      return decode(registry_type, bytes, registry) if registry_type
     elsif type.instance_of?(Hash)
       return decode_enum(type, bytes, registry) if enum?(type)
       return decode_struct(type, bytes, registry) if struct?(type)
     end
 
-    raise NotImplemented, "type: #{type.inspect}, bytes: #{bytes}"
+    raise NotImplemented, "type: #{type.inspect}"
   end
 
   def self.decode_bytes(bytes)
@@ -159,7 +156,7 @@ module ScaleRb2
     return [false, bytes[1..]] if bytes[0] == 0x00
     return [true, bytes[1..]] if bytes[0] == 0x01
 
-    raise InvalidBytesError, "type: Boolean, bytes: #{bytes}"
+    raise InvalidBytesError, 'type: Boolean'
   end
 
   def self.encode_boolean(value)
@@ -171,10 +168,13 @@ module ScaleRb2
 
   def self.decode_string(bytes)
     length, remaining_bytes = decode_compact(bytes)
-    raise NotEnoughBytesError, "type: String, bytes: #{bytes}" if remaining_bytes.length < length
+    raise NotEnoughBytesError, 'type: String' if remaining_bytes.length < length
 
+    logger.debug "String bytes length: #{length}, remaining bytes: #{remaining_bytes&.length}"
+    str = remaining_bytes[0...length].to_utf8
+    logger.debug "String: #{str}"
     [
-      remaining_bytes[0...length].to_utf8,
+      str,
       remaining_bytes[length..]
     ]
   end
@@ -185,15 +185,29 @@ module ScaleRb2
     prefix + body
   end
 
+  # TODO: custrom index
   def self.decode_enum(enum_type, bytes, registry = {})
     index = bytes[0]
-    raise IndexOutOfRangeError, "type: #{enum_type}, bytes: #{bytes}" if index > enum_type[:_enum].length - 1
+    raise IndexOutOfRangeError, "type: #{enum_type}" if index > enum_type[:_enum].length - 1
 
-    key = enum_type[:_enum].keys[index]
-    type = enum_type[:_enum].values[index]
+    remaining_bytes = bytes[1..]
+    if enum_type[:_enum].instance_of?(Hash)
+      key = enum_type[:_enum].keys[index]
+      type = enum_type[:_enum].values[index]
 
-    value, remaining_bytes = do_decode(type, bytes[1..], registry)
-    [{ key => value }, remaining_bytes]
+      value, remaining_bytes = decode(type, remaining_bytes, registry)
+      [
+        { key => value },
+        remaining_bytes
+      ]
+    elsif enum_type[:_enum].instance_of?(Array)
+      value = enum_type[:_enum][index]
+      logger.debug "Enum value: #{value}"
+      [
+        value,
+        remaining_bytes
+      ]
+    end
   end
 
   def self.decode_struct(struct, bytes, registry = {})
@@ -211,10 +225,12 @@ module ScaleRb2
 
   def self.decode_option(type, bytes, registry = {})
     inner_type = type.scan(/\A[O|o]ption<(.+)>\z/).first.first
-    return nil if bytes[0] == 0x00
-    return do_decode(inner_type, bytes[1..], registry) if bytes[0] == 0x01
+    logger.debug "Option inner type: #{inner_type}"
 
-    raise InvalidBytesError, "type: #{type}, bytes: #{bytes}"
+    return [nil, bytes[1..]] if bytes[0] == 0x00
+    return decode(inner_type, bytes[1..], registry) if bytes[0] == 0x01
+
+    raise InvalidBytesError, "type: #{type}"
   end
 
   # # tail recursion
@@ -244,26 +260,29 @@ module ScaleRb2
     if type_list.empty?
       [[], bytes]
     else
-      value, remaining_bytes = do_decode(type_list.first, bytes, registry)
+      value, remaining_bytes = decode(type_list.first, bytes, registry)
       value_list, remaining_bytes = decode_types(type_list[1..], remaining_bytes, registry)
       [[value] + value_list, remaining_bytes]
     end
   end
 
   def self.decode_compact(bytes)
-    case bytes[0] & 3
-    when 0
-      [bytes[0] >> 2, bytes[1..]]
-    when 1
-      [bytes[0..1].flip.to_uint >> 2, bytes[2..]]
-    when 2
-      [bytes[0..3].flip.to_uint >> 2, bytes[4..]]
-    when 3
-      length = 4 + (bytes[0] >> 2)
-      [bytes[1..length].flip.to_uint, bytes[length + 1..]]
-    else
-      raise Unreachable, "type: Compact, bytes: #{bytes}"
-    end
+    result =
+      case bytes[0] & 3
+      when 0
+        [bytes[0] >> 2, bytes[1..]]
+      when 1
+        [bytes[0..1].flip.to_uint >> 2, bytes[2..]]
+      when 2
+        [bytes[0..3].flip.to_uint >> 2, bytes[4..]]
+      when 3
+        length = 4 + (bytes[0] >> 2)
+        [bytes[1..length].flip.to_uint, bytes[length + 1..]]
+      else
+        raise Unreachable, 'type: Compact'
+      end
+    logger.debug "Compact value: #{result[0]}"
+    result
   end
 
   def self.decode_array(type, bytes, registry = {})
@@ -274,13 +293,14 @@ module ScaleRb2
   def self.decode_vec(type, bytes, registry = {})
     inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
     length, remaining_bytes = decode_compact(bytes)
+    logger.debug "Vec length: #{length}, remaining bytes: #{remaining_bytes&.length}"
     decode_types([inner_type] * length, remaining_bytes, registry)
   end
 
   def self.decode_int(type, bytes)
     bit_length = type[1..].to_i
     byte_length = bit_length / 8
-    raise NotEnoughBytesError, "type: #{type}, bytes: #{bytes}" if bytes.length < byte_length
+    raise NotEnoughBytesError, "type: #{type}" if bytes.length < byte_length
 
     [
       bytes[0...byte_length].flip.to_int(bit_length),
@@ -291,10 +311,12 @@ module ScaleRb2
   def self.decode_uint(type, bytes)
     bit_length = type[1..].to_i
     byte_length = bit_length / 8
-    raise NotEnoughBytesError, "type: #{type}, bytes: #{bytes}" if bytes.length < byte_length
+    raise NotEnoughBytesError, "type: #{type}" if bytes.length < byte_length
 
+    value = bytes[0...byte_length].flip.to_uint
+    logger.debug "#{type} value: #{value}"
     [
-      bytes[0...byte_length].flip.to_uint,
+      value,
       bytes[byte_length..]
     ]
   end
