@@ -8,6 +8,8 @@ require 'portable_types'
 require 'logger'
 require 'metadata_decode'
 
+# TODO: set
+
 def bytes?(type)
   type.downcase == 'bytes'
 end
@@ -84,8 +86,12 @@ module ScaleRb2
 
     def logger
       @logger ||= Logger.new($stdout)
-      @logger.level = Logger::INFO
+      @logger.level = Logger::DEBUG
       @logger
+    end
+
+    def debug(key, value)
+      logger.debug "#{key.rjust(15)}: #{value}"
     end
 
     def get_final_type_from_registry(registry, type)
@@ -101,12 +107,10 @@ module ScaleRb2
 
     def decode(type, bytes, registry = {})
       logger.debug '--------------------------------------------------'
-      logger.debug "decoding type: #{type}"
-      logger.debug "        bytes: #{bytes&.length}"
+      debug 'decoding type', type
+      debug 'bytes', bytes&.length
 
-      value, remaining_bytes = do_decode(type, bytes, registry)
-
-      [value, remaining_bytes]
+      do_decode(type, bytes, registry)
     end
 
     def encode(type, value)
@@ -145,44 +149,40 @@ module ScaleRb2
   end
 
   def self.decode_bytes(bytes)
-    length, remaining_bytes = decode_compact(bytes)
+    length, remaining_bytes = do_decode_compact(bytes)
+    value = remaining_bytes[0...length].to_hex
+    debug 'length', length
+    debug 'value', value
     [
-      remaining_bytes[0...length].to_hex,
+      value,
       remaining_bytes[length..]
     ]
   end
 
   def self.decode_boolean(bytes)
-    return [false, bytes[1..]] if bytes[0] == 0x00
-    return [true, bytes[1..]] if bytes[0] == 0x01
-
-    raise InvalidBytesError, 'type: Boolean'
-  end
-
-  def self.encode_boolean(value)
-    return [0x00] if value == false
-    return [0x01] if value == true
-
-    raise InvalidValueError, "type: Boolean, value: #{value.inspect}"
+    value =
+      if bytes[0] == 0x00
+        false
+      elsif bytes[0] == 0x01
+        true
+      else
+        raise InvalidBytesError, 'type: Boolean'
+      end
+    debug 'value', value
+    [value, bytes[1..]]
   end
 
   def self.decode_string(bytes)
-    length, remaining_bytes = decode_compact(bytes)
+    length, remaining_bytes = do_decode_compact(bytes)
     raise NotEnoughBytesError, 'type: String' if remaining_bytes.length < length
 
-    logger.debug "String bytes length: #{length}, remaining bytes: #{remaining_bytes&.length}"
-    str = remaining_bytes[0...length].to_utf8
-    logger.debug "String: #{str}"
+    value = remaining_bytes[0...length].to_utf8
+    debug 'byte length', length
+    debug 'value', value.inspect
     [
-      str,
+      value,
       remaining_bytes[length..]
     ]
-  end
-
-  def self.encode_string(string)
-    body = string.unpack('C*')
-    prefix = encode_compact(body.length)
-    prefix + body
   end
 
   # TODO: custrom index
@@ -202,7 +202,7 @@ module ScaleRb2
       ]
     elsif enum_type[:_enum].instance_of?(Array)
       value = enum_type[:_enum][index]
-      logger.debug "Enum value: #{value}"
+      debug 'value', value.inspect
       [
         value,
         remaining_bytes
@@ -225,7 +225,6 @@ module ScaleRb2
 
   def self.decode_option(type, bytes, registry = {})
     inner_type = type.scan(/\A[O|o]ption<(.+)>\z/).first.first
-    logger.debug "Option inner type: #{inner_type}"
 
     return [nil, bytes[1..]] if bytes[0] == 0x00
     return decode(inner_type, bytes[1..], registry) if bytes[0] == 0x01
@@ -267,6 +266,12 @@ module ScaleRb2
   end
 
   def self.decode_compact(bytes)
+    result = do_decode_compact(bytes)
+    debug 'value', result[0]
+    result
+  end
+
+  def self.do_decode_compact(bytes)
     result =
       case bytes[0] & 3
       when 0
@@ -281,7 +286,6 @@ module ScaleRb2
       else
         raise Unreachable, 'type: Compact'
       end
-    logger.debug "Compact value: #{result[0]}"
     result
   end
 
@@ -292,8 +296,8 @@ module ScaleRb2
 
   def self.decode_vec(type, bytes, registry = {})
     inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
-    length, remaining_bytes = decode_compact(bytes)
-    logger.debug "Vec length: #{length}, remaining bytes: #{remaining_bytes&.length}"
+    length, remaining_bytes = do_decode_compact(bytes)
+    debug 'length', length
     decode_types([inner_type] * length, remaining_bytes, registry)
   end
 
@@ -302,8 +306,10 @@ module ScaleRb2
     byte_length = bit_length / 8
     raise NotEnoughBytesError, "type: #{type}" if bytes.length < byte_length
 
+    value = bytes[0...byte_length].flip.to_int(bit_length)
+    debug 'value', value
     [
-      bytes[0...byte_length].flip.to_int(bit_length),
+      value,
       bytes[byte_length..]
     ]
   end
@@ -314,7 +320,7 @@ module ScaleRb2
     raise NotEnoughBytesError, "type: #{type}" if bytes.length < byte_length
 
     value = bytes[0...byte_length].flip.to_uint
-    logger.debug "#{type} value: #{value}"
+    debug 'value', value
     [
       value,
       bytes[byte_length..]
@@ -345,6 +351,19 @@ module ScaleRb2
 
   def self.encode_bytes(value)
     encode_compact(value.length) + value
+  end
+
+  def self.encode_boolean(value)
+    return [0x00] if value == false
+    return [0x01] if value == true
+
+    raise InvalidValueError, "type: Boolean, value: #{value.inspect}"
+  end
+
+  def self.encode_string(string)
+    body = string.unpack('C*')
+    prefix = encode_compact(body.length)
+    prefix + body
   end
 
   def self.encode_option(type, value, registry = {})
