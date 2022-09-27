@@ -10,61 +10,61 @@ require 'metadata_decode'
 
 # TODO: set, bitvec
 
-def bytes?(type_id)
-  type_id.downcase == 'bytes'
+def bytes?(type)
+  type.downcase == 'bytes'
 end
 
-def boolean?(type_id)
-  type_id.downcase == 'bool' || type_id.downcase == 'boolean'
+def boolean?(type)
+  type.downcase == 'bool' || type.downcase == 'boolean'
 end
 
-def string?(type_id)
-  type_id.downcase == 'str' || type_id.downcase == 'string' || type_id.downcase == 'text'
+def string?(type)
+  type.downcase == 'str' || type.downcase == 'string' || type.downcase == 'text'
 end
 
-def compact?(type_id)
-  type_id.downcase == 'compact'
+def compact?(type)
+  type.downcase == 'compact'
 end
 
-def int?(type_id)
-  type_id[0].downcase == 'i' && type_id[1..] =~ /\A(8|16|32|64|128|256|512)\z/
+def int?(type)
+  type[0].downcase == 'i' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
 end
 
-def uint?(type_id)
-  type_id[0].downcase == 'u' && type_id[1..] =~ /\A(8|16|32|64|128|256|512)\z/
+def uint?(type)
+  type[0].downcase == 'u' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
 end
 
 # def bitvec?(type)
 # end
 
-def option?(type_id)
-  type_id[0..6].downcase == 'option<' && type_id[-1] == '>'
+def option?(type)
+  type[0..6].downcase == 'option<' && type[-1] == '>'
 end
 
-def array?(type_id)
-  type_id[0] == '[' && type_id[-1] == ']'
+def array?(type)
+  type[0] == '[' && type[-1] == ']'
 end
 
-def vec?(type_id)
-  type_id[0..3].downcase == 'vec<' && type_id[-1] == '>'
+def vec?(type)
+  type[0..3].downcase == 'vec<' && type[-1] == '>'
 end
 
-def tuple?(type_id)
-  type_id[0] == '(' && type_id[-1] == ')'
+def tuple?(type)
+  type[0] == '(' && type[-1] == ')'
 end
 
-def struct?(type_id)
-  type_id.instance_of?(Hash)
+def struct?(type)
+  type.instance_of?(Hash)
 end
 
-def enum?(type_id)
-  type_id.instance_of?(Hash) && type_id.key?(:_enum)
+def enum?(type)
+  type.instance_of?(Hash) && type.key?(:_enum)
 end
 
-def parse_fixed_array(type_id)
-  scan_out = type_id.scan(/\A\[\s*(.+)\s*;\s*(\d+)\s*\]\z/)
-  raise ScaleRb2::TypeParseError, type_id if scan_out.empty?
-  raise ScaleRb2::TypeParseError, type_id if scan_out[0].length != 2
+def parse_fixed_array(type)
+  scan_out = type.scan(/\A\[\s*(.+)\s*;\s*(\d+)\s*\]\z/)
+  raise ScaleRb2::TypeParseError, type if scan_out.empty?
+  raise ScaleRb2::TypeParseError, type if scan_out[0].length != 2
 
   inner_type = scan_out[0][0]
   length = scan_out[0][1].to_i
@@ -99,31 +99,31 @@ module ScaleRb2
   end
 
   class << self
-    def decode(type_id, bytes, registry = {})
+    def decode(type, bytes, registry = {})
       logger.debug '--------------------------------------------------'
-      debug 'decoding type', type_id
+      debug 'decoding type', type
       debug 'bytes', bytes&.length
 
-      if type_id.instance_of?(String)
-        return decode_bytes(bytes) if bytes?(type_id) # Bytes
-        return decode_boolean(bytes) if boolean?(type_id) # Boolean
-        return decode_string(bytes) if string?(type_id) # String
-        return decode_int(type_id, bytes) if int?(type_id) # i8, i16...
-        return decode_uint(type_id, bytes) if uint?(type_id) # u8, u16...
-        return decode_compact(bytes) if compact?(type_id) # Compact<>
-        return decode_option(type_id, bytes, registry) if option?(type_id) # Option<>
-        return decode_array(type_id, bytes, registry) if array?(type_id) # [u8; 3]
-        return decode_vec(type_id, bytes, registry) if vec?(type_id) # Vec<u8>
-        return decode_tuple(type_id, bytes, registry) if tuple?(type_id) # (u8, u8)
+      if type.instance_of?(String)
+        return decode_bytes(bytes) if bytes?(type) # Bytes
+        return decode_boolean(bytes) if boolean?(type) # Boolean
+        return decode_string(bytes) if string?(type) # String
+        return decode_int(type, bytes) if int?(type) # i8, i16...
+        return decode_uint(type, bytes) if uint?(type) # u8, u16...
+        return decode_compact(bytes) if compact?(type) # Compact<>
+        return decode_option(type, bytes, registry) if option?(type) # Option<>
+        return decode_array(type, bytes, registry) if array?(type) # [u8; 3]
+        return decode_vec(type, bytes, registry) if vec?(type) # Vec<u8>
+        return decode_tuple(type, bytes, registry) if tuple?(type) # (u8, u8)
 
-        registry_type = get_final_type_from_registry(registry, type_id)
+        registry_type = get_final_type_from_registry(registry, type)
         return decode(registry_type, bytes, registry) if registry_type
-      elsif type_id.instance_of?(Hash)
-        return decode_enum(type_id, bytes, registry) if enum?(type_id)
-        return decode_struct(type_id, bytes, registry) if struct?(type_id)
+      elsif type.instance_of?(Hash)
+        return decode_enum(type, bytes, registry) if enum?(type)
+        return decode_struct(type, bytes, registry) if struct?(type)
       end
 
-      raise NotImplemented, "type: #{type_id.inspect}"
+      raise NotImplemented, "type: #{type.inspect}"
     end
 
     def decode_bytes(bytes)
@@ -163,10 +163,10 @@ module ScaleRb2
       ]
     end
 
-    def decode_int(type_id, bytes)
-      bit_length = type_id[1..].to_i
+    def decode_int(type, bytes)
+      bit_length = type[1..].to_i
       byte_length = bit_length / 8
-      raise NotEnoughBytesError, "type: #{type_id}" if bytes.length < byte_length
+      raise NotEnoughBytesError, "type: #{type}" if bytes.length < byte_length
 
       value = bytes[0...byte_length].flip.to_int(bit_length)
       debug 'value', value
@@ -176,10 +176,10 @@ module ScaleRb2
       ]
     end
 
-    def decode_uint(type_id, bytes)
-      bit_length = type_id[1..].to_i
+    def decode_uint(type, bytes)
+      bit_length = type[1..].to_i
       byte_length = bit_length / 8
-      raise NotEnoughBytesError, "type: #{type_id}" if bytes.length < byte_length
+      raise NotEnoughBytesError, "type: #{type}" if bytes.length < byte_length
 
       value = bytes[0...byte_length].flip.to_uint
       debug 'value', value
@@ -195,22 +195,22 @@ module ScaleRb2
       result
     end
 
-    def decode_option(type_id, bytes, registry = {})
-      inner_type = type_id.scan(/\A[O|o]ption<(.+)>\z/).first.first
+    def decode_option(type, bytes, registry = {})
+      inner_type = type.scan(/\A[O|o]ption<(.+)>\z/).first.first
 
       return [nil, bytes[1..]] if bytes[0] == 0x00
       return decode(inner_type, bytes[1..], registry) if bytes[0] == 0x01
 
-      raise InvalidBytesError, "type: #{type_id}"
+      raise InvalidBytesError, "type: #{type}"
     end
 
-    def decode_array(type_id, bytes, registry = {})
-      inner_type, length = parse_fixed_array(type_id)
+    def decode_array(type, bytes, registry = {})
+      inner_type, length = parse_fixed_array(type)
       _decode_types([inner_type] * length, bytes, registry)
     end
 
-    def decode_vec(type_id, bytes, registry = {})
-      inner_type = type_id.scan(/\A[V|v]ec<(.+)>\z/).first.first
+    def decode_vec(type, bytes, registry = {})
+      inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
       length, remaining_bytes = do_decode_compact(bytes)
       debug 'length', length
       _decode_types([inner_type] * length, remaining_bytes, registry)
@@ -229,9 +229,9 @@ module ScaleRb2
       remaining_bytes = bytes[1..]
       if enum_type[:_enum].instance_of?(Hash)
         key = enum_type[:_enum].keys[index]
-        type_id = enum_type[:_enum].values[index]
+        type = enum_type[:_enum].values[index]
 
-        value, remaining_bytes = decode(type_id, remaining_bytes, registry)
+        value, remaining_bytes = decode(type, remaining_bytes, registry)
         [
           { key => value },
           remaining_bytes
@@ -293,37 +293,37 @@ module ScaleRb2
   end
 
   class << self
-    def encode(type_id, value, registry = {})
+    def encode(type, value, registry = {})
       logger.debug '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-      logger.debug "           type: #{type_id}"
+      logger.debug "           type: #{type}"
       logger.debug "          value: #{value}"
 
-      bytes = do_encode(type_id, value, registry)
+      bytes = do_encode(type, value, registry)
 
       logger.debug "        encoded: #{bytes}"
       bytes
     end
 
-    def do_encode(type_id, value, registry = {})
-      if type_id.instance_of?(String)
-        return encode_bytes(value) if bytes?(type_id)
-        return encode_boolean(value) if boolean?(type_id)
-        return encode_string(value) if string?(type_id)
-        return encode_compact(value) if compact?(type_id)
-        return encode_uint(type_id, value) if uint?(type_id)
-        return encode_option(type_id, value, registry) if option?(type_id)
-        return encode_array(type_id, value, registry) if array?(type_id)
-        return encode_vec(type_id, value, registry) if vec?(type_id)
-        return encode_tuple(type_id, value, registry) if tuple?(type_id)
+    def do_encode(type, value, registry = {})
+      if type.instance_of?(String)
+        return encode_bytes(value) if bytes?(type)
+        return encode_boolean(value) if boolean?(type)
+        return encode_string(value) if string?(type)
+        return encode_compact(value) if compact?(type)
+        return encode_uint(type, value) if uint?(type)
+        return encode_option(type, value, registry) if option?(type)
+        return encode_array(type, value, registry) if array?(type)
+        return encode_vec(type, value, registry) if vec?(type)
+        return encode_tuple(type, value, registry) if tuple?(type)
 
-        registry_type = get_final_type_from_registry(registry, type_id)
+        registry_type = get_final_type_from_registry(registry, type)
         return do_encode(registry_type, value, registry) if registry_type
-      elsif type_id.instance_of?(Hash)
-        return encode_enum(type_id, value, registry) if enum?(type_id)
-        return encode_struct(type_id, value, registry) if struct?(type_id)
+      elsif type.instance_of?(Hash)
+        return encode_enum(type, value, registry) if enum?(type)
+        return encode_struct(type, value, registry) if struct?(type)
       end
 
-      raise NotImplemented, "type: #{type_id}, value: #{value.inspect}"
+      raise NotImplemented, "type: #{type}, value: #{value.inspect}"
     end
 
     def encode_bytes(value)
@@ -352,27 +352,27 @@ module ScaleRb2
       [(((bytes.length - 4) << 2) + 3)] + bytes
     end
 
-    def encode_uint(type_id, value)
-      bit_length = type_id[1..].to_i
+    def encode_uint(type, value)
+      bit_length = type[1..].to_i
       value.to_bytes(bit_length).flip
     end
 
-    def encode_option(type_id, value, registry = {})
+    def encode_option(type, value, registry = {})
       return [0x00] if value.nil?
 
-      inner_type = type_id.scan(/\A[O|o]ption<(.+)>\z/).first.first
+      inner_type = type.scan(/\A[O|o]ption<(.+)>\z/).first.first
       [0x01] + do_encode(inner_type, value, registry)
     end
 
-    def encode_array(type_id, array, registry = {})
-      inner_type, length = parse_fixed_array(type_id)
-      raise LengthNotEqualErr, "type: #{type_id}, value: #{array.inspect}" if length != array.length
+    def encode_array(type, array, registry = {})
+      inner_type, length = parse_fixed_array(type)
+      raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array.length
 
       encode_types([inner_type] * length, array, registry)
     end
 
-    def encode_vec(type_id, array, registry = {})
-      inner_type = type_id.scan(/\A[V|v]ec<(.+)>\z/).first.first
+    def encode_vec(type, array, registry = {})
+      inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
       length_bytes = encode_compact(array.length)
       length_bytes + encode_types([inner_type] * array.length, array, registry)
     end

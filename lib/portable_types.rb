@@ -10,22 +10,21 @@ module PortableTypes
       _params = type['params']
       type_def = type['def']
 
-      return decode_primitive(id, type_def, bytes) if type_def.key?('primitive')
+      return decode_primitive(type_def, bytes) if type_def.key?('primitive')
       return decode_compact(bytes) if type_def.key?('compact')
       return decode_array(type_def['array'], bytes, registry) if type_def.key?('array')
-      return decode_sequence(id, type_def['sequence'], bytes, registry) if type_def.key?('sequence')
-      return decode_tuple(id, type_def['tuple'], bytes, registry) if type_def.key?('tuple')
+      return decode_sequence(type_def['sequence'], bytes, registry) if type_def.key?('sequence')
+      return decode_tuple(type_def['tuple'], bytes, registry) if type_def.key?('tuple')
       return decode_composite(type_def['composite'], bytes, registry) if type_def.key?('composite')
-      return decode_variant(id, type_def['variant'], bytes, registry) if type_def.key?('variant')
+      return decode_variant(type_def['variant'], bytes, registry) if type_def.key?('variant')
 
       raise NotImplementedError
     end
 
     # U, Str, Bool
     # I, Bytes ?
-    def decode_primitive(_id, type_def, bytes)
+    def decode_primitive(type_def, bytes)
       primitive = type_def['primitive']
-
       return ScaleRb2.decode_uint(primitive, bytes) if uint?(primitive)
       return ScaleRb2.decode_string(bytes) if string?(primitive)
       return ScaleRb2.decode_boolean(bytes) if boolean?(primitive)
@@ -43,13 +42,13 @@ module PortableTypes
       _decode_types([inner_type_id] * len, bytes, registry)
     end
 
-    def decode_sequence(_id, sequence_type, bytes, registry)
+    def decode_sequence(sequence_type, bytes, registry)
       len, remaining_bytes = decode_compact(bytes)
       inner_type_id = sequence_type['type']
       _decode_types([inner_type_id] * len, remaining_bytes, registry)
     end
 
-    def decode_tuple(_id, tuple_type, bytes, registry)
+    def decode_tuple(tuple_type, bytes, registry)
       _decode_types(tuple_type, bytes, registry)
     end
 
@@ -70,13 +69,14 @@ module PortableTypes
       ]
     end
 
-    def decode_variant(_id, variant_type, bytes, registry)
+    def decode_variant(variant_type, bytes, registry)
       variants = variant_type['variants']
 
       index = bytes[0]
       puts index
-      puts (variants.length - 1)
+      puts(variants.length - 1)
       raise ScaleRb2::IndexOutOfRangeError, "type: #{variant_type}, bytes: #{bytes}" if index > (variants.length - 1)
+
       puts '------------------'
 
       item_variant = variants.find { |v| v['index'] == index }
