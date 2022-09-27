@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# TODO: build cli tool to decode metadata v14
 module ScaleRb2
   METADATA_V14_TYPES = {
     'MagicMetadata' => {
@@ -62,8 +63,8 @@ module ScaleRb2
         Tuple: 'Si1TypeDefTuple',
         Primitive: 'Si1TypeDefPrimitive',
         Compact: 'Si1TypeDefCompact',
-        BitSequence: 'Si1TypeDefBitSequence', # TODO: support bit sequence
-        HistoricMetaCompat: 'Text' # TODO: sanitize
+        BitSequence: 'Si1TypeDefBitSequence',
+        HistoricMetaCompat: 'Text' # TODO: sanitize?
       }
     },
     'Si1TypeDefComposite' => {
@@ -99,6 +100,10 @@ module ScaleRb2
     },
     'Si1TypeDefCompact' => {
       type: 'Si1LookupTypeId'
+    },
+    'Si1TypeDefBitSequence' => {
+      bitStoreType: 'Si1LookupTypeId',
+      bitOrderType: 'Si1LookupTypeId'
     },
     # PortableRegistry end
 

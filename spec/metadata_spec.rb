@@ -8,6 +8,5 @@ RSpec.describe ScaleRb2 do
     # TODO: use a mainnet metadata as an example
     metadata_hex = File.open('./moonbase_metadata').read.strip
     metadata = ScaleRb2.decode_metadata(metadata_hex.to_bytes)
-    puts JSON.pretty_generate(metadata)
   end
 end

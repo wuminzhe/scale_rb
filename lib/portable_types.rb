@@ -12,7 +12,7 @@ module PortableTypes
 
       return decode_primitive(id, type_def, bytes) if type_def.key?('primitive')
       return decode_compact(bytes) if type_def.key?('compact')
-      return decode_array(id, type_def['array'], bytes, registry) if type_def.key?('array')
+      return decode_array(type_def['array'], bytes, registry) if type_def.key?('array')
       return decode_sequence(id, type_def['sequence'], bytes, registry) if type_def.key?('sequence')
       return decode_tuple(id, type_def['tuple'], bytes, registry) if type_def.key?('tuple')
       return decode_composite(type_def['composite'], bytes, registry) if type_def.key?('composite')
@@ -37,7 +37,7 @@ module PortableTypes
       ScaleRb2.decode_compact(bytes)
     end
 
-    def decode_array(_id, array_type, bytes, registry)
+    def decode_array(array_type, bytes, registry)
       len = array_type['len']
       inner_type_id = array_type['type']
       _decode_types([inner_type_id] * len, bytes, registry)

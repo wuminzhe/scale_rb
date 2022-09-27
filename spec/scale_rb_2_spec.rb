@@ -4,43 +4,43 @@ require 'scale_rb_2'
 
 RSpec.describe ScaleRb2 do
   it 'can decode fixed int' do
-    value, remaining_bytes = ScaleRb2.do_decode('i16', [0x2e, 0xfb])
+    value, remaining_bytes = ScaleRb2.decode('i16', [0x2e, 0xfb])
     expect(value).to eql(-1234)
     expect(remaining_bytes).to eql([])
   end
 
   it 'can decode fixed uint' do
-    value, remaining_bytes = ScaleRb2.do_decode('u8', [0x45])
+    value, remaining_bytes = ScaleRb2.decode('u8', [0x45])
     expect(value).to eql(69)
     expect(remaining_bytes).to eql([])
 
-    value, remaining_bytes = ScaleRb2.do_decode('u8', [0x45, 0x12])
+    value, remaining_bytes = ScaleRb2.decode('u8', [0x45, 0x12])
     expect(value).to eql(69)
     expect(remaining_bytes).to eql([0x12])
 
-    value, remaining_bytes = ScaleRb2.do_decode('u16', [0x45, 0x00])
+    value, remaining_bytes = ScaleRb2.decode('u16', [0x45, 0x00])
     expect(value).to eql(69)
     expect(remaining_bytes).to eql([])
 
-    expect { ScaleRb2.do_decode('u16', [0x2e]) }.to raise_error(ScaleRb2::NotEnoughBytesError)
+    expect { ScaleRb2.decode('u16', [0x2e]) }.to raise_error(ScaleRb2::NotEnoughBytesError)
 
-    value, remaining_bytes = ScaleRb2.do_decode('u16', [0x2e, 0xfb])
+    value, remaining_bytes = ScaleRb2.decode('u16', [0x2e, 0xfb])
     expect(value).to eql(64_302)
     expect(remaining_bytes).to eql([])
 
-    value, remaining_bytes = ScaleRb2.do_decode('u16', [0x2e, 0xfb, 0xff])
+    value, remaining_bytes = ScaleRb2.decode('u16', [0x2e, 0xfb, 0xff])
     expect(value).to eql(64_302)
     expect(remaining_bytes).to eql([0xff])
 
-    value, remaining_bytes = ScaleRb2.do_decode('u32', [0xff, 0xff, 0xff, 0x00])
+    value, remaining_bytes = ScaleRb2.decode('u32', [0xff, 0xff, 0xff, 0x00])
     expect(value).to eql(16_777_215)
     expect(remaining_bytes).to eql([])
 
-    value, remaining_bytes = ScaleRb2.do_decode('u64', [0x00, 0xe4, 0x0b, 0x54, 0x03, 0x00, 0x00, 0x00])
+    value, remaining_bytes = ScaleRb2.decode('u64', [0x00, 0xe4, 0x0b, 0x54, 0x03, 0x00, 0x00, 0x00])
     expect(value).to eql(14_294_967_296)
     expect(remaining_bytes).to eql([])
 
-    value, remaining_bytes = ScaleRb2.do_decode('u128', '0x0bfeffffffffffff0000000000000000'.to_bytes)
+    value, remaining_bytes = ScaleRb2.decode('u128', '0x0bfeffffffffffff0000000000000000'.to_bytes)
     expect(value).to eql(18_446_744_073_709_551_115)
     expect(remaining_bytes).to eql([])
   end
@@ -66,19 +66,19 @@ RSpec.describe ScaleRb2 do
   end
 
   it 'can decode fixed array' do
-    arr, remaining_bytes = ScaleRb2.do_decode('[u8; 3]', [0x12, 0x34, 0x56, 0x78])
+    arr, remaining_bytes = ScaleRb2.decode('[u8; 3]', [0x12, 0x34, 0x56, 0x78])
     expect(arr).to eql([0x12, 0x34, 0x56])
     expect(remaining_bytes).to eql([0x78])
 
-    arr, remaining_bytes = ScaleRb2.do_decode('[u16; 2]', [0x2e, 0xfb, 0x2e, 0xfb])
+    arr, remaining_bytes = ScaleRb2.decode('[u16; 2]', [0x2e, 0xfb, 0x2e, 0xfb])
     expect(arr).to eql([64_302, 64_302])
     expect(remaining_bytes).to eql([])
 
-    arr, remaining_bytes = ScaleRb2.do_decode('[[u8; 3]; 2]', [0x12, 0x34, 0x56, 0x12, 0x34, 0x56])
+    arr, remaining_bytes = ScaleRb2.decode('[[u8; 3]; 2]', [0x12, 0x34, 0x56, 0x12, 0x34, 0x56])
     expect(arr).to eql([[0x12, 0x34, 0x56], [0x12, 0x34, 0x56]])
     expect(remaining_bytes).to eql([])
 
-    arr, remaining_bytes = ScaleRb2.do_decode('[[u16; 2]; 2]', [0x2e, 0xfb, 0x2e, 0xfb, 0x2e, 0xfb, 0x2e, 0xfb])
+    arr, remaining_bytes = ScaleRb2.decode('[[u16; 2]; 2]', [0x2e, 0xfb, 0x2e, 0xfb, 0x2e, 0xfb, 0x2e, 0xfb])
     expect(arr).to eql([[64_302, 64_302], [64_302, 64_302]])
     expect(remaining_bytes).to eql([])
   end
@@ -89,36 +89,36 @@ RSpec.describe ScaleRb2 do
   end
 
   it 'can decode compact' do
-    value, = ScaleRb2.do_decode('Compact', [254, 255, 3, 0])
+    value, = ScaleRb2.decode('Compact', [254, 255, 3, 0])
     expect(value).to eql(0xffff)
   end
 
   it 'can decode single-byte compact uint' do
-    value, = ScaleRb2.do_decode('Compact', [0x00])
+    value, = ScaleRb2.decode('Compact', [0x00])
     expect(value).to eql(0)
 
-    value, = ScaleRb2.do_decode('Compact', [0x04])
+    value, = ScaleRb2.decode('Compact', [0x04])
     expect(value).to eql(1)
 
-    value, = ScaleRb2.do_decode('Compact', [0xa8])
+    value, = ScaleRb2.decode('Compact', [0xa8])
     expect(value).to eql(42)
 
-    value, = ScaleRb2.do_decode('Compact', [0xfc])
+    value, = ScaleRb2.decode('Compact', [0xfc])
     expect(value).to eql(63)
   end
 
   it 'can decode two-byte compact uint' do
-    value, = ScaleRb2.do_decode('Compact', '0x1501'.to_bytes)
+    value, = ScaleRb2.decode('Compact', '0x1501'.to_bytes)
     expect(value).to eql(69)
   end
 
   it 'can decode four-byte compact uint' do
-    value, = ScaleRb2.do_decode('Compact', '0xfeffffff'.to_bytes)
+    value, = ScaleRb2.decode('Compact', '0xfeffffff'.to_bytes)
     expect(value).to eql(1_073_741_823)
   end
 
   it 'can decode big-integer compact uint' do
-    value, = ScaleRb2.do_decode('Compact', '0x0300000040'.to_bytes)
+    value, = ScaleRb2.decode('Compact', '0x0300000040'.to_bytes)
     expect(value).to eql(1_073_741_824)
   end
 
@@ -129,7 +129,7 @@ RSpec.describe ScaleRb2 do
       item2: 'Compact'
     }
     bytes = [0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01]
-    value, = ScaleRb2.do_decode(struct, bytes)
+    value, = ScaleRb2.decode(struct, bytes)
     expect(value).to eql({
                            item3: 63,
                            item1: [64_302, 64_302],
@@ -189,18 +189,18 @@ RSpec.describe ScaleRb2 do
     }
 
     bytes = [0x00, 0x2e, 0xfb]
-    value, = ScaleRb2.do_decode(enum, bytes)
+    value, = ScaleRb2.decode(enum, bytes)
     expect(value).to eql({
                            Int: 64_302
                          })
 
     bytes = [0x01, 0x15, 0x01]
-    value, = ScaleRb2.do_decode(enum, bytes)
+    value, = ScaleRb2.decode(enum, bytes)
     expect(value).to eql({
                            Compact: 69
                          })
 
-    expect { ScaleRb2.do_decode(enum, [0x02, 0x15, 0x01]) }.to raise_error(ScaleRb2::IndexOutOfRangeError)
+    expect { ScaleRb2.decode(enum, [0x02, 0x15, 0x01]) }.to raise_error(ScaleRb2::IndexOutOfRangeError)
   end
 
   it 'can encode enum' do
@@ -215,7 +215,7 @@ RSpec.describe ScaleRb2 do
   end
 
   it 'can decode vec' do
-    arr, remaining_bytes = ScaleRb2.do_decode('vec<u8>', '0x0c003afe'.to_bytes)
+    arr, remaining_bytes = ScaleRb2.decode('vec<u8>', '0x0c003afe'.to_bytes)
     expect(arr).to eql([0, 58, 254])
     expect(remaining_bytes).to eql([])
   end
@@ -226,7 +226,7 @@ RSpec.describe ScaleRb2 do
   end
 
   it 'can decode tuple' do
-    value, = ScaleRb2.do_decode('(Compact, [u16; 2], Compact)', [0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
+    value, = ScaleRb2.decode('(Compact, [u16; 2], Compact)', [0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
     expect(value).to eql([63, [64_302, 64_302], 69])
   end
 
@@ -252,13 +252,13 @@ RSpec.describe ScaleRb2 do
   end
 
   it 'can decode boolean' do
-    value, = ScaleRb2.do_decode('Boolean', [0x00])
+    value, = ScaleRb2.decode('Boolean', [0x00])
     expect(value).to eql(false)
 
-    value, = ScaleRb2.do_decode('Boolean', [0x01])
+    value, = ScaleRb2.decode('Boolean', [0x01])
     expect(value).to eql(true)
 
-    expect { ScaleRb2.do_decode('Boolean', [0x02]) }.to raise_error(ScaleRb2::InvalidBytesError)
+    expect { ScaleRb2.decode('Boolean', [0x02]) }.to raise_error(ScaleRb2::InvalidBytesError)
   end
 
   it 'can encode boolean' do
@@ -272,8 +272,8 @@ RSpec.describe ScaleRb2 do
   end
 
   it 'can decode bytes' do
-    value, = ScaleRb2.do_decode('Bytes', '0x14436166c3a9'.to_bytes)
-    expect(value).to eql('0x436166c3a9'.to_bytes)
+    value, = ScaleRb2.decode('Bytes', '0x14436166c3a9'.to_bytes)
+    expect(value).to eql('0x436166c3a9')
   end
 
   it 'can encode bytes' do
@@ -282,13 +282,13 @@ RSpec.describe ScaleRb2 do
   end
 
   it 'can decode option' do
-    value, = ScaleRb2.do_decode('Option<Compact>', '0x00'.to_bytes)
+    value, = ScaleRb2.decode('Option<Compact>', '0x00'.to_bytes)
     expect(value).to eql(nil)
 
-    value, = ScaleRb2.do_decode('Option<Compact>', '0x011501'.to_bytes)
+    value, = ScaleRb2.decode('Option<Compact>', '0x011501'.to_bytes)
     expect(value).to eql(69)
 
-    expect { ScaleRb2.do_decode('Option<Compact>', '0x02') }.to raise_error(ScaleRb2::InvalidBytesError)
+    expect { ScaleRb2.decode('Option<Compact>', '0x02') }.to raise_error(ScaleRb2::InvalidBytesError)
   end
 
   it 'can encode option' do
