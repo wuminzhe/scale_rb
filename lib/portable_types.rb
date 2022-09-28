@@ -21,8 +21,8 @@ module PortableTypes
       raise NotImplementedError
     end
 
-    # U, Str, Bool
-    # I, Bytes ?
+    # Uint, Str, Bool
+    # Int, Bytes ?
     def decode_primitive(type_def, bytes)
       primitive = type_def['primitive']
       return ScaleRb2.decode_uint(primitive, bytes) if uint?(primitive)
@@ -64,7 +64,11 @@ module PortableTypes
 
       type_value_list, remaining_bytes = _decode_types(type_id_list, bytes, registry)
       [
-        type_name_list.all?(&:nil?) ? type_value_list : [type_name_list, type_value_list].transpose,
+        if type_name_list.all?(&:nil?)
+          type_value_list
+        else
+          [type_name_list.map(&:to_sym), type_value_list].transpose.to_h
+        end,
         remaining_bytes
       ]
     end
@@ -73,18 +77,14 @@ module PortableTypes
       variants = variant_type['variants']
 
       index = bytes[0]
-      puts index
-      puts(variants.length - 1)
       raise ScaleRb2::IndexOutOfRangeError, "type: #{variant_type}, bytes: #{bytes}" if index > (variants.length - 1)
-
-      puts '------------------'
 
       item_variant = variants.find { |v| v['index'] == index }
       item_name = item_variant['name']
       item, remaining_bytes = decode_composite(item_variant, bytes[1..], registry)
 
       [
-        item.empty? ? item_name : [item_name, item],
+        item.empty? ? item_name : { item_name.to_sym => item },
         remaining_bytes
       ]
     end
