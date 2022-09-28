@@ -6,26 +6,51 @@ require 'scale_rb_2'
 require 'uri'
 require 'net/http'
 require 'json'
+require 'optparse'
 
-def print_metadata(url, block_hash = nil)
+def json_rpc_call(method, params, url)
   uri = URI(url)
   req = Net::HTTP::Post.new(uri, 'Content-Type' => 'application/json')
-  req.body = { 'id' => 1, 'jsonrpc' => '2.0', 'method' => 'state_getMetadata',
-               'params' => [block_hash] }.to_json
+  req.body = { 'id' => 1, 'jsonrpc' => '2.0', 'method' => method,
+               'params' => params }.to_json
   http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = true if uri.instance_of? URI::HTTPS
   res = http.request(req)
-
-  raise res.to_s unless res.is_a?(Net::HTTPSuccess)
+  # puts res unless res.is_a?(Net::HTTPSuccess)
 
   result = JSON.parse(res.body)
-  if result['result']
-    metadata_hex = result['result'].strip
-    metadata = ScaleRb2.decode_metadata(metadata_hex.to_bytes)
-    puts JSON.pretty_generate(metadata)
-  else
-    puts result
+  raise result['error'] if result['error']
+
+  result['result']
+end
+
+def print_metadata(url, block_hash = nil)
+  result = json_rpc_call('state_getMetadata', [block_hash], url)
+
+  metadata_hex = result.strip
+  metadata = ScaleRb2.decode_metadata(metadata_hex.to_bytes)
+  puts JSON.pretty_generate(metadata)
+end
+
+def get_block(url, hash=nil)
+  result = json_rpc_call('chain_getBlock', [hash], url)
+end
+
+# metadata http://g2.dev.darwinia.network:2234 -b 0x23ebddd6519aaf1b7fc916c3709af13d7a4010943fb53038406581171000a58e
+# metadata https://pangoro-rpc.darwinia.network
+#
+@options = {}
+parser = OptionParser.new do |opts|
+  opts.banner = 'Usage: metadata [url] [options]'
+  opts.on('-bHASH', '--block=HASH', 'Block hash') do |value|
+    @options[:block] = value
   end
 end
 
-# print_metadata('http://g2.dev.darwinia.network:2234', '0x23ebddd6519aaf1b7fc916c3709af13d7a4010943fb53038406581171000a58e')
-print_metadata('http://g2.dev.darwinia.network:1234', '0x9718e53763eda892a3c5489247febdfeb6e4db44c25efe60d8ebc0bbef06c325')
+if ARGV.empty?
+  puts parser
+else
+  parser.parse!
+  url = ARGV[0]
+  print_metadata url, @options[:block]
+end

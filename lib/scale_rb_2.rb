@@ -116,6 +116,7 @@ module ScaleRb2
         return decode_vec(type, bytes, registry) if vec?(type) # Vec<u8>
         return decode_tuple(type, bytes, registry) if tuple?(type) # (u8, u8)
 
+        # search the type from registry if not the types above
         registry_type = get_final_type_from_registry(registry, type)
         return decode(registry_type, bytes, registry) if registry_type
       elsif type.instance_of?(Hash)
