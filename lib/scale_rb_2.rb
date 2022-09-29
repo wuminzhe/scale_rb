@@ -23,7 +23,8 @@ def string?(type)
 end
 
 def compact?(type)
-  type.downcase == 'compact'
+  type.downcase == 'compact' ||
+    (type[0..7].downcase == 'compact<' && type[-1] == '>')
 end
 
 def int?(type)

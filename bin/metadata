@@ -8,11 +8,35 @@ require 'net/http'
 require 'json'
 require 'optparse'
 
+module RPC
+  class << self
+    def chain_getBlockHash(url, block_number = nil)
+      json_rpc_call('chain_getBlockHash', [block_number], url)
+    end
+
+    def chain_getBlock(url, at = nil)
+      json_rpc_call('chain_getBlock', [at], url)
+    end
+
+    def state_getRuntimeVersion(url, at = nil)
+      json_rpc_call('state_getRuntimeVersion', [at], url)
+    end
+
+    def state_getMetadata(url, at = nil)
+      json_rpc_call('state_getMetadata', [at], url)
+    end
+  end
+end
+
 def json_rpc_call(method, params, url)
   uri = URI(url)
   req = Net::HTTP::Post.new(uri, 'Content-Type' => 'application/json')
-  req.body = { 'id' => 1, 'jsonrpc' => '2.0', 'method' => method,
-               'params' => params }.to_json
+  req.body = {
+    'id' => 1,
+    'jsonrpc' => '2.0',
+    'method' => method,
+    'params' => params.all?(nil) ? [] : params
+  }.to_json
   http = Net::HTTP.new(uri.host, uri.port)
   http.use_ssl = true if uri.instance_of? URI::HTTPS
   res = http.request(req)
@@ -24,25 +48,81 @@ def json_rpc_call(method, params, url)
   result['result']
 end
 
-def print_metadata(url, block_hash = nil)
-  result = json_rpc_call('state_getMetadata', [block_hash], url)
+def print_metadata(url, at = nil)
+  result = RPC.state_getMetadata(url, at)
 
   metadata_hex = result.strip
   metadata = ScaleRb2.decode_metadata(metadata_hex.to_bytes)
   puts JSON.pretty_generate(metadata)
 end
 
-def get_block(url, hash=nil)
-  result = json_rpc_call('chain_getBlock', [hash], url)
+def print_runtime_version(url, at = nil)
+  runtime_version = RPC.state_getRuntimeVersion(url, at)
+  puts runtime_version['specVersion']
 end
+
+# block_types = {
+#   H512: '[u8; 64]',
+#   Hash: '[u8; 32]',
+#   AccountId: '[u8; 32]',
+#   SignedBlock: {
+#     block: 'Block',
+#     justifications: 'Option<Justifications>'
+#   },
+#   Block: {
+#     header: 'Header',
+#     extrinsics: 'Vec<Extrinsic>'
+#   },
+#   Header: {
+#     parentHash: 'Hash',
+#     number: 'Compact<BlockNumber>',
+#     stateRoot: 'Hash',
+#     extrinsicsRoot: 'Hash',
+#     digest: 'Digest'
+#   },
+#   Digest: {
+#     logs: 'Vec<DigestItem>'
+#   },
+#   DigestItem: {
+#     _enum: {
+#       Other: 'Bytes',
+#       AuthoritiesChange: 'Vec<AuthorityId>',
+#       ChangesTrieRoot: 'Hash',
+#       SealV0: 'SealV0',
+#       Consensus: 'Consensus',
+#       Seal: 'Seal',
+#       PreRuntime: 'PreRuntime',
+#       ChangesTrieSignal: 'ChangesTrieSignal',
+#       RuntimeEnvironmentUpdated: 'Boolean'
+#     }
+#   },
+#   AuthorityId: 'AccountId',
+#   SealV0: '(u64, Signature)',
+#   Signature: 'H512',
+#   Consensus: '(ConsensusEngineId, Bytes)',
+#   ConsensusEngineId: '[u8; 4]',
+#   Seal: '(ConsensusEngineId, Bytes)',
+#   PreRuntime: '(ConsensusEngineId, Bytes)',
+#   ChangesTrieSignal: {
+#     _enum: {
+#       NewConfiguration: 'Option<ChangesTrieConfiguration>'
+#     }
+#   },
+#   ChangesTrieConfiguration: {
+#     digestInterval: 'u32',
+#     digestLevels: 'u32'
+#   },
+#   Justifications: {
+#   }
+# }
 
 # metadata http://g2.dev.darwinia.network:2234 -b 0x23ebddd6519aaf1b7fc916c3709af13d7a4010943fb53038406581171000a58e
 # metadata https://pangoro-rpc.darwinia.network
-#
+
 @options = {}
 parser = OptionParser.new do |opts|
   opts.banner = 'Usage: metadata [url] [options]'
-  opts.on('-bHASH', '--block=HASH', 'Block hash') do |value|
+  opts.on('-bNUMBERORHASH', '--block=NUMBERORHASH', 'Block number or hash') do |value|
     @options[:block] = value
   end
 end
@@ -52,5 +132,18 @@ if ARGV.empty?
 else
   parser.parse!
   url = ARGV[0]
-  print_metadata url, @options[:block]
+
+  if @options[:block]
+    if @options[:block].length == 66
+      block_hash = @options[:block]
+    else
+      block_number = @options[:block].to_i
+      block_hash = RPC.chain_getBlockHash url, block_number
+    end
+  else
+    block_hash = RPC.chain_getBlockHash url
+  end
+
+  # print_metadata url, block_hash
+  print_runtime_version(url, block_hash)
 end
