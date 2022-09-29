@@ -9,21 +9,21 @@ module ScaleRb2
     },
     'Metadata' => {
       _enum: {
-        V0: 'MetadataV0',
-        V1: 'MetadataV1',
-        V2: 'MetadataV2',
-        V3: 'MetadataV3',
-        V4: 'MetadataV4',
-        V5: 'MetadataV5',
-        V6: 'MetadataV6',
-        V7: 'MetadataV7',
-        V8: 'MetadataV8',
-        V9: 'MetadataV9',
-        V10: 'MetadataV10',
-        V11: 'MetadataV11',
-        V12: 'MetadataV12',
-        V13: 'MetadataV13',
-        V14: 'MetadataV14'
+        v0: 'MetadataV0',
+        v1: 'MetadataV1',
+        v2: 'MetadataV2',
+        v3: 'MetadataV3',
+        v4: 'MetadataV4',
+        v5: 'MetadataV5',
+        v6: 'MetadataV6',
+        v7: 'MetadataV7',
+        v8: 'MetadataV8',
+        v9: 'MetadataV9',
+        v10: 'MetadataV10',
+        v11: 'MetadataV11',
+        v12: 'MetadataV12',
+        v13: 'MetadataV13',
+        v14: 'MetadataV14'
       }
     },
 
@@ -56,15 +56,15 @@ module ScaleRb2
     },
     'Si1TypeDef' => {
       _enum: {
-        Composite: 'Si1TypeDefComposite',
-        Variant: 'Si1TypeDefVariant',
-        Sequence: 'Si1TypeDefSequence',
-        Array: 'Si1TypeDefArray',
-        Tuple: 'Si1TypeDefTuple',
-        Primitive: 'Si1TypeDefPrimitive',
-        Compact: 'Si1TypeDefCompact',
-        BitSequence: 'Si1TypeDefBitSequence',
-        HistoricMetaCompat: 'Text' # TODO: sanitize?
+        composite: 'Si1TypeDefComposite',
+        variant: 'Si1TypeDefVariant',
+        sequence: 'Si1TypeDefSequence',
+        array: 'Si1TypeDefArray',
+        tuple: 'Si1TypeDefTuple',
+        primitive: 'Si1TypeDefPrimitive',
+        compact: 'Si1TypeDefCompact',
+        bitSequence: 'Si1TypeDefBitSequence',
+        historicMetaCompat: 'Text' # TODO: sanitize?
       }
     },
     'Si1TypeDefComposite' => {
