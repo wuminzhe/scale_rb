@@ -6,25 +6,25 @@ module PortableTypes
       type = registry[id]
       raise "TypeNotFound, id: #{id}" if type.nil?
 
-      _path = type['path']
-      _params = type['params']
-      type_def = type['def']
+      _path = type[:path]
+      _params = type[:params]
+      type_def = type[:def]
 
-      return decode_primitive(type_def, bytes) if type_def.key?('primitive')
-      return decode_compact(bytes) if type_def.key?('compact')
-      return decode_array(type_def['array'], bytes, registry) if type_def.key?('array')
-      return decode_sequence(type_def['sequence'], bytes, registry) if type_def.key?('sequence')
-      return decode_tuple(type_def['tuple'], bytes, registry) if type_def.key?('tuple')
-      return decode_composite(type_def['composite'], bytes, registry) if type_def.key?('composite')
-      return decode_variant(type_def['variant'], bytes, registry) if type_def.key?('variant')
+      return decode_primitive(type_def, bytes) if type_def.key?(:primitive)
+      return decode_compact(bytes) if type_def.key?(:compact)
+      return decode_array(type_def[:array], bytes, registry) if type_def.key?(:array)
+      return decode_sequence(type_def[:sequence], bytes, registry) if type_def.key?(:sequence)
+      return decode_tuple(type_def[:tuple], bytes, registry) if type_def.key?(:tuple)
+      return decode_composite(type_def[:composite], bytes, registry) if type_def.key?(:composite)
+      return decode_variant(type_def[:variant], bytes, registry) if type_def.key?(:variant)
 
-      raise NotImplementedError
+      raise NotImplementedError, id
     end
 
     # Uint, Str, Bool
     # Int, Bytes ?
     def decode_primitive(type_def, bytes)
-      primitive = type_def['primitive']
+      primitive = type_def[:primitive]
       return ScaleRb2.decode_uint(primitive, bytes) if uint?(primitive)
       return ScaleRb2.decode_string(bytes) if string?(primitive)
       return ScaleRb2.decode_boolean(bytes) if boolean?(primitive)
@@ -37,14 +37,14 @@ module PortableTypes
     end
 
     def decode_array(array_type, bytes, registry)
-      len = array_type['len']
-      inner_type_id = array_type['type']
+      len = array_type[:len]
+      inner_type_id = array_type[:type]
       _decode_types([inner_type_id] * len, bytes, registry)
     end
 
     def decode_sequence(sequence_type, bytes, registry)
       len, remaining_bytes = decode_compact(bytes)
-      inner_type_id = sequence_type['type']
+      inner_type_id = sequence_type[:type]
       _decode_types([inner_type_id] * len, remaining_bytes, registry)
     end
 
@@ -57,10 +57,10 @@ module PortableTypes
     #   ...
     # ]
     def decode_composite(composite_type, bytes, registry)
-      fields = composite_type['fields']
+      fields = composite_type[:fields]
 
-      type_name_list = fields.map { |f| f['name'] }
-      type_id_list = fields.map { |f| f['type'] }
+      type_name_list = fields.map { |f| f[:name] }
+      type_id_list = fields.map { |f| f[:type] }
 
       type_value_list, remaining_bytes = _decode_types(type_id_list, bytes, registry)
       [
@@ -74,13 +74,13 @@ module PortableTypes
     end
 
     def decode_variant(variant_type, bytes, registry)
-      variants = variant_type['variants']
+      variants = variant_type[:variants]
 
       index = bytes[0]
       raise ScaleRb2::IndexOutOfRangeError, "type: #{variant_type}, bytes: #{bytes}" if index > (variants.length - 1)
 
-      item_variant = variants.find { |v| v['index'] == index }
-      item_name = item_variant['name']
+      item_variant = variants.find { |v| v[:index] == index }
+      item_name = item_variant[:name]
       item, remaining_bytes = decode_composite(item_variant, bytes[1..], registry)
 
       [
