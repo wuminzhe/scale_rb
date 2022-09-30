@@ -2,58 +2,11 @@
 
 require 'bundler/setup'
 require 'scale_rb_2'
-
-require 'uri'
-require 'net/http'
 require 'json'
 require 'optparse'
 
-module RPC
-  class << self
-    def chain_getBlockHash(url, block_number = nil)
-      json_rpc_call('chain_getBlockHash', [block_number], url)
-    end
-
-    def chain_getBlock(url, at = nil)
-      json_rpc_call('chain_getBlock', [at], url)
-    end
-
-    def state_getRuntimeVersion(url, at = nil)
-      json_rpc_call('state_getRuntimeVersion', [at], url)
-    end
-
-    def state_getMetadata(url, at = nil)
-      json_rpc_call('state_getMetadata', [at], url)
-    end
-  end
-end
-
-def json_rpc_call(method, params, url)
-  uri = URI(url)
-  req = Net::HTTP::Post.new(uri, 'Content-Type' => 'application/json')
-  req.body = {
-    'id' => 1,
-    'jsonrpc' => '2.0',
-    'method' => method,
-    'params' => params.all?(nil) ? [] : params
-  }.to_json
-  http = Net::HTTP.new(uri.host, uri.port)
-  http.use_ssl = true if uri.instance_of? URI::HTTPS
-  res = http.request(req)
-  # puts res unless res.is_a?(Net::HTTPSuccess)
-
-  result = JSON.parse(res.body)
-  raise result['error'] if result['error']
-
-  result['result']
-end
-
 def print_metadata(url, at = nil)
-  result = RPC.state_getMetadata(url, at)
-
-  metadata_hex = result.strip
-  metadata = ScaleRb2.decode_metadata(metadata_hex.to_bytes)
-  puts JSON.pretty_generate(metadata)
+  puts JSON.pretty_generate(get_metadata(url, at))
 end
 
 def print_runtime_version(url, at = nil)
@@ -119,6 +72,91 @@ end
 # metadata http://g2.dev.darwinia.network:2234 -b 0x23ebddd6519aaf1b7fc916c3709af13d7a4010943fb53038406581171000a58e
 # metadata https://pangoro-rpc.darwinia.network
 
+require 'net/http'
+
+module Tron
+  def self.balance_of_trc20(address, token_contract)
+    uri = URI("https://apilist.tronscan.org/api/account?address=#{address}")
+    result = JSON.parse(Net::HTTP.get(uri))
+    found_trc20token = result['trc20token_balances'].find do |trc20token|
+      trc20token['tokenId'].strip == token_contract
+    end
+    decimal = found_trc20token['tokenDecimal']
+    found_trc20token['balance'].to_f / 10**decimal
+  end
+end
+
+module Ethereum
+  def self.balance_of_erc20(url, address, token_contract)
+    data = "0x70a08231000000000000000000000000#{address[2..]}"
+    result = RPC.eth_call(url, token_contract, data, 'latest')
+    decimals = decimals(url, token_contract)
+    result.to_i(16).to_f / 10**decimals
+  end
+
+  def self.decimals(url, token_contract)
+    result = RPC.eth_call(url, token_contract, '0x313ce567', 'latest')
+    result.to_i(16)
+  end
+end
+
+def balance_of_ethbk
+  wring_contract = '0xE7578598Aac020abFB918f33A20faD5B71d670b4'
+  ethereum_backing_address = '0xD1B10B114f1975d8BCc6cb6FC43519160e2AA978'
+  Ethereum.balance_of_erc20(url, ethereum_backing_address, wring_contract)
+end
+
+def free_ring_balance_of(url, key, types, at = nil)
+  storage = RPC.state_getStorage(url, key, at)
+  account_info, = PortableTypes.decode(3, storage.to_bytes, types)
+  balance = account_info[:data][:free]
+  balance.to_f / 10**9
+end
+
+def balances_total_issuance(url, _pallet, _method, at = nil)
+  storage_key = '0xc2261276cc9d1f8598ea4b6a74b15c2f57c875e4cff74148e4628f264b974c80'
+  data = RPC.state_getStorage(url, storage_key, at)
+  ScaleRb2.decode('u128', data.to_bytes)[0].to_f / 10**9
+end
+
+# def storage(pallet_name, storage_item_metadata, key, types)
+#   # generate storage key
+#   method_name = storage_item_metadata[:name]
+#   storage_key = "#{Hasher.twox128(pallet_name)}#{Hasher.twox128(method_name)}"
+#
+#   modifier = storage_item_metadata[:modifier]
+#   if storage_item_metadata[:type].keys?(:Plain)
+#     # output type
+#     value_type = storage_item_metadata[:type][:Plain]
+#   elsif storage_item_metadata[:type].keys?(:Map)
+#     # generate input storage bytes
+#     hashers = storage_item_metadata[:type][:Map][:hashers]
+#     key_type = storage_item_metadata[:type][:Map][:key]
+#     key_bytes = PortableTypes.encode(key_type, key, types)
+#     key_applied_hashers = hashers.reduce(key_bytes) do |sum, hasher|
+#       apply_hasher(hasher, sum)
+#     end
+#
+#     # output type
+#     value_type = storage_item_metadata[:type][:Map][:value]
+#   else
+#     raise "NotSupportStorageType: #{storage_item_metadata[:type]}"
+#   end
+#
+#   bytes = PortableTypes.encode(key_type, key, types)
+#   value, = PortableTypes.decode(value_type, bytes, types)
+#   value
+# end
+
+# def system_account(key, types)
+#   bytes = PortableTypes.encode(key_type, key, types)
+#   hashers_applyed = hashers.reduce(bytes) do |result, hasher|
+#     apply_hasher(hasher, result)
+#   end
+#   value, = PortableTypes.decode(value_type, hashers_applyed, types)
+#   value
+# end
+
 @options = {}
 parser = OptionParser.new do |opts|
   opts.banner = 'Usage: metadata [url] [options]'
@@ -145,5 +183,49 @@ else
   end
 
   # print_metadata url, block_hash
-  print_runtime_version(url, block_hash)
+  # print_runtime_version(url, block_hash)
+
+  # #######
+  # metadata = Client.get_metadata(url, block_hash)
+  # types = metadata[:metadata][:v14][:lookup][:types]
+  # types = types.map { |type| [type[:id], type[:type]] }.to_h
+  # storage_keys_to_get_free_ring_balance = {
+  #   trobk: '0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9930da92130a8853bf7ce5de866dfd8ac6d6f646c64612f74726f626b0000000000000000000000000000000000000000',
+  #   multi: '0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da96f55872a70fcac1c8fa57fe17d155ad78db5c746c14cf05e182b10576a9ee765265366c3b7fd53c41d43640c97f4a8b8',
+  #   fndn_: '0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9eee84c1500f092e28e17079802c687a988db6cf10428d2608cd2ca2209971d0227422dc1f53c6ec0848fa610848a6ed3',
+  #   trsry: '0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da9d53c977f01e06f5b4be2d2a8ab85ede86d6f646c64612f74727372790000000000000000000000000000000000000000'
+  # }
+  # storage_keys_to_get_free_ring_balance.each_pair do |name, storage_key|
+  #   balance = free_ring_balance_of(url, storage_key, types, block_hash)
+  #   puts "#{name}: #{balance}"
+  # end
+
+  # #######
+  # puts Tron.balance_of_trc20('TTW2Vpr9TCu6gxGZ1yjwqy7R79hEH8iscC', 'TL175uyihLqQD656aFx3uhHYe1tyGkmXaW')
+
+  # #######
+  # puts Ethereum.decimals(url, '0xE7578598Aac020abFB918f33A20faD5B71d670b4')
+
+  # #######
+  # puts balances_total_issuance(url, 1, 1, block_hash)
+
+  # metadata = Client.get_metadata(url, block_hash)
+  # types = metadata[:metadata][:v14][:lookup][:types]
+  # types = types.map { |type| [type[:id], type[:type]] }.to_h
+  #
+  # storage = metadata[:metadata][:v14][:pallets][0][:storage]
+  # pallet = storage[:prefix]
+  # items = storage[:items]
+  # items.each do |item|
+  #   method = item[:name]
+  #   if item[:type].keys?(:Plain)
+  #     type_id = item[:type][:Plain]
+  #     define_method("#{pallet}_#{method}") do |arg1|
+  #       bytes = PortableTypes.encode(type_id, arg1)
+  #       storage = RPC.state_getStorage(url, bytes.to_hex, at)
+  #     end
+  #   else
+  #     puts 1
+  #   end
+  # end
 end

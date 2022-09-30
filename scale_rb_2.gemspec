@@ -24,4 +24,8 @@ Gem::Specification.new do |spec|
   spec.bindir        = 'exe'
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
+
+  # for hashers
+  spec.add_dependency 'blake2b_rs', '~> 0.1.2'
+  spec.add_dependency 'xxhash'
 end

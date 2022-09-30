@@ -7,6 +7,9 @@ require 'build_type_names'
 require 'portable_types'
 require 'logger'
 require 'metadata_decode'
+require 'rpc'
+require 'client'
+require 'hasher'
 
 # TODO: set, bitvec
 
