@@ -10,6 +10,7 @@ require 'metadata'
 require 'rpc'
 require 'client'
 require 'hasher'
+require 'storage'
 
 # TODO: set, bitvec
 
