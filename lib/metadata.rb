@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 # TODO: build cli tool to decode metadata v14
-module ScaleRb2
+module Metadata
   METADATA_V14_TYPES = {
     'MagicMetadata' => {
-      magicNumber: 'U32',
+      magic_number: 'U32',
       metadata: 'Metadata'
     },
     'Metadata' => {
@@ -133,8 +133,8 @@ module ScaleRb2
     },
     'StorageEntryTypeV14' => {
       _enum: {
-        Plain: 'SiLookupTypeId',
-        Map: {
+        plain: 'SiLookupTypeId',
+        map: {
           hashers: 'Vec<StorageHasherV14>',
           key: 'SiLookupTypeId',
           value: 'SiLookupTypeId'
@@ -177,8 +177,10 @@ module ScaleRb2
     'SiLookupTypeId' => 'Compact'
   }.freeze
 
-  def self.decode_metadata(bytes)
-    metadata, = ScaleRb2.decode('MagicMetadata', bytes, METADATA_V14_TYPES)
-    metadata
+  class << self
+    def decode_metadata(bytes)
+      metadata, = ScaleRb2.decode('MagicMetadata', bytes, METADATA_V14_TYPES)
+      metadata
+    end
   end
 end

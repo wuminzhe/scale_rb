@@ -3,10 +3,13 @@
 require 'scale_rb_2'
 require 'json'
 
-RSpec.describe ScaleRb2 do
+RSpec.describe Metadata do
   it 'can decode metadata' do
     # TODO: use a mainnet metadata as an example
-    metadata_hex = File.open('./moonbase_metadata').read.strip
-    metadata = ScaleRb2.decode_metadata(metadata_hex.to_bytes)
+    # metadata_hex = File.open('./moonbase_metadata').read.strip
+    # metadata = Metadata.decode_metadata(metadata_hex.to_bytes)
+  end
+
+  it 'can be used to encode storage key' do
   end
 end
