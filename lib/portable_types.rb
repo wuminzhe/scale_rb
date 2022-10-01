@@ -11,6 +11,19 @@ module PortableTypes
   class VariantInvalidValue < Error; end
 
   class << self
+    # registry:
+    #   {
+    #     0 => {
+    #       path: [...],
+    #       params: [...],
+    #       def: {
+    #         primitive: 'u8' | array: {} | ...
+    #       }
+    #     },
+    #     1 => {
+    #       ...
+    #     }
+    #   }
     def decode(id, bytes, registry)
       type = registry[id]
       raise TypeNotFound, "id: #{id}" if type.nil?
@@ -163,17 +176,26 @@ module PortableTypes
     end
 
     # value:
-    # {
-    #   name1: value1,
-    #   name2: value2,
-    #   ...
-    # }
+    #   {
+    #     name1: value1,
+    #     name2: value2,
+    #     ...
+    #   }
+    #   or
+    #   [value1, value2, ...]
     def encode_composite(composite_type, value, registry)
-      raise CompositeInvalidValue, "value: #{value}" unless value.instance_of?(Hash)
+      values =
+        if value.instance_of?(Hash)
+          value.values
+        elsif value.instance_of?(Array)
+          value
+        else
+          raise CompositeInvalidValue, "value: #{value}, only hash and array"
+        end
 
       fields = composite_type._get(:fields)
       type_id_list = fields.map { |f| f._get(:type) }
-      _encode_types(type_id_list, value.values, registry)
+      _encode_types(type_id_list, values, registry)
     end
 
     # value:
