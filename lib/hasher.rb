@@ -5,8 +5,10 @@ require 'blake2b'
 
 module Hasher
   class << self
-    # hasher: 'Identity', 'Twox64Concat', 'Blake2128Concat'
-    # bytes: u8 array
+    # params:
+    #   hasher: 'Identity' | 'Twox64Concat' | 'Blake2128Concat'
+    #    bytes: u8 array
+    # return: u8 array
     def apply_hasher(hasher, bytes)
       function_name = hasher.gsub('_', '').underscore
       Hasher.send(function_name, bytes)
@@ -15,22 +17,21 @@ module Hasher
 
   class << self
     def identity(bytes)
-      bytes.to_hex[2..]
+      bytes
     end
 
     def twox64_concat(bytes)
       data = bytes.to_utf8
-      twox64(data) + bytes.to_hex[2..]
+      twox64(data) + bytes
     end
 
     def blake2128_concat(bytes)
-      blake2_128(bytes) + bytes.to_hex[2..]
+      blake2_128(bytes) + bytes
     end
 
     def twox64(str)
       result = XXhash.xxh64 str, 0
-      bytes = result.to_bytes.reverse
-      bytes.to_hex[2..]
+      result.to_bytes.reverse
     end
 
     def twox128(str)
@@ -39,15 +40,15 @@ module Hasher
         result = XXhash.xxh64 str, i
         bytes += result.to_bytes.reverse
       end
-      bytes.to_hex[2..]
+      bytes
     end
 
     def blake2_128(bytes)
-      Blake2b.hex bytes, 16
+      Blake2b.hex(bytes, 16).to_bytes
     end
 
     def blake2_256(bytes)
-      Blake2b.hex bytes, 32
+      Blake2b.hex(bytes, 32).to_bytes
     end
   end
 end
