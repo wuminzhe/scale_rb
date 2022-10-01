@@ -3,7 +3,12 @@
 module PortableTypes
   class Error < StandardError; end
   class TypeNotFound < Error; end
-  class VariantNotFound < Error; end
+  class TypeNotImplemented < Error; end
+  class CompositeInvalidValue < Error; end
+  class ArrayLengthNotEqual < Error; end
+  class VariantItemNotFound < Error; end
+  class VariantIndexOutOfRange < Error; end
+  class VariantInvalidValue < Error; end
 
   class << self
     def decode(id, bytes, registry)
@@ -22,7 +27,7 @@ module PortableTypes
       return decode_composite(type_def[:composite], bytes, registry) if type_def.key?(:composite)
       return decode_variant(type_def[:variant], bytes, registry) if type_def.key?(:variant)
 
-      raise NotImplementedError, "id: #{id}"
+      raise TypeNotImplemented, "id: #{id}"
     end
 
     # Uint, Str, Bool
@@ -82,7 +87,7 @@ module PortableTypes
 
       index = bytes[0]
       if index > (variants.length - 1)
-        raise ScaleRb2::IndexOutOfRangeError,
+        raise VariantIndexOutOfRange,
               "type: #{variant_type}, index: #{index}, bytes: #{bytes}"
       end
 
@@ -120,7 +125,7 @@ module PortableTypes
       return encode_composite(type_def[:composite], value, registry) if type_def.key?(:composite)
       return encode_variant(type_def[:variant], value, registry) if type_def.key?(:variant)
 
-      raise NotImplementedError, "id: #{id}"
+      raise TypeNotImplemented, "id: #{id}"
     end
 
     def encode_primitive(type_def, value)
@@ -137,7 +142,7 @@ module PortableTypes
     def encode_array(array_type, value, registry)
       length = array_type[:len]
       inner_type_id = array_type[:type]
-      raise LengthNotEqualErr, "type: #{array_type}, value: #{value.inspect}" if length != value.length
+      raise ArrayLengthNotEqual, "type: #{array_type}, value: #{value.inspect}" if length != value.length
 
       _encode_types([inner_type_id] * length, value, registry)
     end
@@ -159,7 +164,7 @@ module PortableTypes
     #   ...
     # }
     def encode_composite(composite_type, value, registry)
-      raise ScaleRb2::InvalidValueError, "value: #{value}" unless value.instance_of?(Hash)
+      raise CompositeInvalidValue, "value: #{value}" unless value.instance_of?(Hash)
 
       fields = composite_type[:fields]
       type_id_list = fields.map { |f| f[:type] }
@@ -182,11 +187,11 @@ module PortableTypes
         name = value
         the_value = {}
       else
-        raise ScaleRb2::InvalidValueError, "type: #{variant_type}, value: #{value}"
+        raise VariantInvalidValue, "type: #{variant_type}, value: #{value}"
       end
 
       variant = variants.find { |v| v[:name] == name }
-      raise VariantNotFound, "type: #{variant_type}, name: #{name}" if variant.nil?
+      raise VariantItemNotFound, "type: #{variant_type}, name: #{name}" if variant.nil?
 
       ScaleRb2.encode_uint('u8', variant[:index]) + encode_composite(variant, the_value, registry)
     end
