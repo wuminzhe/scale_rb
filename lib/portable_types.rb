@@ -111,6 +111,11 @@ module PortableTypes
       end
     end
 
+    def encode_value_with_hasher(id, value, registry, hasher)
+      value_bytes = PortableTypes.encode(id, value, registry)
+      Hasher.apply_hasher(hasher, value_bytes)
+    end
+
     def encode(id, value, registry)
       type = registry[id]
       raise TypeNotFound, "id: #{id}" if type.nil?
