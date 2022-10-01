@@ -3,6 +3,7 @@
 module PortableTypes
   class Error < StandardError; end
   class TypeNotFound < Error; end
+  class VariantNotFound < Error; end
 
   class << self
     def decode(id, bytes, registry)
@@ -80,7 +81,10 @@ module PortableTypes
       variants = variant_type[:variants]
 
       index = bytes[0]
-      raise ScaleRb2::IndexOutOfRangeError, "type: #{variant_type}, bytes: #{bytes}" if index > (variants.length - 1)
+      if index > (variants.length - 1)
+        raise ScaleRb2::IndexOutOfRangeError,
+              "type: #{variant_type}, index: #{index}, bytes: #{bytes}"
+      end
 
       item_variant = variants.find { |v| v[:index] == index }
       item_name = item_variant[:name]
@@ -92,12 +96,12 @@ module PortableTypes
       ]
     end
 
-    def _decode_types(type_id_list, bytes, registry = {})
-      if type_id_list.empty?
+    def _decode_types(ids, bytes, registry = {})
+      if ids.empty?
         [[], bytes]
       else
-        value, remaining_bytes = decode(type_id_list.first, bytes, registry)
-        value_list, remaining_bytes = _decode_types(type_id_list[1..], remaining_bytes, registry)
+        value, remaining_bytes = decode(ids.first, bytes, registry)
+        value_list, remaining_bytes = _decode_types(ids[1..], remaining_bytes, registry)
         [[value] + value_list, remaining_bytes]
       end
     end
@@ -110,11 +114,11 @@ module PortableTypes
 
       return encode_primitive(type_def, value) if type_def.key?(:primitive)
       return encode_compact(value) if type_def.key?(:compact)
-      return encode_array(id, type_def[:array], value, registry) if type_def.key?(:array)
+      return encode_array(type_def[:array], value, registry) if type_def.key?(:array)
       return encode_sequence(type_def[:sequence], value, registry) if type_def.key?(:sequence)
       return encode_tuple(type_def[:tuple], value, registry) if type_def.key?(:tuple)
       return encode_composite(type_def[:composite], value, registry) if type_def.key?(:composite)
-      return encode_variant(id, type_def[:variant], value, registry) if type_def.key?(:variant)
+      return encode_variant(type_def[:variant], value, registry) if type_def.key?(:variant)
 
       raise NotImplementedError, "id: #{id}"
     end
@@ -130,10 +134,10 @@ module PortableTypes
       ScaleRb2.encode_compact(value)
     end
 
-    def encode_array(id, array_type, value, registry)
+    def encode_array(array_type, value, registry)
       length = array_type[:len]
       inner_type_id = array_type[:type]
-      raise LengthNotEqualErr, "id: #{id}, value: #{value.inspect}" if length != value.length
+      raise LengthNotEqualErr, "type: #{array_type}, value: #{value.inspect}" if length != value.length
 
       _encode_types([inner_type_id] * length, value, registry)
     end
@@ -150,10 +154,13 @@ module PortableTypes
 
     # value:
     # {
-    #   name: value,
+    #   name1: value1,
+    #   name2: value2,
     #   ...
     # }
     def encode_composite(composite_type, value, registry)
+      raise ScaleRb2::InvalidValueError, "value: #{value}" unless value.instance_of?(Hash)
+
       fields = composite_type[:fields]
       type_id_list = fields.map { |f| f[:type] }
       _encode_types(type_id_list, value.values, registry)
@@ -161,42 +168,37 @@ module PortableTypes
 
     # value:
     # {
-    #   name: the_value
+    #   name: the_value(Hash)
     # }
     # or
-    # the_value
-    def encode_variant(id, variant_type, value, registry)
+    # the_value(String)
+    def encode_variant(variant_type, value, registry)
       variants = variant_type[:variants]
 
       if value.instance_of?(Hash)
         name = value.keys.first
         the_value = value.values.first
-
-        variant = variants.find { |v| v[:name] == name }
-        index = variant[:index]
-        fields = variant[:fields]
-        raise ScaleRb2::InvalidValueError, "id: #{id}, index: #{index}, value: #{value}" if fields.empty?
-
-        type_id_list = fields.map { |f| f[:type] }
-        ScaleRb2.encode_uint('u8', index) + _encode_types(type_id_list, the_value, registry)
       elsif value.instance_of?(String)
-        variant = variants.find { |v| v[:name] == value }
-        index = variant[:index]
-        fields = variant[:fields]
-        raise ScaleRb2::InvalidValueError, "id: #{id}, index: #{index}, value: #{value}" unless fields.empty?
-
-        ScaleRb2.encode_uint('u8', index)
+        name = value
+        the_value = {}
       else
-        raise ScaleRb2::InvalidValueError, "id: #{id}, value: #{value}"
+        raise ScaleRb2::InvalidValueError, "type: #{variant_type}, value: #{value}"
       end
+
+      variant = variants.find { |v| v[:name] == name }
+      raise VariantNotFound, "type: #{variant_type}, name: #{name}" if variant.nil?
+
+      ScaleRb2.encode_uint('u8', variant[:index]) + encode_composite(variant, the_value, registry)
     end
 
-    def _encode_types(type_id_list, value_list, registry)
-      if type_id_list.empty?
+    def _encode_types(ids, values, registry)
+      raise ScaleRb2::LengthNotEqualErr, "types: #{ids}, values: #{values.inspect}" if ids.length != values.length
+
+      if ids.empty?
         []
       else
-        bytes = encode(type_id_list.first, value_list.first, registry)
-        bytes + _encode_types(type_id_list[1..], value_list[1..], registry)
+        bytes = encode(ids.first, values.first, registry)
+        bytes + _encode_types(ids[1..], values[1..], registry)
       end
     end
   end
