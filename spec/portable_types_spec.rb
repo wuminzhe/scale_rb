@@ -5,10 +5,10 @@ require 'json'
 
 RSpec.describe PortableTypes do
   before(:all) do
-    types = JSON.parse(File.open('./substrate-types.json').read)
+    types = JSON.parse(File.open(File.join(__dir__, 'substrate-types.json')).read)
     @registry = types.map { |type| [type['id'], type['type']] }.to_h
 
-    kusama_types = JSON.parse(File.open('./kusama-types.json').read)
+    kusama_types = JSON.parse(File.open(File.join(__dir__, './kusama-types.json')).read)
     @kusama_registry = kusama_types.map { |type| [type['id'], type['type']] }.to_h
   end
 

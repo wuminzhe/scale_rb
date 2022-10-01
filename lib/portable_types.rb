@@ -15,17 +15,17 @@ module PortableTypes
       type = registry[id]
       raise TypeNotFound, "id: #{id}" if type.nil?
 
-      _path = type[:path]
-      _params = type[:params]
-      type_def = type[:def]
+      _path = type._get(:path)
+      _params = type._get(:params)
+      type_def = type._get(:def)
 
-      return decode_primitive(type_def, bytes) if type_def.key?(:primitive)
-      return decode_compact(bytes) if type_def.key?(:compact)
-      return decode_array(type_def[:array], bytes, registry) if type_def.key?(:array)
-      return decode_sequence(type_def[:sequence], bytes, registry) if type_def.key?(:sequence)
-      return decode_tuple(type_def[:tuple], bytes, registry) if type_def.key?(:tuple)
-      return decode_composite(type_def[:composite], bytes, registry) if type_def.key?(:composite)
-      return decode_variant(type_def[:variant], bytes, registry) if type_def.key?(:variant)
+      return decode_primitive(type_def, bytes) if type_def._key?(:primitive)
+      return decode_compact(bytes) if type_def._key?(:compact)
+      return decode_array(type_def._get(:array), bytes, registry) if type_def._key?(:array)
+      return decode_sequence(type_def._get(:sequence), bytes, registry) if type_def._key?(:sequence)
+      return decode_tuple(type_def._get(:tuple), bytes, registry) if type_def._key?(:tuple)
+      return decode_composite(type_def._get(:composite), bytes, registry) if type_def._key?(:composite)
+      return decode_variant(type_def._get(:variant), bytes, registry) if type_def._key?(:variant)
 
       raise TypeNotImplemented, "id: #{id}"
     end
@@ -33,7 +33,7 @@ module PortableTypes
     # Uint, Str, Bool
     # Int, Bytes ?
     def decode_primitive(type_def, bytes)
-      primitive = type_def[:primitive]
+      primitive = type_def._get(:primitive)
       return ScaleRb2.decode_uint(primitive, bytes) if uint?(primitive)
       return ScaleRb2.decode_string(bytes) if string?(primitive)
       return ScaleRb2.decode_boolean(bytes) if boolean?(primitive)
@@ -46,14 +46,14 @@ module PortableTypes
     end
 
     def decode_array(array_type, bytes, registry)
-      len = array_type[:len]
-      inner_type_id = array_type[:type]
+      len = array_type._get(:len)
+      inner_type_id = array_type._get(:type)
       _decode_types([inner_type_id] * len, bytes, registry)
     end
 
     def decode_sequence(sequence_type, bytes, registry)
       len, remaining_bytes = decode_compact(bytes)
-      inner_type_id = sequence_type[:type]
+      inner_type_id = sequence_type._get(:type)
       _decode_types([inner_type_id] * len, remaining_bytes, registry)
     end
 
@@ -66,10 +66,10 @@ module PortableTypes
     #   ...
     # }
     def decode_composite(composite_type, bytes, registry)
-      fields = composite_type[:fields]
+      fields = composite_type._get(:fields)
 
-      type_name_list = fields.map { |f| f[:name] }
-      type_id_list = fields.map { |f| f[:type] }
+      type_name_list = fields.map { |f| f._get(:name) }
+      type_id_list = fields.map { |f| f._get(:type) }
 
       type_value_list, remaining_bytes = _decode_types(type_id_list, bytes, registry)
       [
@@ -83,7 +83,7 @@ module PortableTypes
     end
 
     def decode_variant(variant_type, bytes, registry)
-      variants = variant_type[:variants]
+      variants = variant_type._get(:variants)
 
       index = bytes[0]
       if index > (variants.length - 1)
@@ -91,8 +91,8 @@ module PortableTypes
               "type: #{variant_type}, index: #{index}, bytes: #{bytes}"
       end
 
-      item_variant = variants.find { |v| v[:index] == index }
-      item_name = item_variant[:name]
+      item_variant = variants.find { |v| v._get(:index) == index }
+      item_name = item_variant._get(:name)
       item, remaining_bytes = decode_composite(item_variant, bytes[1..], registry)
 
       [
@@ -111,8 +111,8 @@ module PortableTypes
       end
     end
 
-    def encode_value_with_hasher(id, value, registry, hasher)
-      value_bytes = PortableTypes.encode(id, value, registry)
+    def encode_with_hasher(value, type_id, registry, hasher)
+      value_bytes = PortableTypes.encode(type_id, value, registry)
       Hasher.apply_hasher(hasher, value_bytes)
     end
 
@@ -120,21 +120,21 @@ module PortableTypes
       type = registry[id]
       raise TypeNotFound, "id: #{id}" if type.nil?
 
-      type_def = type[:def]
+      type_def = type._get(:def)
 
-      return encode_primitive(type_def, value) if type_def.key?(:primitive)
-      return encode_compact(value) if type_def.key?(:compact)
-      return encode_array(type_def[:array], value, registry) if type_def.key?(:array)
-      return encode_sequence(type_def[:sequence], value, registry) if type_def.key?(:sequence)
-      return encode_tuple(type_def[:tuple], value, registry) if type_def.key?(:tuple)
-      return encode_composite(type_def[:composite], value, registry) if type_def.key?(:composite)
-      return encode_variant(type_def[:variant], value, registry) if type_def.key?(:variant)
+      return encode_primitive(type_def, value) if type_def._key?(:primitive)
+      return encode_compact(value) if type_def._key?(:compact)
+      return encode_array(type_def._get(:array), value, registry) if type_def._key?(:array)
+      return encode_sequence(type_def._get(:sequence), value, registry) if type_def._key?(:sequence)
+      return encode_tuple(type_def._get(:tuple), value, registry) if type_def._key?(:tuple)
+      return encode_composite(type_def._get(:composite), value, registry) if type_def._key?(:composite)
+      return encode_variant(type_def._get(:variant), value, registry) if type_def._key?(:variant)
 
       raise TypeNotImplemented, "id: #{id}"
     end
 
     def encode_primitive(type_def, value)
-      primitive = type_def[:primitive]
+      primitive = type_def._get(:primitive)
       return ScaleRb2.encode_uint(primitive, value) if uint?(primitive)
       return ScaleRb2.encode_string(value) if string?(primitive)
       return ScaleRb2.encode_boolean(value) if boolean?(primitive)
@@ -145,15 +145,15 @@ module PortableTypes
     end
 
     def encode_array(array_type, value, registry)
-      length = array_type[:len]
-      inner_type_id = array_type[:type]
+      length = array_type._get(:len)
+      inner_type_id = array_type._get(:type)
       raise ArrayLengthNotEqual, "type: #{array_type}, value: #{value.inspect}" if length != value.length
 
       _encode_types([inner_type_id] * length, value, registry)
     end
 
     def encode_sequence(sequence_type, value, registry)
-      inner_type_id = sequence_type[:type]
+      inner_type_id = sequence_type._get(:type)
       length_bytes = encode_compact(value.length)
       length_bytes + _encode_types([inner_type_id] * array.length, value, registry)
     end
@@ -171,8 +171,8 @@ module PortableTypes
     def encode_composite(composite_type, value, registry)
       raise CompositeInvalidValue, "value: #{value}" unless value.instance_of?(Hash)
 
-      fields = composite_type[:fields]
-      type_id_list = fields.map { |f| f[:type] }
+      fields = composite_type._get(:fields)
+      type_id_list = fields.map { |f| f._get(:type) }
       _encode_types(type_id_list, value.values, registry)
     end
 
@@ -183,10 +183,10 @@ module PortableTypes
     # or
     # the_value(String)
     def encode_variant(variant_type, value, registry)
-      variants = variant_type[:variants]
+      variants = variant_type._get(:variants)
 
       if value.instance_of?(Hash)
-        name = value.keys.first
+        name = value.keys.first.to_s
         the_value = value.values.first
       elsif value.instance_of?(String)
         name = value
@@ -198,7 +198,7 @@ module PortableTypes
       variant = variants.find { |v| v[:name] == name }
       raise VariantItemNotFound, "type: #{variant_type}, name: #{name}" if variant.nil?
 
-      ScaleRb2.encode_uint('u8', variant[:index]) + encode_composite(variant, the_value, registry)
+      ScaleRb2.encode_uint('u8', variant._get(:index)) + encode_composite(variant, the_value, registry)
     end
 
     def _encode_types(ids, values, registry)

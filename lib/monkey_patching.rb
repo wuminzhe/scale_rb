@@ -93,3 +93,14 @@ class Array
     all? { |e| e >= 0 and e <= 255 }
   end
 end
+
+class Hash
+  def _key?(key)
+    key?(key) || key?(key.to_s)
+  end
+
+  def _get(key)
+    # fetch(key) || fetch(key.to_s)
+    self[key] || self[key.to_s]
+  end
+end
