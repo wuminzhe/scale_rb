@@ -96,11 +96,18 @@ end
 
 class Hash
   def _key?(key)
-    key?(key) || key?(key.to_s)
+    if key.instance_of?(String)
+      key?(key) || key?(key.to_sym)
+    else
+      key?(key) || key?(key.to_s)
+    end
   end
 
   def _get(key)
-    # fetch(key) || fetch(key.to_s)
-    self[key] || self[key.to_s]
+    if key.instance_of?(String)
+      self[key] || self[key.to_sym]
+    else
+      self[key] || self[key.to_s]
+    end
   end
 end
