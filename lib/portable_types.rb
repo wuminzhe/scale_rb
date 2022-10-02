@@ -171,6 +171,7 @@ module PortableTypes
       length_bytes + _encode_types([inner_type_id] * array.length, value, registry)
     end
 
+    # tuple_type: [type_id1, type_id2, ...]
     def encode_tuple(tuple_type, value, registry)
       _encode_types(tuple_type, value, registry)
     end
@@ -224,14 +225,28 @@ module PortableTypes
     end
 
     def _encode_types(ids, values, registry)
-      raise ScaleRb2::LengthNotEqualErr, "types: #{ids}, values: #{values.inspect}" if ids.length != values.length
+      _encode_types_without_merge(ids, values, registry).flatten
+    end
 
-      if ids.empty?
-        []
-      else
-        bytes = encode(ids.first, values.first, registry)
-        bytes + _encode_types(ids[1..], values[1..], registry)
+    def _encode_types_with_hashers(values, type_ids, registry, hashers)
+      if !hashers.nil? && hashers.length != type_ids.length
+        raise ScaleRb2::LengthNotEqualErr, "type_ids length: #{type_ids.length}, hashers length: #{hashers.length}"
+      end
+
+      bytes_array = _encode_types_without_merge(type_ids, values, registry)
+      bytes_array.each_with_index.reduce([]) do |memo, (bytes, i)|
+        memo + Hasher.apply_hasher(hashers[i], bytes)
       end
     end
+
+    # return: [value1_bytes, value2_bytes, ...]
+    def _encode_types_without_merge(ids, values, registry)
+      raise ScaleRb2::LengthNotEqualErr, "types: #{ids}, values: #{values.inspect}" if ids.length != values.length
+
+      ids.map.with_index do |type_id, i|
+        encode(type_id, values[i], registry)
+      end
+    end
+
   end
 end
