@@ -1,16 +1,16 @@
 # frozen_string_literal: true
 
 require 'scale_rb_2/version'
+require 'logger'
 require 'registry'
 require 'monkey_patching'
 require 'build_type_names'
-require 'portable_types'
-require 'logger'
-require 'metadata'
 require 'rpc'
 require 'hasher'
-require 'storage_helper'
-require 'client'
+require 'v14/metadata'
+require 'v14/portable_types'
+require 'v14/storage_helper'
+require 'v14/client'
 
 # TODO: set, bitvec
 
