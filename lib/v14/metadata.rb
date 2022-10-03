@@ -1,9 +1,29 @@
 # frozen_string_literal: true
 
-# TODO: build cli tool to decode metadata v14
 module Metadata
-  METADATA_V14_TYPES = {
-    'MagicMetadata' => {
+  class << self
+    def decode_metadata(bytes)
+      metadata, = ScaleRb2.decode('MetadataTop', bytes, TYPES)
+      metadata
+    end
+
+    def build_registry(metadata)
+      raise ScaleRb2::NotImplemented, metadata._get(:metadata).keys.first unless metadata._get(:metadata)._key?(:v14)
+
+      metadata_v14 = metadata._get(:metadata)._get(:v14)
+      MetadataV14.build_registry(metadata_v14)
+    end
+
+    def get_storage_item(pallet_name, item_name, metadata)
+      raise ScaleRb2::NotImplemented, metadata._get(:metadata).keys.first unless metadata._get(:metadata)._key?(:v14)
+
+      metadata_v14 = metadata._get(:metadata)._get(:v14)
+      MetadataV14.get_storage_item(pallet_name, item_name, metadata_v14)
+    end
+  end
+
+  TYPES = {
+    'MetadataTop' => {
       magic_number: 'U32',
       metadata: 'Metadata'
     },
@@ -176,27 +196,4 @@ module Metadata
 
     'SiLookupTypeId' => 'Compact'
   }.freeze
-
-  class << self
-    def decode_metadata(bytes)
-      metadata, = ScaleRb2.decode('MagicMetadata', bytes, METADATA_V14_TYPES)
-      metadata
-    end
-
-    def build_portable_types_registry(metadata)
-      types = metadata[:metadata][:v14][:lookup][:types]
-      types.map { |type| [type[:id], type[:type]] }.to_h
-    end
-
-    def get_storage_item_from_metadata(pallet_name, item_name, metadata)
-      pallet =
-        metadata._get(:metadata)._get(:v14)._get(:pallets).find do |p|
-          p._get(:name) == pallet_name
-        end
-
-      pallet._get(:storage)._get(:items).find do |item|
-        item._get(:name) == item_name
-      end
-    end
-  end
 end

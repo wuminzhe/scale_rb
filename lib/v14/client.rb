@@ -47,8 +47,8 @@ module Client
     end
 
     def get_storage3(url, pallet_name, item_name, key_value, metadata, at = nil)
-      registry = Metadata.build_portable_types_registry(metadata)
-      item = Metadata.get_storage_item_from_metadata(pallet_name, item_name, metadata)
+      registry = Metadata.build_registry(metadata)
+      item = Metadata.get_storage_item(pallet_name, item_name, metadata)
 
       modifier = item._get(:modifier) # Default | Optional
       fallback = item._get(:fallback)
