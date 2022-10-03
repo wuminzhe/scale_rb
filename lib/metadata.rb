@@ -182,5 +182,21 @@ module Metadata
       metadata, = ScaleRb2.decode('MagicMetadata', bytes, METADATA_V14_TYPES)
       metadata
     end
+
+    def build_portable_types_registry(metadata)
+      types = metadata[:metadata][:v14][:lookup][:types]
+      types.map { |type| [type[:id], type[:type]] }.to_h
+    end
+
+    def get_storage_item_from_metadata(pallet_name, item_name, metadata)
+      pallet =
+        metadata._get(:metadata)._get(:v14)._get(:pallets).find do |p|
+          p._get(:name) == pallet_name
+        end
+
+      pallet._get(:storage)._get(:items).find do |item|
+        item._get(:name) == item_name
+      end
+    end
   end
 end
