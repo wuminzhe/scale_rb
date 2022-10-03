@@ -3,9 +3,9 @@
 require 'scale_rb_2'
 require 'json'
 
-RSpec.describe Storage do
+RSpec.describe StorageHelper do
   it 'can encode storage key without param' do
-    storage_key = Storage.encode_storage_key('System', 'EventCount')
+    storage_key = StorageHelper.encode_storage_key('System', 'EventCount')
     expect(storage_key).to eql('0x26aa394eea5630e07c48ae0c9558cef70a98fdbe9ce6c55837576c60c7af3850'.to_bytes)
   end
 
@@ -19,7 +19,7 @@ RSpec.describe Storage do
     param_type = 0
     hasher = 'Blake2_128Concat'
 
-    storage_key = Storage.encode_storage_key(
+    storage_key = StorageHelper.encode_storage_key(
       'System',
       'Account',
       {
@@ -37,7 +37,7 @@ RSpec.describe Storage do
     types = JSON.parse(File.open(File.join(__dir__, 'darwinia-types.json')).read)
     portable_types_registry = types.map { |type| [type['id'], type['type']] }.to_h
 
-    storage_key = Storage.encode_storage_key(
+    storage_key = StorageHelper.encode_storage_key(
       'ImOnline',
       'AuthoredBlocks',
       {
@@ -55,7 +55,7 @@ RSpec.describe Storage do
     types = JSON.parse(File.open(File.join(__dir__, 'darwinia-types.json')).read)
     portable_types_registry = types.map { |type| [type['id'], type['type']] }.to_h
 
-    storage_key = Storage.encode_storage_key(
+    storage_key = StorageHelper.encode_storage_key(
       'Multisig',
       'Multisigs',
       {

@@ -8,9 +8,9 @@ require 'portable_types'
 require 'logger'
 require 'metadata'
 require 'rpc'
-require 'client'
 require 'hasher'
-require 'storage'
+require 'storage_helper'
+require 'client'
 
 # TODO: set, bitvec
 
