@@ -21,7 +21,7 @@ module StorageHelper
         type_ids = params[:type_ids]
         hashers = params[:hashers]
 
-        pallet_method_key + PortableTypes._encode_types_with_hashers(values, type_ids, registry, hashers)
+        pallet_method_key + PortableCodec._encode_types_with_hashers(values, type_ids, registry, hashers)
       end
     end
 

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module PortableTypes
+module PortableCodec
   class Error < StandardError; end
   class TypeNotFound < Error; end
   class TypeNotImplemented < Error; end
@@ -125,7 +125,7 @@ module PortableTypes
     end
 
     def encode_with_hasher(value, type_id, registry, hasher)
-      value_bytes = PortableTypes.encode(type_id, value, registry)
+      value_bytes = encode(type_id, value, registry)
       Hasher.apply_hasher(hasher, value_bytes)
     end
 
@@ -247,6 +247,5 @@ module PortableTypes
         encode(type_id, values[i], registry)
       end
     end
-
   end
 end

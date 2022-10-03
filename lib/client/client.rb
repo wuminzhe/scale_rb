@@ -12,7 +12,7 @@ module Client
       data = RPC.state_getStorage(url, storage_key, at) || default
       return nil if data.nil?
 
-      PortableTypes.decode(type_id, data.to_bytes, registry)[0]
+      PortableCodec.decode(type_id, data.to_bytes, registry)[0]
     end
 
     # key:   { value: .., type: 0, hashers: ['Blake2128Concat'] } | nil
