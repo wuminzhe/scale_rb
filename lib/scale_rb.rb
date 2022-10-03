@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'scale_rb_2/version'
+require 'scale_rb/version'
 require 'logger'
 
 # scale codec
@@ -22,7 +22,7 @@ require 'client/client'
 # get registry from config
 require 'registry'
 
-module ScaleRb2
+module ScaleRb
   class << self
     attr_writer :logger
 

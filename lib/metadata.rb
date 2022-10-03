@@ -3,19 +3,19 @@
 module Metadata
   class << self
     def decode_metadata(bytes)
-      metadata, = ScaleRb2.decode('MetadataTop', bytes, TYPES)
+      metadata, = ScaleRb.decode('MetadataTop', bytes, TYPES)
       metadata
     end
 
     def build_registry(metadata)
-      raise ScaleRb2::NotImplemented, metadata._get(:metadata).keys.first unless metadata._get(:metadata)._key?(:v14)
+      raise ScaleRb::NotImplemented, metadata._get(:metadata).keys.first unless metadata._get(:metadata)._key?(:v14)
 
       metadata_v14 = metadata._get(:metadata)._get(:v14)
       MetadataV14.build_registry(metadata_v14)
     end
 
     def get_storage_item(pallet_name, item_name, metadata)
-      raise ScaleRb2::NotImplemented, metadata._get(:metadata).keys.first unless metadata._get(:metadata)._key?(:v14)
+      raise ScaleRb::NotImplemented, metadata._get(:metadata).keys.first unless metadata._get(:metadata)._key?(:v14)
 
       metadata_v14 = metadata._get(:metadata)._get(:v14)
       MetadataV14.get_storage_item(pallet_name, item_name, metadata_v14)

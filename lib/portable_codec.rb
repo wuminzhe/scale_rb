@@ -47,15 +47,15 @@ module PortableCodec
     # Int, Bytes ?
     def decode_primitive(type_def, bytes)
       primitive = type_def._get(:primitive)
-      return ScaleRb2.decode_uint(primitive, bytes) if uint?(primitive)
-      return ScaleRb2.decode_string(bytes) if string?(primitive)
-      return ScaleRb2.decode_boolean(bytes) if boolean?(primitive)
-      # return ScaleRb2.decode_int(primitive, bytes) if int?(primitive)
-      # return ScaleRb2.decode_bytes(bytes) if bytes?(primitive)
+      return ScaleRb.decode_uint(primitive, bytes) if uint?(primitive)
+      return ScaleRb.decode_string(bytes) if string?(primitive)
+      return ScaleRb.decode_boolean(bytes) if boolean?(primitive)
+      # return ScaleRb.decode_int(primitive, bytes) if int?(primitive)
+      # return ScaleRb.decode_bytes(bytes) if bytes?(primitive)
     end
 
     def decode_compact(bytes)
-      ScaleRb2.decode_compact(bytes)
+      ScaleRb.decode_compact(bytes)
     end
 
     def decode_array(array_type, bytes, registry)
@@ -148,13 +148,13 @@ module PortableCodec
 
     def encode_primitive(type_def, value)
       primitive = type_def._get(:primitive)
-      return ScaleRb2.encode_uint(primitive, value) if uint?(primitive)
-      return ScaleRb2.encode_string(value) if string?(primitive)
-      return ScaleRb2.encode_boolean(value) if boolean?(primitive)
+      return ScaleRb.encode_uint(primitive, value) if uint?(primitive)
+      return ScaleRb.encode_string(value) if string?(primitive)
+      return ScaleRb.encode_boolean(value) if boolean?(primitive)
     end
 
     def encode_compact(value)
-      ScaleRb2.encode_compact(value)
+      ScaleRb.encode_compact(value)
     end
 
     def encode_array(array_type, value, registry)
@@ -221,7 +221,7 @@ module PortableCodec
       variant = variants.find { |v| v[:name] == name }
       raise VariantItemNotFound, "type: #{variant_type}, name: #{name}" if variant.nil?
 
-      ScaleRb2.encode_uint('u8', variant._get(:index)) + encode_composite(variant, the_value, registry)
+      ScaleRb.encode_uint('u8', variant._get(:index)) + encode_composite(variant, the_value, registry)
     end
 
     def _encode_types(ids, values, registry)
@@ -230,7 +230,7 @@ module PortableCodec
 
     def _encode_types_with_hashers(values, type_ids, registry, hashers)
       if !hashers.nil? && hashers.length != type_ids.length
-        raise ScaleRb2::LengthNotEqualErr, "type_ids length: #{type_ids.length}, hashers length: #{hashers.length}"
+        raise ScaleRb::LengthNotEqualErr, "type_ids length: #{type_ids.length}, hashers length: #{hashers.length}"
       end
 
       bytes_array = _encode_types_without_merge(type_ids, values, registry)
@@ -241,7 +241,7 @@ module PortableCodec
 
     # return: [value1_bytes, value2_bytes, ...]
     def _encode_types_without_merge(ids, values, registry)
-      raise ScaleRb2::LengthNotEqualErr, "types: #{ids}, values: #{values.inspect}" if ids.length != values.length
+      raise ScaleRb::LengthNotEqualErr, "types: #{ids}, values: #{values.inspect}" if ids.length != values.length
 
       ids.map.with_index do |type_id, i|
         encode(type_id, values[i], registry)

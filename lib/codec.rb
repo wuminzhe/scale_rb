@@ -56,15 +56,15 @@ end
 
 def parse_fixed_array(type)
   scan_out = type.scan(/\A\[\s*(.+)\s*;\s*(\d+)\s*\]\z/)
-  raise ScaleRb2::TypeParseError, type if scan_out.empty?
-  raise ScaleRb2::TypeParseError, type if scan_out[0].length != 2
+  raise ScaleRb::TypeParseError, type if scan_out.empty?
+  raise ScaleRb::TypeParseError, type if scan_out[0].length != 2
 
   inner_type = scan_out[0][0]
   length = scan_out[0][1].to_i
   [inner_type, length]
 end
 
-module ScaleRb2
+module ScaleRb
   class Error < StandardError; end
   class NotImplemented < Error; end
   class NilTypeError < Error; end

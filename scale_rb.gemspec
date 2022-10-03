@@ -1,14 +1,14 @@
-require_relative 'lib/scale_rb_2/version'
+require_relative 'lib/scale_rb/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'scale_rb_2'
-  spec.version       = ScaleRb2::VERSION
+  spec.name          = 'scale_rb'
+  spec.version       = ScaleRb::VERSION
   spec.authors       = ['Aki Wu']
-  spec.email         = ['aki.wu@itering.com']
+  spec.email         = ['wuminzhe@gmail.com']
 
-  spec.summary       = 'Ruby SCALE Codec Library'
+  spec.summary       = 'New Ruby SCALE Codec Library'
   spec.description   = 'Ruby implementation of the parity SCALE data format'
-  spec.homepage      = 'https://github.com/wuminzhe/scale.rb.2'
+  spec.homepage      = 'https://github.com/wuminzhe/scale_rb'
   spec.license       = 'MIT'
   spec.required_ruby_version = Gem::Requirement.new('>= 2.6.0')
 

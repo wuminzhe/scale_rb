@@ -1,25 +1,25 @@
 # frozen_string_literal: true
 
-require 'scale_rb_2'
+require 'scale_rb'
 
-RSpec.describe ScaleRb2 do
+RSpec.describe ScaleRb do
   it 'get mapped type' do
     registry = {
     }
-    type = ScaleRb2.get_final_type_from_registry(registry, 'CustomType')
+    type = ScaleRb.get_final_type_from_registry(registry, 'CustomType')
     expect(type).to be(nil)
 
     registry = {
       'CustomType' => 'Vec<u8>'
     }
-    type = ScaleRb2.get_final_type_from_registry(registry, 'CustomType')
+    type = ScaleRb.get_final_type_from_registry(registry, 'CustomType')
     expect(type).to eql('Vec<u8>')
 
     registry = {
       'CustomType' => 'Type1',
       'Type1' => 'Vec<u8>'
     }
-    type = ScaleRb2.get_final_type_from_registry(registry, 'CustomType')
+    type = ScaleRb.get_final_type_from_registry(registry, 'CustomType')
     expect(type).to eql('Vec<u8>')
 
     registry = {
@@ -27,7 +27,7 @@ RSpec.describe ScaleRb2 do
       'Type1' => 'Type2',
       'Type2' => 'Vec<u8>'
     }
-    type = ScaleRb2.get_final_type_from_registry(registry, 'CustomType')
+    type = ScaleRb.get_final_type_from_registry(registry, 'CustomType')
     expect(type).to eql('Vec<u8>')
   end
 
@@ -43,7 +43,7 @@ RSpec.describe ScaleRb2 do
       0x12, 0x34, 0x56, 0x2e, 0xfb,
       0x78
     ]
-    arr, remaining_bytes = ScaleRb2.decode(type, bytes, registry)
+    arr, remaining_bytes = ScaleRb.decode(type, bytes, registry)
     expect(arr).to eql([
                          [[0x12, 0x34, 0x56], 64_302],
                          [[0x12, 0x34, 0x56], 64_302]
@@ -62,7 +62,7 @@ RSpec.describe ScaleRb2 do
       [[1, 1_073_741_824, 69], 64_302],
       [[63, 42, 1_073_741_823], 64_302]
     ]
-    bytes = ScaleRb2.encode(type, value, registry)
+    bytes = ScaleRb.encode(type, value, registry)
     expect(bytes).to eql([
                            0x04, 0x03, 0x00, 0x00, 0x00, 0x40, 0x15, 0x01, 0x2e, 0xfb,
                            0xfc, 0xa8, 0xfe, 0xff, 0xff, 0xff, 0x2e, 0xfb
@@ -95,22 +95,22 @@ RSpec.describe ScaleRb2 do
         }
       ]
     }
-    registry = ScaleRb2.build_registry_from_config(config, 3)
+    registry = ScaleRb.build_registry_from_config(config, 3)
     expect(registry).to eql({
                               DispatchError: 'DispatchErrorPre6First',
                               TAssetBalance: 'u128'
                             })
-    registry = ScaleRb2.build_registry_from_config(config, 4)
+    registry = ScaleRb.build_registry_from_config(config, 4)
     expect(registry).to eql({
                               DispatchError: 'DispatchError',
                               TAssetBalance: 'u128'
                             })
-    registry = ScaleRb2.build_registry_from_config(config, 500)
+    registry = ScaleRb.build_registry_from_config(config, 500)
     expect(registry).to eql({
                               DispatchError: 'DispatchErrorAfter',
                               TAssetBalance: 'u128'
                             })
-    registry = ScaleRb2.build_registry_from_config(config, 6)
+    registry = ScaleRb.build_registry_from_config(config, 6)
     expect(registry).to eql({
                               TAssetBalance: 'u128'
                             })
@@ -187,15 +187,15 @@ RSpec.describe ScaleRb2 do
     #   }
     # }
 
-    # type_name, type_def = ScaleRb2.get_type(types, 0)
+    # type_name, type_def = ScaleRb.get_type(types, 0)
     # expect(type_name).to eql('SpCoreCryptoAccountId32')
     # expect(type_def).to eql('[U8; 32]')
 
-    # type_name, type_def = ScaleRb2.get_type(types, 2)
+    # type_name, type_def = ScaleRb.get_type(types, 2)
     # expect(type_name).to eql('U8')
     # expect(type_def).to eql('U8')
     #
-    # type_name, type_def = ScaleRb2.get_type(types, 1)
+    # type_name, type_def = ScaleRb.get_type(types, 1)
     # expect(type_name).to eql('[U8; 32]')
     # expect(type_def).to eql('U8')
   end

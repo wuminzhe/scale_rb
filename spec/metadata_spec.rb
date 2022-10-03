@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'scale_rb_2'
+require 'scale_rb'
 require 'json'
 
 RSpec.describe Metadata do

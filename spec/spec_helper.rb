@@ -1,5 +1,5 @@
 require "bundler/setup"
-require "scale_rb_2"
+require "scale_rb"
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

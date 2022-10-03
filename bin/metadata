@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'bundler/setup'
-require 'scale_rb_2'
+require 'scale_rb'
 require 'json'
 require 'optparse'
 

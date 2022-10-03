@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    scale_rb_2 (0.1.0)
+    scale_rb (0.1.0)
       blake2b_rs (~> 0.1.2)
       xxhash
 
@@ -41,7 +41,7 @@ PLATFORMS
 DEPENDENCIES
   rake (~> 12.0)
   rspec (~> 3.0)
-  scale_rb_2!
+  scale_rb!
 
 BUNDLED WITH
    2.1.4

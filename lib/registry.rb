@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module ScaleRb2
+module ScaleRb
   # A `registry` is a ruby Hash object, key is the type name, value is the type definition or mapped type name.
   # A `config` contains the complete versioned type definition for a network.
   # https://github.com/polkadot-js/api/blob/master/packages/types-known/src/spec/polkadot.ts

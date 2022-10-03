@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'scale_rb_2'
+require 'scale_rb'
 
 RSpec.describe Hasher do
   it 'can hash with twox128' do
@@ -23,15 +23,15 @@ RSpec.describe Hasher do
   end
 
   it 'can hash with Twox64Concat' do
-    result = Hasher.apply_hasher('Twox64Concat', ScaleRb2.encode('u32', 123))
+    result = Hasher.apply_hasher('Twox64Concat', ScaleRb.encode('u32', 123))
     expect(result).to eql('2a9a1a82315e68fd7b000000'.to_bytes)
 
-    result = Hasher.apply_hasher('Twox64Concat', ScaleRb2.encode('u32', 235_890_454))
+    result = Hasher.apply_hasher('Twox64Concat', ScaleRb.encode('u32', 235_890_454))
     expect(result).to eql('01231bfbf9d42fd916670f0e'.to_bytes)
   end
 
   it 'can hash with Identity' do
-    result = Hasher.apply_hasher('Identity', ScaleRb2.encode('u32', 123))
-    expect(result).to eql(ScaleRb2.encode('u32', 123))
+    result = Hasher.apply_hasher('Identity', ScaleRb.encode('u32', 123))
+    expect(result).to eql(ScaleRb.encode('u32', 123))
   end
 end
