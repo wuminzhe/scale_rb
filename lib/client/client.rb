@@ -47,6 +47,8 @@ module Client
     end
 
     def get_storage3(url, pallet_name, item_name, key_value, metadata, at = nil)
+      raise 'metadata should not be nil' if metadata.nil?
+
       registry = Metadata.build_registry(metadata)
       item = Metadata.get_storage_item(pallet_name, item_name, metadata)
 
