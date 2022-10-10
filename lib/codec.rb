@@ -2,56 +2,57 @@
 
 # TODO: set, bitvec
 
-def bytes?(type)
-  type.downcase == 'bytes'
-end
+module ScaleRb
+  class << self
+    def bytes?(type)
+      type.downcase == 'bytes'
+    end
 
-def boolean?(type)
-  type.downcase == 'bool' || type.downcase == 'boolean'
-end
+    def boolean?(type)
+      type.downcase == 'bool' || type.downcase == 'boolean'
+    end
 
-def string?(type)
-  type.downcase == 'str' || type.downcase == 'string' || type.downcase == 'text'
-end
+    def string?(type)
+      type.downcase == 'str' || type.downcase == 'string' || type.downcase == 'text'
+    end
 
-def compact?(type)
-  type.downcase == 'compact' ||
-    (type[0..7].downcase == 'compact<' && type[-1] == '>')
-end
+    def compact?(type)
+      type.downcase == 'compact' ||
+        (type[0..7].downcase == 'compact<' && type[-1] == '>')
+    end
 
-def int?(type)
-  type[0].downcase == 'i' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
-end
+    def int?(type)
+      type[0].downcase == 'i' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
+    end
 
-def uint?(type)
-  type[0].downcase == 'u' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
-end
+    def uint?(type)
+      type[0].downcase == 'u' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
+    end
 
-# def bitvec?(type)
-# end
+    def option?(type)
+      type[0..6].downcase == 'option<' && type[-1] == '>'
+    end
 
-def option?(type)
-  type[0..6].downcase == 'option<' && type[-1] == '>'
-end
+    def array?(type)
+      type[0] == '[' && type[-1] == ']'
+    end
 
-def array?(type)
-  type[0] == '[' && type[-1] == ']'
-end
+    def vec?(type)
+      type[0..3].downcase == 'vec<' && type[-1] == '>'
+    end
 
-def vec?(type)
-  type[0..3].downcase == 'vec<' && type[-1] == '>'
-end
+    def tuple?(type)
+      type[0] == '(' && type[-1] == ')'
+    end
 
-def tuple?(type)
-  type[0] == '(' && type[-1] == ')'
-end
+    def struct?(type)
+      type.instance_of?(Hash)
+    end
 
-def struct?(type)
-  type.instance_of?(Hash)
-end
-
-def enum?(type)
-  type.instance_of?(Hash) && type.key?(:_enum)
+    def enum?(type)
+      type.instance_of?(Hash) && type.key?(:_enum)
+    end
+  end
 end
 
 def parse_fixed_array(type)
@@ -201,28 +202,31 @@ module ScaleRb
     end
 
     # TODO: custrom index
-    def decode_enum(enum_type, bytes, registry = {})
+    # {
+    #   _enum: {
+    #     name1: type1,
+    #     name2: type2
+    #   }
+    # }
+    # or
+    # {
+    #   _enum: ['name1', 'name2']
+    # }
+    def decode_enum(type_def, bytes, registry = {})
       index = bytes[0]
-      raise IndexOutOfRangeError, "type: #{enum_type}" if index > enum_type[:_enum].length - 1
 
-      remaining_bytes = bytes[1..]
-      if enum_type[:_enum].instance_of?(Hash)
-        key = enum_type[:_enum].keys[index]
-        type = enum_type[:_enum].values[index]
+      items = type_def[:_enum]
+      raise IndexOutOfRangeError, "type: #{type_def}" if index > items.length - 1
 
-        value, remaining_bytes = decode(type, remaining_bytes, registry)
-        [
-          { key => value },
-          remaining_bytes
-        ]
-      elsif enum_type[:_enum].instance_of?(Array)
-        value = enum_type[:_enum][index]
-        debug 'value', value.inspect
-        [
-          value,
-          remaining_bytes
-        ]
-      end
+      item = items.to_a[index] # 'name' or [:name, type]
+      debug 'value', item.inspect
+      return [item, remaining_bytes] if item.instance_of?(String)
+
+      value, remaining_bytes = decode(item[1], bytes[1..], registry)
+      [
+        { item[0].to_sym => value },
+        remaining_bytes
+      ]
     end
 
     def decode_struct(struct, bytes, registry = {})
@@ -245,14 +249,19 @@ module ScaleRb
     end
   end
 
-  def self._decode_types(type_list, bytes, registry = {})
-    if type_list.empty?
-      [[], bytes]
-    else
-      value, remaining_bytes = decode(type_list.first, bytes, registry)
-      value_list, remaining_bytes = _decode_types(type_list[1..], remaining_bytes, registry)
-      [[value] + value_list, remaining_bytes]
+  def self._decode_types(types, bytes, registry)
+    _decode_each(types, bytes) do |type, remaining_bytes|
+      decode(type, remaining_bytes, registry)
     end
+  end
+
+  def self._decode_each(types, bytes, &decode)
+    remaining_bytes = bytes
+    values = types.map do |type|
+      value, remaining_bytes = decode.call(type, remaining_bytes)
+      value
+    end
+    [values, remaining_bytes]
   end
 
   def self.do_decode_compact(bytes)
@@ -374,7 +383,10 @@ module ScaleRb
     end
 
     def _encode_types(type_list, value_list, registry = {})
-      raise LengthNotEqualErr, "type: #{type_list}, value: #{value_list.inspect}" if type_list.length != value_list.length
+      if type_list.length != value_list.length
+        raise LengthNotEqualErr,
+              "type: #{type_list}, value: #{value_list.inspect}"
+      end
 
       if type_list.empty?
         []

@@ -47,9 +47,9 @@ module PortableCodec
     # Int, Bytes ?
     def decode_primitive(type_def, bytes)
       primitive = type_def._get(:primitive)
-      return ScaleRb.decode_uint(primitive, bytes) if uint?(primitive)
-      return ScaleRb.decode_string(bytes) if string?(primitive)
-      return ScaleRb.decode_boolean(bytes) if boolean?(primitive)
+      return ScaleRb.decode_uint(primitive, bytes) if ScaleRb.uint?(primitive)
+      return ScaleRb.decode_string(bytes) if ScaleRb.string?(primitive)
+      return ScaleRb.decode_boolean(bytes) if ScaleRb.boolean?(primitive)
       # return ScaleRb.decode_int(primitive, bytes) if int?(primitive)
       # return ScaleRb.decode_bytes(bytes) if bytes?(primitive)
     end
@@ -115,12 +115,8 @@ module PortableCodec
     end
 
     def _decode_types(ids, bytes, registry = {})
-      if ids.empty?
-        [[], bytes]
-      else
-        value, remaining_bytes = decode(ids.first, bytes, registry)
-        value_list, remaining_bytes = _decode_types(ids[1..], remaining_bytes, registry)
-        [[value] + value_list, remaining_bytes]
+      ScaleRb._decode_each(ids, bytes) do |id, remaining_bytes|
+        decode(id, remaining_bytes, registry)
       end
     end
 
