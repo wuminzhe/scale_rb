@@ -6,20 +6,20 @@ RSpec.describe ScaleRb do
   it 'get mapped type' do
     registry = {
     }
-    type = ScaleRb.get_final_type_from_registry(registry, 'CustomType')
+    type = ScaleRb._get_final_type_from_registry(registry, 'CustomType')
     expect(type).to be(nil)
 
     registry = {
       'CustomType' => 'Vec<u8>'
     }
-    type = ScaleRb.get_final_type_from_registry(registry, 'CustomType')
+    type = ScaleRb._get_final_type_from_registry(registry, 'CustomType')
     expect(type).to eql('Vec<u8>')
 
     registry = {
       'CustomType' => 'Type1',
       'Type1' => 'Vec<u8>'
     }
-    type = ScaleRb.get_final_type_from_registry(registry, 'CustomType')
+    type = ScaleRb._get_final_type_from_registry(registry, 'CustomType')
     expect(type).to eql('Vec<u8>')
 
     registry = {
@@ -27,7 +27,7 @@ RSpec.describe ScaleRb do
       'Type1' => 'Type2',
       'Type2' => 'Vec<u8>'
     }
-    type = ScaleRb.get_final_type_from_registry(registry, 'CustomType')
+    type = ScaleRb._get_final_type_from_registry(registry, 'CustomType')
     expect(type).to eql('Vec<u8>')
   end
 

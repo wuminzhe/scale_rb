@@ -144,9 +144,9 @@ module PortableCodec
 
     def encode_primitive(type_def, value)
       primitive = type_def._get(:primitive)
-      return ScaleRb.encode_uint(primitive, value) if uint?(primitive)
-      return ScaleRb.encode_string(value) if string?(primitive)
-      return ScaleRb.encode_boolean(value) if boolean?(primitive)
+      return ScaleRb.encode_uint(primitive, value) if ScaleRb.uint?(primitive)
+      return ScaleRb.encode_string(value) if ScaleRb.string?(primitive)
+      return ScaleRb.encode_boolean(value) if ScaleRb.boolean?(primitive)
     end
 
     def encode_compact(value)
@@ -221,26 +221,14 @@ module PortableCodec
     end
 
     def _encode_types(ids, values, registry)
-      _encode_types_without_merge(ids, values, registry).flatten
-    end
-
-    def _encode_types_with_hashers(values, type_ids, registry, hashers)
-      if !hashers.nil? && hashers.length != type_ids.length
-        raise ScaleRb::LengthNotEqualErr, "type_ids length: #{type_ids.length}, hashers length: #{hashers.length}"
-      end
-
-      bytes_array = _encode_types_without_merge(type_ids, values, registry)
-      bytes_array.each_with_index.reduce([]) do |memo, (bytes, i)|
-        memo + Hasher.apply_hasher(hashers[i], bytes)
+      ScaleRb._encode_each(ids, values) do |id, value|
+        encode(id, value, registry)
       end
     end
 
-    # return: [value1_bytes, value2_bytes, ...]
-    def _encode_types_without_merge(ids, values, registry)
-      raise ScaleRb::LengthNotEqualErr, "types: #{ids}, values: #{values.inspect}" if ids.length != values.length
-
-      ids.map.with_index do |type_id, i|
-        encode(type_id, values[i], registry)
+    def _encode_types_with_hashers(ids, values, registry, hashers)
+      ScaleRb._encode_each_with_hashers(ids, values, hashers) do |id, value|
+        encode(id, value, registry)
       end
     end
   end

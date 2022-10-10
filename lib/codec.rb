@@ -1,7 +1,19 @@
 # frozen_string_literal: true
 
-# TODO: set, bitvec
+module ScaleRb
+  class Error < StandardError; end
+  class NotImplemented < Error; end
+  class NilTypeError < Error; end
+  class TypeParseError < Error; end
+  class NotEnoughBytesError < Error; end
+  class InvalidBytesError < Error; end
+  class Unreachable < Error; end
+  class IndexOutOfRangeError < Error; end
+  class LengthNotEqualErr < Error; end
+  class InvalidValueError < Error; end
+end
 
+# TODO: set, bitvec
 module ScaleRb
   class << self
     def bytes?(type)
@@ -55,28 +67,110 @@ module ScaleRb
   end
 end
 
-def parse_fixed_array(type)
-  scan_out = type.scan(/\A\[\s*(.+)\s*;\s*(\d+)\s*\]\z/)
-  raise ScaleRb::TypeParseError, type if scan_out.empty?
-  raise ScaleRb::TypeParseError, type if scan_out[0].length != 2
+module ScaleRb
+  class << self
+    def parse_option(type)
+      type.scan(/\A[O|o]ption<(.+)>\z/).first.first
+    end
 
-  inner_type = scan_out[0][0]
-  length = scan_out[0][1].to_i
-  [inner_type, length]
+    def parse_array(type)
+      scan_out = type.scan(/\A\[\s*(.+)\s*;\s*(\d+)\s*\]\z/)
+      raise ScaleRb::TypeParseError, type if scan_out.empty?
+      raise ScaleRb::TypeParseError, type if scan_out[0].length != 2
+
+      inner_type = scan_out[0][0]
+      length = scan_out[0][1].to_i
+      [inner_type, length]
+    end
+
+    def parse_vec(type)
+      type.scan(/\A[V|v]ec<(.+)>\z/).first.first
+    end
+
+    def parse_tuple(type)
+      type.scan(/\A\(\s*(.+)\s*\)\z/)[0][0].split(',').map(&:strip)
+    end
+  end
+end
+
+# Helper functions
+module ScaleRb
+  class << self
+    def _get_final_type_from_registry(registry, type)
+      mapped_type = registry[type]
+      if mapped_type.nil?
+        nil
+      elsif registry[mapped_type].nil?
+        mapped_type
+      else
+        _get_final_type_from_registry(registry, mapped_type)
+      end
+    end
+
+    def _decode_types(types, bytes, registry)
+      _decode_each(types, bytes) do |type, remaining_bytes|
+        decode(type, remaining_bytes, registry)
+      end
+    end
+
+    def _decode_each(types, bytes, &decode)
+      remaining_bytes = bytes
+      values = types.map do |type|
+        value, remaining_bytes = decode.call(type, remaining_bytes)
+        value
+      end
+      [values, remaining_bytes]
+    end
+
+    def _do_decode_compact(bytes)
+      case bytes[0] & 3
+      when 0
+        [bytes[0] >> 2, bytes[1..]]
+      when 1
+        [bytes[0..1].flip.to_uint >> 2, bytes[2..]]
+      when 2
+        [bytes[0..3].flip.to_uint >> 2, bytes[4..]]
+      when 3
+        length = 4 + (bytes[0] >> 2)
+        [bytes[1..length].flip.to_uint, bytes[length + 1..]]
+      else
+        raise Unreachable, 'type: Compact'
+      end
+    end
+
+    def _encode_each(types, values, &encode)
+      _encode_each_without_merge(types, values, &encode).flatten
+    end
+
+    def _encode_each_without_merge(types, values, &encode)
+      raise LengthNotEqualErr, "types: #{types}, values: #{values.inspect}" if types.length != values.length
+
+      types.map.with_index do |type, i|
+        encode.call(type, values[i])
+      end
+    end
+
+    def _encode_types(types, values, registry = {})
+      _encode_each(types, values) do |type, value|
+        encode(type, value, registry)
+      end
+    end
+
+    def _encode_each_with_hashers(types, values, hashers, &encode)
+      if !hashers.nil? && hashers.length != types.length
+        raise ScaleRb::LengthNotEqualErr, "types length: #{types.length}, hashers length: #{hashers.length}"
+      end
+
+      bytes_array = ScaleRb._encode_each_without_merge(types, values, &encode)
+      bytes_array.each_with_index.reduce([]) do |memo, (bytes, i)|
+        memo + Hasher.apply_hasher(hashers[i], bytes)
+      end
+    end
+  end
 end
 
 module ScaleRb
-  class Error < StandardError; end
-  class NotImplemented < Error; end
-  class NilTypeError < Error; end
-  class TypeParseError < Error; end
-  class NotEnoughBytesError < Error; end
-  class InvalidBytesError < Error; end
-  class Unreachable < Error; end
-  class IndexOutOfRangeError < Error; end
-  class LengthNotEqualErr < Error; end
-  class InvalidValueError < Error; end
-
+  # Decode
   class << self
     def decode(type, bytes, registry = {})
       logger.debug '--------------------------------------------------'
@@ -96,7 +190,7 @@ module ScaleRb
         return decode_tuple(type, bytes, registry) if tuple?(type) # (u8, u8)
 
         # search the type from registry if not the types above
-        registry_type = get_final_type_from_registry(registry, type)
+        registry_type = _get_final_type_from_registry(registry, type)
         return decode(registry_type, bytes, registry) if registry_type
       elsif type.instance_of?(Hash)
         return decode_enum(type, bytes, registry) if enum?(type)
@@ -107,7 +201,7 @@ module ScaleRb
     end
 
     def decode_bytes(bytes)
-      length, remaining_bytes = do_decode_compact(bytes)
+      length, remaining_bytes = _do_decode_compact(bytes)
       value = remaining_bytes[0...length].to_hex
       debug 'length', length
       debug 'value', value
@@ -131,7 +225,7 @@ module ScaleRb
     end
 
     def decode_string(bytes)
-      length, remaining_bytes = do_decode_compact(bytes)
+      length, remaining_bytes = _do_decode_compact(bytes)
       raise NotEnoughBytesError, 'type: String' if remaining_bytes.length < length
 
       value = remaining_bytes[0...length].to_utf8
@@ -156,10 +250,10 @@ module ScaleRb
       ]
     end
 
-    def decode_uint(type, bytes)
-      bit_length = type[1..].to_i
+    def decode_uint(type_def, bytes)
+      bit_length = type_def[1..].to_i
       byte_length = bit_length / 8
-      raise NotEnoughBytesError, "type: #{type}" if bytes.length < byte_length
+      raise NotEnoughBytesError, "type: #{type_def}" if bytes.length < byte_length
 
       value = bytes[0...byte_length].flip.to_uint
       debug 'value', value
@@ -170,38 +264,38 @@ module ScaleRb
     end
 
     def decode_compact(bytes)
-      result = do_decode_compact(bytes)
+      result = _do_decode_compact(bytes)
       debug 'value', result[0]
       result
     end
 
-    def decode_option(type, bytes, registry = {})
-      inner_type = type.scan(/\A[O|o]ption<(.+)>\z/).first.first
+    def decode_option(type_def, bytes, registry = {})
+      inner_type = parse_option(type_def)
 
       return [nil, bytes[1..]] if bytes[0] == 0x00
       return decode(inner_type, bytes[1..], registry) if bytes[0] == 0x01
 
-      raise InvalidBytesError, "type: #{type}"
+      raise InvalidBytesError, "type: #{type_def}"
     end
 
-    def decode_array(type, bytes, registry = {})
-      inner_type, length = parse_fixed_array(type)
+    def decode_array(type_def, bytes, registry = {})
+      inner_type, length = parse_array(type_def)
       _decode_types([inner_type] * length, bytes, registry)
     end
 
-    def decode_vec(type, bytes, registry = {})
-      inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
-      length, remaining_bytes = do_decode_compact(bytes)
+    def decode_vec(type_def, bytes, registry = {})
+      inner_type = parse_vec(type_def)
+      length, remaining_bytes = _do_decode_compact(bytes)
       debug 'length', length
       _decode_types([inner_type] * length, remaining_bytes, registry)
     end
 
-    def decode_tuple(tuple_type, bytes, registry = {})
-      inner_types = tuple_type.scan(/\A\(\s*(.+)\s*\)\z/)[0][0].split(',').map(&:strip)
+    def decode_tuple(type_def, bytes, registry = {})
+      inner_types = parse_tuple(type_def)
       _decode_types(inner_types, bytes, registry)
     end
 
-    # TODO: custrom index
+    # TODO: custom index?
     # {
     #   _enum: {
     #     name1: type1,
@@ -218,7 +312,7 @@ module ScaleRb
       items = type_def[:_enum]
       raise IndexOutOfRangeError, "type: #{type_def}" if index > items.length - 1
 
-      item = items.to_a[index] # 'name' or [:name, type]
+      item = items.to_a[index] # 'name' or [:name, inner_type]
       debug 'value', item.inspect
       return [item, remaining_bytes] if item.instance_of?(String)
 
@@ -238,61 +332,13 @@ module ScaleRb
     end
   end
 
-  def self.get_final_type_from_registry(registry, type)
-    mapped_type = registry[type]
-    if mapped_type.nil?
-      nil
-    elsif registry[mapped_type].nil?
-      mapped_type
-    else
-      get_final_type_from_registry(registry, mapped_type)
-    end
-  end
-
-  def self._decode_types(types, bytes, registry)
-    _decode_each(types, bytes) do |type, remaining_bytes|
-      decode(type, remaining_bytes, registry)
-    end
-  end
-
-  def self._decode_each(types, bytes, &decode)
-    remaining_bytes = bytes
-    values = types.map do |type|
-      value, remaining_bytes = decode.call(type, remaining_bytes)
-      value
-    end
-    [values, remaining_bytes]
-  end
-
-  def self.do_decode_compact(bytes)
-    case bytes[0] & 3
-    when 0
-      [bytes[0] >> 2, bytes[1..]]
-    when 1
-      [bytes[0..1].flip.to_uint >> 2, bytes[2..]]
-    when 2
-      [bytes[0..3].flip.to_uint >> 2, bytes[4..]]
-    when 3
-      length = 4 + (bytes[0] >> 2)
-      [bytes[1..length].flip.to_uint, bytes[length + 1..]]
-    else
-      raise Unreachable, 'type: Compact'
-    end
-  end
-
+  # Encode
   class << self
     def encode(type, value, registry = {})
-      logger.debug '>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>'
-      logger.debug "           type: #{type}"
-      logger.debug "          value: #{value}"
+      logger.debug '--------------------------------------------------'
+      debug 'encoding type', type
+      debug 'value', value
 
-      bytes = do_encode(type, value, registry)
-
-      logger.debug "        encoded: #{bytes}"
-      bytes
-    end
-
-    def do_encode(type, value, registry = {})
       if type.instance_of?(String)
         return encode_bytes(value) if bytes?(type)
         return encode_boolean(value) if boolean?(type)
@@ -304,8 +350,8 @@ module ScaleRb
         return encode_vec(type, value, registry) if vec?(type)
         return encode_tuple(type, value, registry) if tuple?(type)
 
-        registry_type = get_final_type_from_registry(registry, type)
-        return do_encode(registry_type, value, registry) if registry_type
+        registry_type = _get_final_type_from_registry(registry, type)
+        return encode(registry_type, value, registry) if registry_type
       elsif type.instance_of?(Hash)
         return encode_enum(type, value, registry) if enum?(type)
         return encode_struct(type, value, registry) if struct?(type)
@@ -349,11 +395,11 @@ module ScaleRb
       return [0x00] if value.nil?
 
       inner_type = type.scan(/\A[O|o]ption<(.+)>\z/).first.first
-      [0x01] + do_encode(inner_type, value, registry)
+      [0x01] + encode(inner_type, value, registry)
     end
 
     def encode_array(type, array, registry = {})
-      inner_type, length = parse_fixed_array(type)
+      inner_type, length = parse_array(type)
       raise LengthNotEqualErr, "type: #{type}, value: #{array.inspect}" if length != array.length
 
       _encode_types([inner_type] * length, array, registry)
@@ -375,25 +421,11 @@ module ScaleRb
       value = enum.values.first
       value_type = enum_type[:_enum][key]
       index = enum_type[:_enum].keys.index(key)
-      encode_uint('u8', index) + do_encode(value_type, value, registry)
+      encode_uint('u8', index) + encode(value_type, value, registry)
     end
 
     def encode_struct(struct_type, struct, registry = {})
       _encode_types(struct_type.values, struct.values, registry)
-    end
-
-    def _encode_types(type_list, value_list, registry = {})
-      if type_list.length != value_list.length
-        raise LengthNotEqualErr,
-              "type: #{type_list}, value: #{value_list.inspect}"
-      end
-
-      if type_list.empty?
-        []
-      else
-        bytes = do_encode(type_list.first, value_list.first, registry)
-        bytes + _encode_types(type_list[1..], value_list[1..], registry)
-      end
     end
   end
 end

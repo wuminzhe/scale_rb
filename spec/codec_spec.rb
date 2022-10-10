@@ -46,22 +46,22 @@ RSpec.describe ScaleRb do
   end
 
   it 'can encode fixed uint' do
-    bytes = ScaleRb.do_encode('u8', 69)
+    bytes = ScaleRb.encode('u8', 69)
     expect(bytes).to eql([0x45])
 
-    bytes = ScaleRb.do_encode('u16', 69)
+    bytes = ScaleRb.encode('u16', 69)
     expect(bytes).to eql([0x45, 0x00])
 
-    bytes = ScaleRb.do_encode('u16', 64_302)
+    bytes = ScaleRb.encode('u16', 64_302)
     expect(bytes).to eql([0x2e, 0xfb])
 
-    bytes = ScaleRb.do_encode('u32', 16_777_215)
+    bytes = ScaleRb.encode('u32', 16_777_215)
     expect(bytes).to eql([0xff, 0xff, 0xff, 0x00])
 
-    bytes = ScaleRb.do_encode('u64', 14_294_967_296)
+    bytes = ScaleRb.encode('u64', 14_294_967_296)
     expect(bytes).to eql('0x00e40b5403000000'.to_bytes)
 
-    bytes = ScaleRb.do_encode('u128', 18_446_744_073_709_551_115)
+    bytes = ScaleRb.encode('u128', 18_446_744_073_709_551_115)
     expect(bytes).to eql('0x0bfeffffffffffff0000000000000000'.to_bytes)
   end
 
@@ -84,7 +84,7 @@ RSpec.describe ScaleRb do
   end
 
   it 'can encode fixed array' do
-    bytes = ScaleRb.do_encode('[u8; 3]', [0x12, 0x34, 0x56])
+    bytes = ScaleRb.encode('[u8; 3]', [0x12, 0x34, 0x56])
     expect(bytes).to eql([0x12, 0x34, 0x56])
   end
 
@@ -138,31 +138,31 @@ RSpec.describe ScaleRb do
   end
 
   it 'can encode single-byte compact' do
-    bytes = ScaleRb.do_encode('Compact', 0)
+    bytes = ScaleRb.encode('Compact', 0)
     expect(bytes).to eql([0x00])
 
-    bytes = ScaleRb.do_encode('Compact', 1)
+    bytes = ScaleRb.encode('Compact', 1)
     expect(bytes).to eql([0x04])
 
-    bytes = ScaleRb.do_encode('Compact', 42)
+    bytes = ScaleRb.encode('Compact', 42)
     expect(bytes).to eql([0xa8])
 
-    bytes = ScaleRb.do_encode('Compact', 63)
+    bytes = ScaleRb.encode('Compact', 63)
     expect(bytes).to eql([0xfc])
   end
 
   it 'can encode two-byte compact' do
-    bytes = ScaleRb.do_encode('Compact', 69)
+    bytes = ScaleRb.encode('Compact', 69)
     expect(bytes).to eql([0x15, 0x01])
   end
 
   it 'can encode four-byte compact' do
-    bytes = ScaleRb.do_encode('Compact', 1_073_741_823)
+    bytes = ScaleRb.encode('Compact', 1_073_741_823)
     expect(bytes).to eql('0xfeffffff'.to_bytes)
   end
 
   it 'can encode big-integer compact' do
-    bytes = ScaleRb.do_encode('Compact', 1_073_741_824)
+    bytes = ScaleRb.encode('Compact', 1_073_741_824)
     expect(bytes).to eql('0x0300000040'.to_bytes)
   end
 
@@ -172,7 +172,7 @@ RSpec.describe ScaleRb do
       item1: '[u16; 2]',
       item2: 'Compact'
     }
-    bytes = ScaleRb.do_encode(struct, {
+    bytes = ScaleRb.encode(struct, {
                                  item3: 63,
                                  item1: [64_302, 64_302],
                                  item2: 69
@@ -210,7 +210,7 @@ RSpec.describe ScaleRb do
         Compact: 'Compact'
       }
     }
-    bytes = ScaleRb.do_encode(enum, { Int: 64_302 })
+    bytes = ScaleRb.encode(enum, { Int: 64_302 })
     expect(bytes).to eql([0x00, 0x2e, 0xfb])
   end
 
@@ -221,7 +221,7 @@ RSpec.describe ScaleRb do
   end
 
   it 'can encode vec' do
-    bytes = ScaleRb.do_encode('Vec<u8>', [0, 58, 254])
+    bytes = ScaleRb.encode('Vec<u8>', [0, 58, 254])
     expect(bytes).to eql('0x0c003afe'.to_bytes)
   end
 
@@ -231,7 +231,7 @@ RSpec.describe ScaleRb do
   end
 
   it 'can encode tuple' do
-    bytes = ScaleRb.do_encode('(Compact, [u16; 2], Compact)', [63, [64_302, 64_302], 69])
+    bytes = ScaleRb.encode('(Compact, [u16; 2], Compact)', [63, [64_302, 64_302], 69])
     expect(bytes).to eql([0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
   end
 
@@ -262,13 +262,13 @@ RSpec.describe ScaleRb do
   end
 
   it 'can encode boolean' do
-    bytes = ScaleRb.do_encode('Boolean', false)
+    bytes = ScaleRb.encode('Boolean', false)
     expect(bytes).to eql([0x00])
 
-    bytes = ScaleRb.do_encode('Boolean', true)
+    bytes = ScaleRb.encode('Boolean', true)
     expect(bytes).to eql([0x01])
 
-    expect { ScaleRb.do_encode('Boolean', nil) }.to raise_error(ScaleRb::InvalidValueError)
+    expect { ScaleRb.encode('Boolean', nil) }.to raise_error(ScaleRb::InvalidValueError)
   end
 
   it 'can decode bytes' do
@@ -277,7 +277,7 @@ RSpec.describe ScaleRb do
   end
 
   it 'can encode bytes' do
-    bytes = ScaleRb.do_encode('Bytes', '0x436166c3a9'.to_bytes)
+    bytes = ScaleRb.encode('Bytes', '0x436166c3a9'.to_bytes)
     expect(bytes).to eql('0x14436166c3a9'.to_bytes)
   end
 
@@ -292,10 +292,10 @@ RSpec.describe ScaleRb do
   end
 
   it 'can encode option' do
-    bytes = ScaleRb.do_encode('Option<Compact>', nil)
+    bytes = ScaleRb.encode('Option<Compact>', nil)
     expect(bytes).to eql([0x00])
 
-    bytes = ScaleRb.do_encode('Option<Compact>', 69)
+    bytes = ScaleRb.encode('Option<Compact>', 69)
     expect(bytes).to eql([0x01, 0x15, 0x01])
   end
 end
