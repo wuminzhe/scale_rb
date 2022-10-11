@@ -14,7 +14,7 @@ module Substrate
           'id' => 1,
           'jsonrpc' => '2.0',
           'method' => method,
-          'params' => params.all?(nil) ? [] : params
+          'params' => params.reject(&:nil?)
         }.to_json
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = true if uri.instance_of? URI::HTTPS
@@ -45,6 +45,14 @@ module Substrate
 
       def state_getStorage(url, key, at = nil)
         json_rpc_call('state_getStorage', [key, at], url)
+      end
+
+      def state_queryStorageAt(url, keys, at = nil)
+        json_rpc_call('state_queryStorageAt', [keys, at], url)
+      end
+
+      def state_getKeysPaged(url, key, count, start_key = nil, at = nil)
+        json_rpc_call('state_getKeysPaged', [key, count, start_key, at], url)
       end
 
       def eth_call(url, to, data, at_block_number = nil)
