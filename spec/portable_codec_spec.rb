@@ -127,4 +127,9 @@ RSpec.describe PortableCodec do
     expect(value).to eql('NonTransfer')
     expect(remaining_bytes).to eql([0x02])
   end
+
+  it 'can encode variant' do
+    bytes = PortableCodec.encode(87, 'NonTransfer', @registry)
+    expect(bytes).to eql([0x01])
+  end
 end

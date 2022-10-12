@@ -197,27 +197,27 @@ module PortableCodec
 
     # value:
     # {
-    #   name: the_value(Hash)
+    #   name: v(Hash)
     # }
     # or
     # the_value(String)
     def encode_variant(variant_type, value, registry)
       variants = variant_type._get(:variants)
 
-      if value.instance_of?(Hash)
-        name = value.keys.first.to_s
-        the_value = value.values.first
-      elsif value.instance_of?(String)
-        name = value
-        the_value = {}
-      else
-        raise VariantInvalidValue, "type: #{variant_type}, value: #{value}"
-      end
+      name, v = # v: item inner value
+        if value.instance_of?(Hash)
+          [value.keys.first.to_s, value.values.first]
+        elsif value.instance_of?(String)
+          [value, {}]
+        else
+          raise VariantInvalidValue, "type: #{variant_type}, value: #{value}"
+        end
 
-      variant = variants.find { |v| v[:name] == name }
+      variant = variants.find { |var| var._get(:name) == name }
       raise VariantItemNotFound, "type: #{variant_type}, name: #{name}" if variant.nil?
+      raise VariantInvalidValue, "type: #{variant_type}, v: #{v}" if variant._get(:fields).length != v.length
 
-      ScaleRb.encode_uint('u8', variant._get(:index)) + encode_composite(variant, the_value, registry)
+      ScaleRb.encode_uint('u8', variant._get(:index)) + encode_composite(variant, v, registry)
     end
 
     def _encode_types(ids, values, registry)
