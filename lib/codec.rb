@@ -314,7 +314,7 @@ module ScaleRb
 
       item = items.to_a[index] # 'name' or [:name, inner_type]
       debug 'value', item.inspect
-      return [item, remaining_bytes] if item.instance_of?(String)
+      return [item, bytes[1..]] if item.instance_of?(String)
 
       value, remaining_bytes = decode(item[1], bytes[1..], registry)
       [
