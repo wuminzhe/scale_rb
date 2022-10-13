@@ -24,7 +24,7 @@ module Metadata
 
   TYPES = {
     'MetadataTop' => {
-      magic_number: 'U32',
+      magicNumber: 'U32',
       metadata: 'Metadata'
     },
     'Metadata' => {
