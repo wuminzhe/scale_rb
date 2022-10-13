@@ -3,18 +3,15 @@
 module Metadata
   module MetadataV13
     class << self
-      def build_registry(metadata)
-        types = metadata._get(:lookup)._get(:types)
-        types.map { |type| [type._get(:id), type._get(:type)] }.to_h
+      def get_module(module_name, metadata)
+        metadata._get(:metadata)._get(:v13)._get(:modules).find do |m|
+          m._get(:name) == module_name
+        end
       end
 
-      def get_storage_item(pallet_name, item_name, metadata)
-        pallet =
-          metadata._get(:pallets).find do |p|
-            p._get(:name) == pallet_name
-          end
-
-        pallet._get(:storage)._get(:items).find do |item|
+      def get_storage_item(module_name, item_name, metadata)
+        modula = get_module(module_name, metadata)
+        modula._get(:storage)._get(:items).find do |item|
           item._get(:name) == item_name
         end
       end

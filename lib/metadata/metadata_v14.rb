@@ -8,12 +8,14 @@ module Metadata
         types.map { |type| [type._get(:id), type._get(:type)] }.to_h
       end
 
-      def get_storage_item(pallet_name, item_name, metadata)
-        pallet =
-          metadata._get(:pallets).find do |p|
-            p._get(:name) == pallet_name
-          end
+      def get_module(pallet_name, metadata)
+        metadata._get(:metadata)._get(:v14)._get(:pallets).find do |p|
+          p._get(:name) == pallet_name
+        end
+      end
 
+      def get_storage_item(pallet_name, item_name, metadata)
+        pallet = get_module(pallet_name, metadata)
         pallet._get(:storage)._get(:items).find do |item|
           item._get(:name) == item_name
         end
