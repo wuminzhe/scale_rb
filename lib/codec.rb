@@ -16,6 +16,22 @@ end
 # TODO: set, bitvec
 module ScaleRb
   class << self
+    def type_def?(type)
+      type.instance_of?(String) && (
+        bytes?(type) ||
+        boolean?(type) ||
+        string?(type) ||
+        compact?(type) ||
+        int?(type) ||
+        uint?(type) ||
+        option?(type) ||
+        array?(type) ||
+        vec?(type) ||
+        tuple?(type)
+      ) ||
+        type.instance_of?(Hash)
+    end
+
     def bytes?(type)
       type.downcase == 'bytes'
     end
@@ -25,7 +41,7 @@ module ScaleRb
     end
 
     def string?(type)
-      type.downcase == 'str' || type.downcase == 'string' || type.downcase == 'text'
+      type.downcase == 'str' || type.downcase == 'string' || type.downcase == 'text' || type.downcase == 'type'
     end
 
     def compact?(type)
@@ -97,14 +113,16 @@ end
 module ScaleRb
   class << self
     def _get_final_type_from_registry(registry, type)
-      mapped_type = registry[type]
-      if mapped_type.nil?
-        nil
-      elsif registry[mapped_type].nil?
-        mapped_type
-      else
-        _get_final_type_from_registry(registry, mapped_type)
-      end
+      raise "Wrong lookup type #{type.class}" if !type.instance_of?(String) && !type.instance_of?(Hash)
+
+      return if type.instance_of?(Hash)
+
+      mapped = registry._get(type) # mapped: String(name, type_def) | Hash(type_def: struct, enum) | nil
+
+      return if mapped.nil?
+      return mapped if type_def?(mapped)
+
+      _get_final_type_from_registry(registry, mapped)
     end
 
     def _decode_types(types, bytes, registry)

@@ -3,13 +3,17 @@
 require 'scale_rb'
 require 'json'
 
-RSpec.describe Metadata do
-  it 'can decode metadata' do
-    # TODO: use a mainnet metadata as an example
-    # metadata_hex = File.open('./moonbase_metadata').read.strip
-    # metadata = Metadata.decode_metadata(metadata_hex.to_bytes)
-  end
+# https://github.com/polkadot-js/api/tree/master/packages/types-support/src/metadata
+def expect_decode_metadata(version)
+  hex = File.read("./spec/assets/substrate-metadata-#{version}-hex").strip
+  metadata = Metadata.decode_metadata(hex.to_bytes)
+  expect(metadata[:metadata][version.to_sym]).not_to be_nil
+end
 
-  it 'can be used to encode storage key' do
+RSpec.describe Metadata do
+  it 'can decode metadata v9 ~ v14' do
+    (9..14).each do |i|
+      expect_decode_metadata("v#{i}")
+    end
   end
 end

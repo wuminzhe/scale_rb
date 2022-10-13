@@ -106,7 +106,7 @@ class Hash
   def _get(key)
     if key.instance_of?(String)
       self[key] || self[key.to_sym]
-    else
+    elsif key.instance_of?(Symbol)
       self[key] || self[key.to_s]
     end
   end
