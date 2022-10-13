@@ -169,6 +169,6 @@ module Metadata
       # ExtrinsicMetadataV14 end
 
       SiLookupTypeId: 'Compact'
-    }
+    }.freeze
   end
 end

@@ -76,6 +76,6 @@ module Metadata
       ModuleConstantMetadataV13: 'ModuleConstantMetadataV12',
       ErrorMetadataV13: 'ErrorMetadataV12',
       ExtrinsicMetadataV13: 'ExtrinsicMetadataV12'
-    }
+    }.freeze
   end
 end

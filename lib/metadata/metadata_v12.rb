@@ -45,6 +45,6 @@ module Metadata
       StorageEntryTypeV12: 'StorageEntryTypeV11',
       StorageMetadataV12: 'StorageMetadataV11',
       StorageHasherV12: 'StorageHasherV11'
-    }
+    }.freeze
   end
 end

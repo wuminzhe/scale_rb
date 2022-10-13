@@ -81,6 +81,6 @@ module Metadata
           Identity
         ]
       }
-    }
+    }.freeze
   end
 end
