@@ -16,6 +16,11 @@ module Substrate
         }.to_json
       end
 
+      def state_subscribeStorage(rpc_id, pallet_name, item_name, key = nil, registry = nil)
+        storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry).to_hex
+        build_json_rpc_body('state_subscribeStorage', [[storage_key]], rpc_id)
+      end
+
       def request(url, body)
         uri = URI(url)
         req = Net::HTTP::Post.new(uri, 'Content-Type' => 'application/json')
