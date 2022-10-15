@@ -108,6 +108,8 @@ class Hash
       self[key] || self[key.to_sym]
     elsif key.instance_of?(Symbol)
       self[key] || self[key.to_s]
+    else
+      self[key]
     end
   end
 end

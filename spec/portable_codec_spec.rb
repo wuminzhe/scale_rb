@@ -33,10 +33,18 @@ RSpec.describe PortableCodec do
   it 'can decode composite1' do
     # AccountId32
     value, remaining_bytes = PortableCodec.decode 0, [0x12, 0x34, 0x56, 0x78] * 8, @registry
-    expect(value).to eql([
-                           [0x12, 0x34, 0x56, 0x78] * 8
-                         ])
+    expect(value).to eql(
+      [0x12, 0x34, 0x56, 0x78] * 8
+    )
     expect(remaining_bytes).to eql([])
+  end
+
+  it 'can encode composite1' do
+    # AccountId32
+    bytes = PortableCodec.encode 0, [0x12, 0x34, 0x56, 0x78] * 8, @registry
+    expect(bytes).to eql(
+      [0x12, 0x34, 0x56, 0x78] * 8
+    )
   end
 
   it 'can decode composite2' do
@@ -85,24 +93,20 @@ RSpec.describe PortableCodec do
     expect =
       {
         V2: [
-          [
-            [
-              {
-                Transact: {
-                  origin_type: 'SovereignAccount',
-                  require_weight_at_most: 5_000_000_000,
-                  call: {
-                    encoded: [
-                      38, 0, 0, 64, 13, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      0, 0, 0, 0, 1, 0, 70, 23, 212, 112, 248, 71, 206, 22, 96, 25, 209, 154, 121, 68, 4, 158, 187,
-                      1, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      0, 0, 0, 0, 16, 25, 255, 29, 33, 0
-                    ]
-                  }
-                }
+          {
+            Transact: {
+              origin_type: 'SovereignAccount',
+              require_weight_at_most: 5_000_000_000,
+              call: {
+                encoded: [
+                  38, 0, 0, 64, 13, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 1, 0, 70, 23, 212, 112, 248, 71, 206, 22, 96, 25, 209, 154, 121, 68, 4, 158, 187,
+                  1, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 16, 25, 255, 29, 33, 0
+                ]
               }
-            ]
-          ]
+            }
+          }
         ]
       }
     expect(value).to eql(expect)
@@ -113,12 +117,12 @@ RSpec.describe PortableCodec do
       '0x12345678123456781234567812345678123456781234567812345678123456780bfeffffffffffff0000000000000000'.to_bytes
     # tuple: [0, 6]
     value, remaining_bytes = PortableCodec.decode 55, bytes, @registry
-    expect(value).to eql([
-                           [
-                             '0x1234567812345678123456781234567812345678123456781234567812345678'.to_bytes
-                           ], # composite
-                           18_446_744_073_709_551_115 # u128
-                         ])
+    expect(value).to eql(
+      [
+        '0x1234567812345678123456781234567812345678123456781234567812345678'.to_bytes,
+        18_446_744_073_709_551_115 # u128
+      ]
+    )
     expect(remaining_bytes).to eql([])
   end
 

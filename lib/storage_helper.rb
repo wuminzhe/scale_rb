@@ -11,14 +11,21 @@ module StorageHelper
       storage_key = Hasher.twox128(pallet_name) + Hasher.twox128(item_name)
 
       if key && registry
-        type_ids =
+
+        types, values =
           if key[:hashers].length == 1
-            [key[:type]]
+            [
+              [key[:type]],
+              [key[:value]]
+            ]
           else
-            registry._get(key[:type])._get(:def)._get(:tuple)
+            [
+              registry[key[:type]]._get(:def)._get(:tuple),
+              key[:value]
+            ]
           end
 
-        storage_key + PortableCodec._encode_types_with_hashers(type_ids, key[:value], registry, key[:hashers])
+        storage_key + PortableCodec._encode_types_with_hashers(types, values, registry, key[:hashers])
       else
         storage_key
       end
