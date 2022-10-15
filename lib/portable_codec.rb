@@ -109,14 +109,15 @@ module PortableCodec
               "type: #{variant_type}, index: #{index}, bytes: #{bytes}"
       end
 
-      item_variant = variants.find { |v| v._get(:index) == index }
-      item_name = item_variant._get(:name)
-      item, remaining_bytes = decode_composite(item_variant, bytes[1..], registry)
-
-      [
-        item.empty? ? item_name : { item_name.to_sym => item },
-        remaining_bytes
-      ]
+      composite_type = variants.find { |v| v._get(:index) == index }
+      item_name = composite_type._get(:name)
+      item_fields = composite_type._get(:fields)
+      if item_fields.empty?
+        [item_name, bytes[1..]]
+      else
+        item_value, remaining_bytes = decode_composite(composite_type, bytes[1..], registry)
+        [{ item_name.to_sym => item_value }, remaining_bytes]
+      end
     end
 
     def _decode_types(ids, bytes, registry = {})
