@@ -7,15 +7,19 @@ require 'json'
 module Substrate
   module RPC
     class << self
-      def json_rpc_call(method, params, url)
-        uri = URI(url)
-        req = Net::HTTP::Post.new(uri, 'Content-Type' => 'application/json')
-        req.body = {
-          'id' => 1,
+      def build_json_rpc_body(method, params, id)
+        {
+          'id' => id,
           'jsonrpc' => '2.0',
           'method' => method,
           'params' => params.reject(&:nil?)
         }.to_json
+      end
+
+      def request(url, body)
+        uri = URI(url)
+        req = Net::HTTP::Post.new(uri, 'Content-Type' => 'application/json')
+        req.body = body
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = true if uri.instance_of? URI::HTTPS
         res = http.request(req)
@@ -25,6 +29,11 @@ module Substrate
         raise result['error'] if result['error']
 
         result['result']
+      end
+
+      def json_rpc_call(method, params, url)
+        body = build_json_rpc_body(method, params, 1)
+        request(url, body)
       end
 
       def chain_getBlockHash(url, block_number = nil)

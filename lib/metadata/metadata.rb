@@ -15,10 +15,10 @@ module Metadata
     end
 
     def get_storage_item(pallet_name, item_name, metadata)
-      raise ScaleRb::NotImplemented, metadata._get(:metadata).keys.first unless metadata._get(:metadata)._key?(:v14)
+      version = metadata._get(:metadata).keys.first
+      raise ScaleRb::NotImplemented, metadata._get(:metadata).keys.first unless %w[v9 v10 v11 v12 v13 v14].include?(version.to_s)
 
-      metadata_v14 = metadata._get(:metadata)._get(:v14)
-      MetadataV14.get_storage_item(pallet_name, item_name, metadata_v14)
+      Metadata.const_get("Metadata#{version.upcase}").get_storage_item(pallet_name, item_name, metadata)
     end
   end
 

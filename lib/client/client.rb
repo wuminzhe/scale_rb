@@ -43,14 +43,6 @@ module Substrate
         end.flatten
       end
 
-      # type_id: result type id
-      def get_storage(url, storage_key, type_id, default, registry, at = nil)
-        data = Substrate::RPC.state_getStorage(url, storage_key, at) || default
-        return nil if data.nil?
-
-        PortableCodec.decode(type_id, data.to_bytes, registry)[0]
-      end
-
       # 1. Plain
       #   key:   nil
       #   value: { type: 3, modifier: 'Default', callback: '' }
@@ -78,7 +70,7 @@ module Substrate
       #   },
       #   ..
       #
-      def get_storage2(url, pallet_name, item_name, key, value, registry, at = nil)
+      def get_storage(url, pallet_name, item_name, key, value, registry, at = nil)
         # map, but no key's value provided. get all storages under the partial storage key
         if !key.nil? && key[:value].nil?
           partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name).to_hex
@@ -91,20 +83,13 @@ module Substrate
             at
           )
         else
-          params = (StorageHelper.build_params(key[:value], key[:type], key[:hashers], registry) unless key.nil?)
-          storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, params, registry).to_hex
-          get_storage(
-            url,
-            storage_key,
-            value[:type],
-            value[:modifier] == 'Default' ? value[:fallback] : nil,
-            registry,
-            at
-          )
+          storage_key = StorageHelper.build_storage_key(pallet_name, item_name, key, registry).to_hex
+          data = Substrate::RPC.state_getStorage(url, storage_key, at)
+          StorageHelper.decode_storage(data, value[:type], value[:modifier] == 'Optional', value[:fallback], registry)
         end
       end
 
-      def get_storage3(url, pallet_name, item_name, value_of_key, metadata, at = nil)
+      def get_storage2(url, pallet_name, item_name, value_of_key, metadata, at = nil)
         raise 'metadata should not be nil' if metadata.nil?
 
         registry = Metadata.build_registry(metadata)
@@ -116,6 +101,7 @@ module Substrate
 
         plain = type._get(:plain)
         map = type._get(:map)
+
         key, value =
           if plain
             [

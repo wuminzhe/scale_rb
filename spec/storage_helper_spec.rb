@@ -25,8 +25,8 @@ RSpec.describe StorageHelper do
       'System',
       'Account',
       {
-        values: [param_value],
-        type_ids: [param_type],
+        value: [param_value],
+        type: [param_type],
         hashers: [hasher]
       },
       @portable_types_registry
@@ -40,8 +40,8 @@ RSpec.describe StorageHelper do
       'ImOnline',
       'AuthoredBlocks',
       {
-        values: [123, ['0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes]], # U32, AccountId
-        type_ids: [4, 0],
+        value: [123, ['0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes]], # U32, AccountId
+        type: [4, 0],
         hashers: %w[Twox64Concat Twox64Concat]
       },
       @portable_types_registry
@@ -55,11 +55,11 @@ RSpec.describe StorageHelper do
       'Multisig',
       'Multisigs',
       {
-        values: [
+        value: [
           ['0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes], # AccountId
           '0x0101010101010101010101010101010101010101010101010101010101010101'.to_bytes # [U8; 32] array
         ],
-        type_ids: [0, 1],
+        type: [0, 1],
         hashers: %w[Twox64Concat Blake2_128Concat]
       },
       @portable_types_registry

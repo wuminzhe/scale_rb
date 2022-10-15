@@ -21,8 +21,9 @@ require 'hasher'
 require 'storage_helper'
 
 # client
-require 'substrate/rpc'
-require 'substrate/client'
+require 'client/rpc'
+require 'client/client'
+require 'client/ws_client'
 
 # get registry from config
 require 'registry'
