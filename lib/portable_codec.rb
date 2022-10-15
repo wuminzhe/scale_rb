@@ -81,18 +81,23 @@ module PortableCodec
     def decode_composite(composite_type, bytes, registry)
       fields = composite_type._get(:fields)
 
-      type_name_list = fields.map { |f| f._get(:name) }
-      type_id_list = fields.map { |f| f._get(:type) }
+      # reduce composite level when composite only has one field without name
+      if fields.length == 1 && fields.first._get(:name).nil?
+        decode(fields.first._get(:type), bytes, registry)
+      else
+        type_name_list = fields.map { |f| f._get(:name) }
+        type_id_list = fields.map { |f| f._get(:type) }
 
-      type_value_list, remaining_bytes = _decode_types(type_id_list, bytes, registry)
-      [
-        if type_name_list.all?(&:nil?)
-          type_value_list
-        else
-          [type_name_list.map(&:to_sym), type_value_list].transpose.to_h
-        end,
-        remaining_bytes
-      ]
+        type_value_list, remaining_bytes = _decode_types(type_id_list, bytes, registry)
+        [
+          if type_name_list.all?(&:nil?)
+            type_value_list
+          else
+            [type_name_list.map(&:to_sym), type_value_list].transpose.to_h
+          end,
+          remaining_bytes
+        ]
+      end
     end
 
     def decode_variant(variant_type, bytes, registry)
@@ -181,18 +186,23 @@ module PortableCodec
     #   or
     #   [value1, value2, ...]
     def encode_composite(composite_type, value, registry)
-      values =
-        if value.instance_of?(Hash)
-          value.values
-        elsif value.instance_of?(Array)
-          value
-        else
-          raise CompositeInvalidValue, "value: #{value}, only hash and array"
-        end
-
       fields = composite_type._get(:fields)
-      type_id_list = fields.map { |f| f._get(:type) }
-      _encode_types(type_id_list, values, registry)
+      # reduce composite level when composite only has one field without name
+      if fields.length == 1 && fields.first._get(:name).nil?
+        encode(fields.first._get(:type), value, registry)
+      else
+        values =
+          if value.instance_of?(Hash)
+            value.values
+          elsif value.instance_of?(Array)
+            value
+          else
+            raise CompositeInvalidValue, "value: #{value}, only hash and array"
+          end
+
+        type_id_list = fields.map { |f| f._get(:type) }
+        _encode_types(type_id_list, values, registry)
+      end
     end
 
     # value:

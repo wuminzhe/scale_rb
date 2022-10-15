@@ -15,20 +15,17 @@ RSpec.describe StorageHelper do
   end
 
   it 'can encode storage key with one param' do
-    param_value = [
-      '0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes
-    ] # account_id
-    param_type = 0
-    hasher = 'Blake2_128Concat'
+    # account_id
+    key = {
+      value: '0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes,
+      type: 0,
+      hashers: ['Blake2_128Concat']
+    }
 
     storage_key = StorageHelper.encode_storage_key(
       'System',
       'Account',
-      {
-        value: [param_value],
-        type: [param_type],
-        hashers: [hasher]
-      },
+      key,
       @portable_types_registry
     )
     expect = '0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da94bab0fcfc536fa263f3b241cd32f76a8724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'
@@ -40,8 +37,8 @@ RSpec.describe StorageHelper do
       'ImOnline',
       'AuthoredBlocks',
       {
-        value: [123, ['0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes]], # U32, AccountId
-        type: [4, 0],
+        value: [123, '0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes], # U32, AccountId
+        type: 291, # 291 => [4, 0]
         hashers: %w[Twox64Concat Twox64Concat]
       },
       @portable_types_registry
@@ -56,10 +53,10 @@ RSpec.describe StorageHelper do
       'Multisigs',
       {
         value: [
-          ['0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes], # AccountId
+          '0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes, # AccountId
           '0x0101010101010101010101010101010101010101010101010101010101010101'.to_bytes # [U8; 32] array
         ],
-        type: [0, 1],
+        type: 582, # 582 => [0, 1]
         hashers: %w[Twox64Concat Blake2_128Concat]
       },
       @portable_types_registry
