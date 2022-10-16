@@ -83,7 +83,7 @@ module Substrate
             at
           )
         else
-          storage_key = StorageHelper.build_storage_key(pallet_name, item_name, key, registry).to_hex
+          storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry).to_hex
           data = Substrate::RPC.state_getStorage(url, storage_key, at)
           StorageHelper.decode_storage(data, value[:type], value[:modifier] == 'Optional', value[:fallback], registry)
         end
