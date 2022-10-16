@@ -31,6 +31,10 @@ module StorageHelper
       end
     end
 
+    # data: hex string
+    # type: portable type id
+    # optional: boolean
+    # fallback: hex string
     def decode_storage(data, type, optional, fallback, registry)
       data ||= (optional ? nil : fallback)
       PortableCodec.decode(type, data.to_bytes, registry)[0]
