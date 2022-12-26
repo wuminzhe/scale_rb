@@ -26,6 +26,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = ['lib']
 
   # for hashers
-  spec.add_dependency 'blake2b_rs', '~> 0.1.2'
+  spec.add_dependency 'blake2b_rs', '~> 0.1.4'
   spec.add_dependency 'xxhash'
 end

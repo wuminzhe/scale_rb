@@ -104,18 +104,16 @@ module PortableCodec
       variants = variant_type._get(:variants)
 
       index = bytes[0]
-      if index > (variants.length - 1)
-        raise VariantIndexOutOfRange,
-              "type: #{variant_type}, index: #{index}, bytes: #{bytes}"
-      end
+      item = variants.find { |v| v._get(:index) == index } # item is an composite
 
-      composite_type = variants.find { |v| v._get(:index) == index }
-      item_name = composite_type._get(:name)
-      item_fields = composite_type._get(:fields)
+      raise VariantIndexOutOfRange, "type: #{variant_type}, index: #{index}, bytes: #{bytes}" if item.nil?
+
+      item_name = item._get(:name)
+      item_fields = item._get(:fields)
       if item_fields.empty?
         [item_name, bytes[1..]]
       else
-        item_value, remaining_bytes = decode_composite(composite_type, bytes[1..], registry)
+        item_value, remaining_bytes = decode_composite(item, bytes[1..], registry)
         [{ item_name.to_sym => item_value }, remaining_bytes]
       end
     end
@@ -224,11 +222,11 @@ module PortableCodec
           raise VariantInvalidValue, "type: #{variant_type}, value: #{value}"
         end
 
-      variant = variants.find { |var| var._get(:name) == name }
-      raise VariantItemNotFound, "type: #{variant_type}, name: #{name}" if variant.nil?
-      raise VariantInvalidValue, "type: #{variant_type}, v: #{v}" if variant._get(:fields).length != v.length
+      item = variants.find { |var| var._get(:name) == name }
+      raise VariantItemNotFound, "type: #{variant_type}, name: #{name}" if item.nil?
+      raise VariantInvalidValue, "type: #{variant_type}, v: #{v}" if item._get(:fields).length != v.length
 
-      ScaleRb.encode_uint('u8', variant._get(:index)) + encode_composite(variant, v, registry)
+      ScaleRb.encode_uint('u8', item._get(:index)) + encode_composite(item, v, registry)
     end
 
     def _encode_types(ids, values, registry)

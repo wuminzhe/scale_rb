@@ -39,5 +39,19 @@ module StorageHelper
       data ||= (optional ? nil : fallback)
       PortableCodec.decode(type, data.to_bytes, registry)[0]
     end
+
+    # storage_item: the storage item from metadata
+    def decode_storage2(data, storage_item, registry)
+      modifier = storage_item._get(:modifier) # Default | Optional
+      fallback = storage_item._get(:fallback)
+      type = storage_item._get(:type)._get(:plain) || storage_item._get(:type)._get(:map)._get(:value)
+      decode_storage(data, type, modifier == 'Optional', fallback, registry)
+    end
+
+    def decode_storage3(data, pallet_name, item_name, metadata)
+      registry = Metadata.build_registry(metadata)
+      storage_item = Metadata.get_storage_item(pallet_name, item_name, metadata)
+      decode_storage2(data, storage_item, registry)
+    end
   end
 end

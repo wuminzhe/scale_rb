@@ -6,7 +6,7 @@ require 'json'
 require 'optparse'
 
 def print_metadata(url, at = nil)
-  puts JSON.pretty_generate(Substrate::Client.get_metadata(url, at))
+  puts JSON.pretty_generate(HttpClient.get_metadata(url, at))
 end
 
 # ./bin/metadata http://g2.dev.darwinia.network:2234 -b 0x23ebddd6519aaf1b7fc916c3709af13d7a4010943fb53038406581171000a58e
@@ -31,10 +31,10 @@ else
       block_hash = @options[:block]
     else
       block_number = @options[:block].to_i
-      block_hash = Substrate::RPC.chain_getBlockHash url, block_number
+      block_hash = HttpClient.chain_getBlockHash url, block_number
     end
   else
-    block_hash = Substrate::RPC.chain_getBlockHash url
+    block_hash = HttpClient.chain_getBlockHash url
   end
 
   print_metadata url, block_hash
