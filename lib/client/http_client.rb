@@ -104,9 +104,10 @@ module ScaleRb
       #   },
       #   ..
       #
+      # TODO: part of the key is provided, but not all
       def get_storage(url, pallet_name, item_name, key, value, registry, at = nil)
         # map, but no key's value provided. get all storages under the partial storage key
-        if !key.nil? && key[:value].nil?
+        if key && (key[:value].nil? || key[:value].empty?)
           partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name).to_hex
           get_storages_by_partial_key(
             url,
@@ -124,10 +125,11 @@ module ScaleRb
       end
 
       def get_storage2(url, pallet_name, item_name, value_of_key, metadata, at = nil)
-        raise 'metadata should not be nil' if metadata.nil?
+        raise 'Metadata should not be nil' if metadata.nil?
 
         registry = Metadata.build_registry(metadata)
         item = Metadata.get_storage_item(pallet_name, item_name, metadata)
+        raise "No such storage item: `#{pallet_name}`.`#{item_name}`" if item.nil?
 
         modifier = item._get(:modifier) # Default | Optional
         fallback = item._get(:fallback)
@@ -135,6 +137,7 @@ module ScaleRb
 
         plain = type._get(:plain)
         map = type._get(:map)
+        # debug
 
         key, value =
           if plain

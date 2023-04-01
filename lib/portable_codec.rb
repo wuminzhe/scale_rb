@@ -134,6 +134,9 @@ module PortableCodec
       raise TypeNotFound, "id: #{id}" if type.nil?
 
       type_def = type._get(:def)
+      # debug
+      # p type_def
+      # p value
 
       return encode_primitive(type_def, value) if type_def._key?(:primitive)
       return encode_compact(value) if type_def._key?(:compact)
@@ -188,6 +191,9 @@ module PortableCodec
       fields = composite_type._get(:fields)
       # reduce composite level when composite only has one field without name
       if fields.length == 1 && fields.first._get(:name).nil?
+        # debug
+        # p fields.first._get(:type)
+        # p value
         encode(fields.first._get(:type), value, registry)
       else
         values =

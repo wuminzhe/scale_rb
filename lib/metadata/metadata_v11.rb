@@ -11,6 +11,7 @@ module Metadata
 
       def get_storage_item(module_name, item_name, metadata)
         modula = get_module(module_name, metadata)
+        raise "Module `#{module_name}` not found" if modula.nil?
         modula._get(:storage)._get(:items).find do |item|
           item._get(:name) == item_name
         end

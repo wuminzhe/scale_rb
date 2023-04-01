@@ -16,6 +16,7 @@ module Metadata
 
       def get_storage_item(pallet_name, item_name, metadata)
         pallet = get_module(pallet_name, metadata)
+        raise "Pallet `#{pallet_name}` not found" if pallet.nil?
         pallet._get(:storage)._get(:items).find do |item|
           item._get(:name) == item_name
         end

@@ -12,11 +12,11 @@ module StorageHelper
 
       if key && registry
 
-        types, values =
+        key_types, key_values =
           if key[:hashers].length == 1
             [
               [key[:type]],
-              [key[:value]]
+              key[:value]
             ]
           else
             [
@@ -25,7 +25,13 @@ module StorageHelper
             ]
           end
 
-        storage_key + PortableCodec._encode_types_with_hashers(types, values, registry, key[:hashers])
+        # debug
+        # p "encode_storage_key -----------------------"
+        # p key_types
+        # p key_values
+        # p "encode_storage_key -----------------------"
+        raise "Key's value doesn't match key's type, key's value: #{key_values.inspect}, but key's type: #{key_types.inspect}. Please check your key's value." if key_types.class != key_values.class || key_types.length != key_values.length
+        storage_key + PortableCodec._encode_types_with_hashers(key_types, key_values, registry, key[:hashers])
       else
         storage_key
       end
@@ -35,9 +41,10 @@ module StorageHelper
     # type: portable type id
     # optional: boolean
     # fallback: hex string
+    # returns nil or data
     def decode_storage(data, type, optional, fallback, registry)
       data ||= (optional ? nil : fallback)
-      PortableCodec.decode(type, data.to_bytes, registry)[0]
+      PortableCodec.decode(type, data.to_bytes, registry)[0] if data
     end
 
     # storage_item: the storage item from metadata
