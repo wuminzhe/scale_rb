@@ -3,7 +3,7 @@
 *WARNING: UNDER DEVELOPMENT*
 
 * Only support metadata v14.
-* Http & WebSocket client helper. No Client in this repo.
+* Http & WebSocket client helper.
 
 ## Installation
 
