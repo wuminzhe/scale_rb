@@ -2,9 +2,6 @@
 
 *WARNING: UNDER DEVELOPMENT*
 
-* Only support metadata v14.
-* Http & WebSocket client helper. No Client in this repo.
-
 ## Installation
 
 Add this line to your application's Gemfile:
