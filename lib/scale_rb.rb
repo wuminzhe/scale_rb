@@ -28,6 +28,8 @@ require 'client/abstract_ws_client'
 # get registry from config
 require 'registry'
 
+require 'address'
+
 module ScaleRb
   class << self
     attr_writer :logger

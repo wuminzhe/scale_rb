@@ -28,4 +28,5 @@ Gem::Specification.new do |spec|
   # for hashers
   spec.add_dependency 'blake2b_rs', '~> 0.1.4'
   spec.add_dependency 'xxhash'
+  spec.add_dependency "base58"
 end
