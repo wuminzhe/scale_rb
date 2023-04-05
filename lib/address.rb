@@ -73,6 +73,8 @@ class Address
 
       u8_array.push(*checksum)
 
+      u8_array = u8_array.map { |i| if i.is_a?(String) then i.to_i(16) else i end }
+      # u8_array = [42, 202, 122, 179, 154, 86, 153, 242, 157, 207, 38, 115, 170, 163, 73, 75, 72, 81, 26, 186, 224, 220, 60, 101, 15, 243, 152, 246, 95, 229, 225, 18, 56, 0x7e]
       input = u8_array.pack("C*")
 
       Base58.binary_to_base58(input, :bitcoin)
