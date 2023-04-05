@@ -14,12 +14,31 @@ module Metadata
         end
       end
 
+      def get_module_by_index(pallet_index, metadata)
+        metadata._get(:metadata)._get(:v14)._get(:pallets).find do |p|
+          p._get(:index) == pallet_index
+        end
+      end
+
       def get_storage_item(pallet_name, item_name, metadata)
         pallet = get_module(pallet_name, metadata)
         raise "Pallet `#{pallet_name}` not found" if pallet.nil?
         pallet._get(:storage)._get(:items).find do |item|
           item._get(:name) == item_name
         end
+      end
+
+      def get_calls_type(pallet_name, metadata)
+        type_id = get_calls_type_id(pallet_name, metadata)
+        metadata._get(:metadata)._get(:v14)._get(:lookup)._get(:types).find do |type|
+          type._get(:id) == type_id
+        end
+      end
+
+      def get_calls_type_id(pallet_name, metadata)
+        pallet = get_module(pallet_name, metadata)
+        raise "Pallet `#{pallet_name}` not found" if pallet.nil?
+        pallet._get(:calls)._get(:type)
       end
     end
 
