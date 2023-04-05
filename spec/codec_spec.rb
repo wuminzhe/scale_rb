@@ -298,4 +298,24 @@ RSpec.describe ScaleRb do
     bytes = ScaleRb.encode('Option<Compact>', 69)
     expect(bytes).to eql([0x01, 0x15, 0x01])
   end
+
+  it 'can encode uint' do
+    # 2**64 - 1
+    bytes = ScaleRb.encode('u256', 18446744073709551615)
+    expect(bytes.to_hex).to eql("0xffffffffffffffff000000000000000000000000000000000000000000000000")
+
+    # 2**64 - 1
+    bytes = ScaleRb.encode('u64', 18446744073709551615)
+    expect(bytes.to_hex).to eql('0xffffffffffffffff')
+
+    # 2**64
+    bytes = ScaleRb.encode('u256', 18446744073709551616)
+    expect(bytes.to_hex).to eql('0x0000000000000000010000000000000000000000000000000000000000000000')
+
+    bytes = ScaleRb.encode('u256', 18446744073709551616)
+    o = bytes.each_slice(8).map do |slice|
+      ScaleRb.decode('u64', slice).first
+    end
+    expect(o).to eql([0, 1, 0, 0])
+  end
 end
