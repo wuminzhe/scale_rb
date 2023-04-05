@@ -11,6 +11,15 @@ module PortableCodec
   class VariantInvalidValue < Error; end
 
   class << self
+    def u256(value)
+      bytes = ScaleRb.encode('u256', value)
+      bytes.each_slice(8).map do |slice|
+        ScaleRb.decode('u64', slice).first
+      end
+    end
+  end
+
+  class << self
     # registry:
     #   {
     #     0 => {
