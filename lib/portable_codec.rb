@@ -171,7 +171,7 @@ module PortableCodec
     def encode_sequence(sequence_type, value, registry)
       inner_type_id = sequence_type._get(:type)
       length_bytes = encode_compact(value.length)
-      length_bytes + _encode_types([inner_type_id] * array.length, value, registry)
+      length_bytes + _encode_types([inner_type_id] * value.length, value, registry)
     end
 
     # tuple_type: [type_id1, type_id2, ...]
@@ -230,7 +230,10 @@ module PortableCodec
 
       item = variants.find { |var| var._get(:name) == name }
       raise VariantItemNotFound, "type: #{variant_type}, name: #{name}" if item.nil?
-      raise VariantInvalidValue, "type: #{variant_type}, v: #{v}" if item._get(:fields).length != v.length
+
+      # if the variant item has more than one field, the value must be a hash with the same length.
+      # if the variant item has only one field, that means the field is a type id point to a composite. TODO: check the type's fields length
+      raise VariantFieldsLengthNotMatch, "type: #{variant_type}, \nvalue: #{v}" if item._get(:fields).length > 1 && item._get(:fields).length != v.length
 
       ScaleRb.encode_uint('u8', item._get(:index)) + encode_composite(item, v, registry)
     end
