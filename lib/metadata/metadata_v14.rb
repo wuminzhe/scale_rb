@@ -28,6 +28,12 @@ module Metadata
         end
       end
 
+      def get_calls_type_id(pallet_name, metadata)
+        pallet = get_module(pallet_name, metadata)
+        raise "Pallet `#{pallet_name}` not found" if pallet.nil?
+        pallet._get(:calls)._get(:type)
+      end
+
       def get_calls_type(pallet_name, metadata)
         type_id = get_calls_type_id(pallet_name, metadata)
         metadata._get(:metadata)._get(:v14)._get(:lookup)._get(:types).find do |type|
@@ -35,10 +41,11 @@ module Metadata
         end
       end
 
-      def get_calls_type_id(pallet_name, metadata)
-        pallet = get_module(pallet_name, metadata)
-        raise "Pallet `#{pallet_name}` not found" if pallet.nil?
-        pallet._get(:calls)._get(:type)
+      def get_call_type(pallet_name, call_name, metadata)
+        calls_type = get_calls_type(pallet_name, metadata)
+        calls_type._get(:type)._get(:def)._get(:variant)._get(:variants).find do |variant|
+          variant._get(:name).downcase == call_name.downcase
+        end
       end
     end
 

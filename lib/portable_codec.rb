@@ -112,7 +112,7 @@ module PortableCodec
     def decode_variant(variant_type, bytes, registry)
       variants = variant_type._get(:variants)
 
-      index = bytes[0]
+      index = bytes[0].to_i # TODO: check
       item = variants.find { |v| v._get(:index) == index } # item is an composite
 
       raise VariantIndexOutOfRange, "type: #{variant_type}, index: #{index}, bytes: #{bytes}" if item.nil?

@@ -136,4 +136,19 @@ RSpec.describe PortableCodec do
     bytes = PortableCodec.encode(87, 'NonTransfer', @registry)
     expect(bytes).to eql([0x01])
   end
+
+  # kusama registry 125 - Junctions
+  it 'can decode variant with tuple' do
+    value, remaining_bytes = PortableCodec.decode 125, "0x0200300422".to_bytes, @kusama_registry
+    expect(value).to eql({:X2=>[{:Parachain=>12}, {:PalletInstance=>34}]})
+    expect(remaining_bytes).to eql([])
+  end
+
+  it 'can decode versioned xcm' do
+    bytes = "0x020c000400010200e520040500170000d01309468e15011300010200e520040500170000d01309468e15010006010700f2052a01180a070c313233".to_bytes
+    value, remaining_bytes = PortableCodec.decode 542, bytes, @kusama_registry
+    expected = {:V2=>[{:WithdrawAsset=>[{:id=>{:Concrete=>{:parents=>1, :interior=>{:X2=>[{:Parachain=>2105}, {:PalletInstance=>5}]}}}, :fun=>{:Fungible=>20000000000000000000}}]}, {:BuyExecution=>{:fees=>{:id=>{:Concrete=>{:parents=>1, :interior=>{:X2=>[{:Parachain=>2105}, {:PalletInstance=>5}]}}}, :fun=>{:Fungible=>20000000000000000000}}, :weight_limit=>"Unlimited"}}, {:Transact=>{:origin_type=>"SovereignAccount", :require_weight_at_most=>5000000000, :call=>{:encoded=>[10, 7, 12, 49, 50, 51]}}}]}
+    puts JSON.pretty_generate(expected)
+    expect(value).to eql(expected)
+  end
 end

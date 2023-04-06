@@ -49,6 +49,13 @@ module Metadata
       Metadata.const_get("Metadata#{version.upcase}").get_calls_type_id(pallet_name, metadata)
     end
 
+    def get_call_type(pallet_name, call_name, metadata)
+      version = metadata._get(:metadata).keys.first
+      raise ScaleRb::NotImplemented, metadata._get(:metadata).keys.first unless %w[v9 v10 v11 v12 v13 v14].include?(version.to_s)
+
+      Metadata.const_get("Metadata#{version.upcase}").get_call_type(pallet_name, call_name, metadata) 
+    end
+
     # call examples:
     #   {:pallet_name=>"Deposit", :call_name=>"Claim", :call=>["claim", []]}
     #   {:pallet_name=>"Balances", :call_name=>"Transfer", :call=>[{:transfer=>{:dest=>[10, 18, 135, 151, 117, 120, 248, 136, 189, 193, 199, 98, 119, 129, 175, 28, 192, 0, 230, 171], :value=>11000000000000000000}}, []]}

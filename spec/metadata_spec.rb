@@ -29,4 +29,11 @@ RSpec.describe Metadata do
       expect_get_storage_item("v#{i}")
     end
   end
+
+  it 'can get call type' do
+    metadata = JSON.parse(File.open(File.join(__dir__, 'assets', './pangolin2.json')).read)
+    
+    call_type = Metadata.get_call_type("PolkadotXcm", "Execute", metadata)
+    expect(call_type).to eql({"name"=>"execute", "fields"=>[{"name"=>"message", "type"=>394, "typeName"=>"Box<VersionedXcm<<T as SysConfig>::RuntimeCall>>", "docs"=>[]}, {"name"=>"max_weight", "type"=>8, "typeName"=>"Weight", "docs"=>[]}], "index"=>3, "docs"=>["Execute an XCM message from a local, signed, origin.", "", "An event is deposited indicating whether `msg` could be executed completely or only", "partially.", "", "No more than `max_weight` will be used in its attempted execution. If this is less than the", "maximum amount of weight that the message could take to be executed, then no execution", "attempt will be made.", "", "NOTE: A successful return to this does *not* imply that the `msg` was executed successfully", "to completion; only that *some* of it was executed."]})
+  end
 end
