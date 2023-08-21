@@ -70,7 +70,23 @@ module PortableCodec
     def decode_array(array_type, bytes, registry)
       len = array_type._get(:len)
       inner_type_id = array_type._get(:type)
-      _decode_types([inner_type_id] * len, bytes, registry)
+
+      # check if the type of inner_type_id is a u8
+      if _u8?(inner_type_id, registry)
+        [
+          bytes[0...len].to_hex,
+          bytes[len..]
+        ]
+      else
+        _decode_types([inner_type_id] * len, bytes, registry)
+      end
+    end
+
+    def _u8?(type_id, registry)
+      type = registry[type_id]
+      raise TypeNotFound, "id: #{type_id}" if type.nil?
+
+      type._get(:def)._get(:primitive)&.downcase == 'u8'
     end
 
     def decode_sequence(sequence_type, bytes, registry)
@@ -242,7 +258,10 @@ module PortableCodec
 
       # if the variant item has more than one field, the value must be a hash with the same length.
       # if the variant item has only one field, that means the field is a type id point to a composite. TODO: check the type's fields length
-      raise VariantFieldsLengthNotMatch, "type: #{variant_type}, \nvalue: #{v}" if item._get(:fields).length > 1 && item._get(:fields).length != v.length
+      if item._get(:fields).length > 1 && item._get(:fields).length != v.length
+        raise VariantFieldsLengthNotMatch,
+              "type: #{variant_type}, \nvalue: #{v}"
+      end
 
       ScaleRb.encode_uint('u8', item._get(:index)) + encode_composite(item, v, registry)
     end

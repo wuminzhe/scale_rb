@@ -20,7 +20,7 @@ RSpec.describe PortableCodec do
 
   it 'can decode array' do
     value, remaining_bytes = PortableCodec.decode 1, [0x12, 0x34, 0x56, 0x78] * 8 + [0x78], @registry
-    expect(value).to eql([0x12, 0x34, 0x56, 0x78] * 8)
+    expect(value).to eql('0x1234567812345678123456781234567812345678123456781234567812345678')
     expect(remaining_bytes).to eql([0x78])
   end
 
@@ -33,9 +33,7 @@ RSpec.describe PortableCodec do
   it 'can decode composite1' do
     # AccountId32
     value, remaining_bytes = PortableCodec.decode 0, [0x12, 0x34, 0x56, 0x78] * 8, @registry
-    expect(value).to eql(
-      [0x12, 0x34, 0x56, 0x78] * 8
-    )
+    expect(value).to eql('0x1234567812345678123456781234567812345678123456781234567812345678')
     expect(remaining_bytes).to eql([])
   end
 
@@ -119,7 +117,7 @@ RSpec.describe PortableCodec do
     value, remaining_bytes = PortableCodec.decode 55, bytes, @registry
     expect(value).to eql(
       [
-        '0x1234567812345678123456781234567812345678123456781234567812345678'.to_bytes,
+        '0x1234567812345678123456781234567812345678123456781234567812345678',
         18_446_744_073_709_551_115 # u128
       ]
     )
@@ -139,15 +137,21 @@ RSpec.describe PortableCodec do
 
   # kusama registry 125 - Junctions
   it 'can decode variant with tuple' do
-    value, remaining_bytes = PortableCodec.decode 125, "0x0200300422".to_bytes, @kusama_registry
-    expect(value).to eql({:X2=>[{:Parachain=>12}, {:PalletInstance=>34}]})
+    value, remaining_bytes = PortableCodec.decode 125, '0x0200300422'.to_bytes, @kusama_registry
+    expect(value).to eql({ X2: [{ Parachain: 12 }, { PalletInstance: 34 }] })
     expect(remaining_bytes).to eql([])
   end
 
   it 'can decode versioned xcm' do
-    bytes = "0x020c000400010200e520040500170000d01309468e15011300010200e520040500170000d01309468e15010006010700f2052a01180a070c313233".to_bytes
+    bytes = '0x020c000400010200e520040500170000d01309468e15011300010200e520040500170000d01309468e15010006010700f2052a01180a070c313233'.to_bytes
     value, remaining_bytes = PortableCodec.decode 542, bytes, @kusama_registry
-    expected = {:V2=>[{:WithdrawAsset=>[{:id=>{:Concrete=>{:parents=>1, :interior=>{:X2=>[{:Parachain=>2105}, {:PalletInstance=>5}]}}}, :fun=>{:Fungible=>20000000000000000000}}]}, {:BuyExecution=>{:fees=>{:id=>{:Concrete=>{:parents=>1, :interior=>{:X2=>[{:Parachain=>2105}, {:PalletInstance=>5}]}}}, :fun=>{:Fungible=>20000000000000000000}}, :weight_limit=>"Unlimited"}}, {:Transact=>{:origin_type=>"SovereignAccount", :require_weight_at_most=>5000000000, :call=>{:encoded=>[10, 7, 12, 49, 50, 51]}}}]}
+    expected = { V2: [
+      { WithdrawAsset: [{
+        id: { Concrete: { parents: 1,
+                          interior: { X2: [{ Parachain: 2105 },
+                                           { PalletInstance: 5 }] } } }, fun: { Fungible: 20_000_000_000_000_000_000 }
+      }] }, { BuyExecution: { fees: { id: { Concrete: { parents: 1, interior: { X2: [{ Parachain: 2105 }, { PalletInstance: 5 }] } } }, fun: { Fungible: 20_000_000_000_000_000_000 } }, weight_limit: 'Unlimited' } }, { Transact: { origin_type: 'SovereignAccount', require_weight_at_most: 5_000_000_000, call: { encoded: [10, 7, 12, 49, 50, 51] } } }
+    ] }
     puts JSON.pretty_generate(expected)
     expect(value).to eql(expected)
   end
