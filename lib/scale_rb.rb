@@ -32,16 +32,14 @@ require 'address'
 
 module ScaleRb
   class << self
-    attr_writer :logger
-
-    def logger
-      @logger ||= Logger.new($stdout)
-      @logger.level = Logger::INFO
-      @logger
-    end
+    attr_accessor :logger
 
     def debug(key, value)
       logger.debug "#{key.rjust(15)}: #{value}"
     end
   end
 end
+
+logger = Logger.new($stdout)
+logger.level = Logger::INFO
+ScaleRb.logger = logger
