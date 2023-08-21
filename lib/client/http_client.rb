@@ -11,19 +11,27 @@ module ScaleRb
 
     class << self
       def request(url, body)
+        ScaleRb.logger.debug "url: #{url}"
+        ScaleRb.logger.debug "body: #{body}"
         uri = URI(url)
         req = Net::HTTP::Post.new(uri, 'Content-Type' => 'application/json')
         req.body = body
         http = Net::HTTP.new(uri.host, uri.port)
         http.use_ssl = true if uri.instance_of? URI::HTTPS
         res = http.request(req)
-        # puts res unless res.is_a?(Net::HTTPSuccess)
+
+        raise res.class.name unless res.is_a?(Net::HTTPSuccess)
 
         result = JSON.parse(res.body)
         ScaleRb.logger.debug result
         raise result['error']['message'] if result['error']
 
         result['result']
+      rescue StandardError => e
+        ScaleRb.logger.error e.message
+        ScaleRb.logger.error 'retry...'
+        sleep 2
+        request(url, body)
       end
 
       def json_rpc_call(url, method, *params)
@@ -38,20 +46,18 @@ module ScaleRb
       def method_missing(method, *args)
         ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
         # check if the first argument is a url
-        url_regex = /^https?:\/\//
-        raise "url format is not correct" unless args[0].match?(url_regex)
+        url_regex = %r{^https?://}
+        raise 'url format is not correct' unless args[0].match?(url_regex)
 
         url = args[0]
-        if rpc_methods(url).include?(method.to_s)
-          json_rpc_call(url, method, *args[1..])
-        else
-          raise NoMethodError, "undefined rpc method `#{method}'"
-        end
+        raise NoMethodError, "undefined rpc method `#{method}'" unless rpc_methods(url).include?(method.to_s)
+
+        json_rpc_call(url, method, *args[1..])
       end
 
       def rpc_methods(url)
         result = json_rpc_call(url, 'rpc_methods', [])
-        result["methods"]
+        result['methods']
       end
 
       def get_metadata(url, at = nil)
