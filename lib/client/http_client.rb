@@ -178,6 +178,44 @@ module ScaleRb
           end
         get_storage(url, pallet_name, item_name, key, value, registry, at)
       end
+
+      # get_storage3 is a more ruby style function
+      #
+      # pallet_name and storage_name is pascal style like 'darwinia_staking'
+      def get_storage3(_url, _metadata, pallet_name, storage_name, key_part1: nil, key_part2: nil, at: nil)
+        pallet_name = to_pascal pallet_name
+        storage_name = to_pascal storage_name
+        ScaleRb.logger.debug "#{pallet_name}.#{storage_name}(#{[key_part1, key_part2].compact.join(', ')})"
+
+        key = [key_part1, key_part2].compact.map { |part_of_key| c(part_of_key) }
+        ScaleRb.logger.debug "converted key: #{key}"
+
+        get_storage2(
+          url,
+          pallet_name,
+          storage_name,
+          key,
+          metadata,
+          at
+        )
+      end
+
+      private
+
+      def to_pascal(str)
+        str.split('_').collect(&:capitalize).join
+      end
+
+      # convert key to byte array
+      def c(key)
+        if key.start_with?('0x')
+          key.to_bytes
+        elsif key.to_i.to_s == key # check if key is a number
+          key.to_i
+        else
+          key
+        end
+      end
     end
   end
 end
