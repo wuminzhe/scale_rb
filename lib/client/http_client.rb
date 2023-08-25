@@ -182,7 +182,7 @@ module ScaleRb
       # get_storage3 is a more ruby style function
       #
       # pallet_name and storage_name is pascal style like 'darwinia_staking'
-      def get_storage3(_url, _metadata, pallet_name, storage_name, key_part1: nil, key_part2: nil, at: nil)
+      def get_storage3(url, metadata, pallet_name, storage_name, key_part1: nil, key_part2: nil, at: nil)
         pallet_name = to_pascal pallet_name
         storage_name = to_pascal storage_name
         ScaleRb.logger.debug "#{pallet_name}.#{storage_name}(#{[key_part1, key_part2].compact.join(', ')})"
