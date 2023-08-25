@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    scale_rb (0.1.12)
+    scale_rb (0.1.13)
       base58
       blake2b_rs (~> 0.1.4)
       xxhash
