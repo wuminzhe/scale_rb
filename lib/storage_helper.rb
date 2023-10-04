@@ -12,26 +12,26 @@ module StorageHelper
 
       if key && registry
 
-        key_types, key_values =
+        key_types, key_values, key_hashers =
           if key[:hashers].length == 1
             [
               [key[:type]],
-              key[:value]
+              key[:value],
+              key[:hashers]
             ]
           else
             [
-              registry[key[:type]]._get(:def)._get(:tuple),
-              key[:value]
+              registry[key[:type]]._get(:def)._get(:tuple).first(key[:value].length),
+              key[:value],
+              key[:hashers].first(key[:value].length)
             ]
           end
 
-        # debug
-        # p "encode_storage_key -----------------------"
-        # p key_types
-        # p key_values
-        # p "encode_storage_key -----------------------"
-        raise "Key's value doesn't match key's type, key's value: #{key_values.inspect}, but key's type: #{key_types.inspect}. Please check your key's value." if key_types.class != key_values.class || key_types.length != key_values.length
-        storage_key + PortableCodec._encode_types_with_hashers(key_types, key_values, registry, key[:hashers])
+        if key_types.class != key_values.class || key_types.length != key_values.length
+          raise "Key's value doesn't match key's type, key's value: #{key_values.inspect}, but key's type: #{key_types.inspect}. Please check your key's value."
+        end
+
+        storage_key + PortableCodec._encode_types_with_hashers(key_types, key_values, registry, key_hashers)
       else
         storage_key
       end

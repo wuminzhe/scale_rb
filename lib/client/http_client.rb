@@ -129,17 +129,30 @@ module ScaleRb
       #
       # TODO: part of the key is provided, but not all
       def get_storage(url, pallet_name, item_name, key, value, registry, at = nil)
-        # map, but no key's value provided. get all storages under the partial storage key
-        if key && (key[:value].nil? || key[:value].empty?)
-          partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name).to_hex
-          get_storages_by_partial_key(
-            url,
-            partial_storage_key,
-            value[:type],
-            value[:modifier] == 'Default' ? value[:fallback] : nil,
-            registry,
-            at
-          )
+        if key
+          if key[:value].nil? || key[:value].empty?
+            # map, but no key's value provided. get all storages under the partial storage key
+            partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name).to_hex
+            get_storages_by_partial_key(
+              url,
+              partial_storage_key,
+              value[:type],
+              value[:modifier] == 'Default' ? value[:fallback] : nil,
+              registry,
+              at
+            )
+          elsif key[:value].length != key[:hashers].length
+            # map with multi part, but only provide part value
+            partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry).to_hex
+            get_storages_by_partial_key(
+              url,
+              partial_storage_key,
+              value[:type],
+              value[:modifier] == 'Default' ? value[:fallback] : nil,
+              registry,
+              at
+            )
+          end
         else
           storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry).to_hex
           data = state_getStorage(url, storage_key, at)
