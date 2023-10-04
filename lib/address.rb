@@ -14,7 +14,7 @@ class Address
     # Darwinia Live
     18,
     # Dothereum (SS58, AccountId)
-    20, 21, 
+    20, 21,
     # Generic Substrate wildcard (SS58, AccountId)
     42, 43,
 
@@ -30,54 +30,62 @@ class Address
   ]
 
   class << self
-
     def array_to_hex_string(arr)
       body = arr.map { |i| i.to_s(16).rjust(2, '0') }.join
       "0x#{body}"
     end
 
-    def decode(address, addr_type = 42, ignore_checksum = true)
+    def decode(address, addr_type = 42, _ignore_checksum = true)
       decoded = Base58.base58_to_binary(address, :bitcoin)
       is_pubkey = decoded.size == 35
 
-      size = decoded.size - ( is_pubkey ? 2 : 1 )
+      size = decoded.size - (is_pubkey ? 2 : 1)
 
-      prefix = decoded[0, 1].unpack("C*").first
+      prefix = decoded[0, 1].unpack1('C*')
 
-      raise "Invalid address type" unless TYPES.include?(addr_type)
-      
+      raise 'Invalid address type' unless TYPES.include?(addr_type)
+
       hash_bytes = make_hash(decoded[0, size])
-      if is_pubkey
-        is_valid_checksum = decoded[-2].unpack("C*").first == hash_bytes[0] && decoded[-1].unpack("C*").first == hash_bytes[1]
-      else
-        is_valid_checksum = decoded[-1].unpack("C*").first == hash_bytes[0]
-      end
+      is_valid_checksum =
+        if is_pubkey
+          decoded[-2].unpack1('C*') == hash_bytes[0] && decoded[-1].unpack1('C*') == hash_bytes[1]
+        else
+          decoded[-1].unpack1('C*') == hash_bytes[0]
+        end
 
       # raise "Invalid decoded address checksum" unless is_valid_checksum && ignore_checksum
 
-      decoded[1...size].unpack("H*").first
+      decoded[1...size].unpack1('H*')
     end
-
 
     def encode(pubkey, addr_type = 42)
       pubkey = pubkey[2..-1] if pubkey =~ /^0x/i
-      key = [pubkey].pack("H*")
+      key = [pubkey].pack('H*')
 
-      u8_array = key.bytes
+      pubkey_bytes = key.bytes
 
-      u8_array.unshift(addr_type)
+      checksum_length = case pubkey_bytes.length
+                        when 32, 33
+                          2
+                        when 1, 2, 4, 8
+                          1
+                        else
+                          raise 'Invalid pubkey length'
+                        end
 
-      bytes = make_hash(u8_array.pack("C*"))
-      
-      checksum = bytes[0, key.size == 32 ? 2 : 1]
+      ss58_format_bytes = if addr_type < 64
+                            [addr_type].pack('C*')
+                          else
+                            [
+                              ((ss58_format & 0b0000_0000_1111_1100) >> 2) | 0b0100_0000,
+                              (ss58_format >> 8) | ((ss58_format & 0b0000_0000_0000_0011) << 6)
+                            ].pack('C*')
+                          end
 
-      u8_array.push(*checksum)
+      input_bytes = ss58_format_bytes.bytes + pubkey_bytes
+      checksum = Blake2b.hex(SS58_PREFIX.bytes + input_bytes, 64).to_bytes
 
-      u8_array = u8_array.map { |i| if i.is_a?(String) then i.to_i(16) else i end }
-      # u8_array = [42, 202, 122, 179, 154, 86, 153, 242, 157, 207, 38, 115, 170, 163, 73, 75, 72, 81, 26, 186, 224, 220, 60, 101, 15, 243, 152, 246, 95, 229, 225, 18, 56, 0x7e]
-      input = u8_array.pack("C*")
-
-      Base58.binary_to_base58(input, :bitcoin)
+      Base58.binary_to_base58((input_bytes + checksum[0...checksum_length]).pack('C*'), :bitcoin)
     end
 
     def make_hash(body)
@@ -87,11 +95,11 @@ class Address
     def is_ss58_address?(address)
       begin
         decode(address)
-      rescue
+      rescue StandardError
         return false
       end
-      return true
+      true
     end
-
   end
 end
+
