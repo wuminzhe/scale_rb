@@ -191,9 +191,9 @@ module ScaleRb
   # Decode
   class << self
     def decode(type, bytes, registry = {})
-      logger.debug '--------------------------------------------------'
-      debug 'decoding type', type
-      debug 'bytes', bytes&.length
+      # logger.debug '--------------------------------------------------'
+      # debug 'decoding type', type
+      # debug 'bytes', bytes&.length
 
       if type.instance_of?(String)
         return decode_bytes(bytes) if bytes?(type) # Bytes
@@ -221,8 +221,8 @@ module ScaleRb
     def decode_bytes(bytes)
       length, remaining_bytes = _do_decode_compact(bytes)
       value = remaining_bytes[0...length].to_hex
-      debug 'length', length
-      debug 'value', value
+      # debug 'length', length
+      # debug 'value', value
       [
         value,
         remaining_bytes[length..]
@@ -238,7 +238,7 @@ module ScaleRb
         else
           raise InvalidBytesError, 'type: Boolean'
         end
-      debug 'value', value
+      # debug 'value', value
       [value, bytes[1..]]
     end
 
@@ -247,8 +247,8 @@ module ScaleRb
       raise NotEnoughBytesError, 'type: String' if remaining_bytes.length < length
 
       value = remaining_bytes[0...length].to_utf8
-      debug 'byte length', length
-      debug 'value', value.inspect
+      # debug 'byte length', length
+      # debug 'value', value.inspect
       [
         value,
         remaining_bytes[length..]
@@ -261,7 +261,7 @@ module ScaleRb
       raise NotEnoughBytesError, "type: #{type}" if bytes.length < byte_length
 
       value = bytes[0...byte_length].flip.to_int(bit_length)
-      debug 'value', value
+      # debug 'value', value
       [
         value,
         bytes[byte_length..]
@@ -274,7 +274,7 @@ module ScaleRb
       raise NotEnoughBytesError, "type: #{type_def}" if bytes.length < byte_length
 
       value = bytes[0...byte_length].flip.to_uint
-      debug 'value', value
+      # debug 'value', value
       [
         value,
         bytes[byte_length..]
@@ -282,9 +282,8 @@ module ScaleRb
     end
 
     def decode_compact(bytes)
-      result = _do_decode_compact(bytes)
-      debug 'value', result[0]
-      result
+      _do_decode_compact(bytes)
+      # debug 'value', result[0]
     end
 
     def decode_option(type_def, bytes, registry = {})
@@ -304,7 +303,7 @@ module ScaleRb
     def decode_vec(type_def, bytes, registry = {})
       inner_type = parse_vec(type_def)
       length, remaining_bytes = _do_decode_compact(bytes)
-      debug 'length', length
+      # debug 'length', length
       _decode_types([inner_type] * length, remaining_bytes, registry)
     end
 
@@ -331,7 +330,7 @@ module ScaleRb
       raise IndexOutOfRangeError, "type: #{type_def}" if index > items.length - 1
 
       item = items.to_a[index] # 'name' or [:name, inner_type]
-      debug 'value', item.inspect
+      # debug 'value', item.inspect
       return [item, bytes[1..]] if item.instance_of?(String)
 
       value, remaining_bytes = decode(item[1], bytes[1..], registry)
@@ -353,9 +352,9 @@ module ScaleRb
   # Encode
   class << self
     def encode(type, value, registry = {})
-      logger.debug '--------------------------------------------------'
-      debug 'encoding type', type
-      debug 'value', value
+      # logger.debug '--------------------------------------------------'
+      # debug 'encoding type', type
+      # debug 'value', value
 
       if type.instance_of?(String)
         return encode_bytes(value) if bytes?(type)
