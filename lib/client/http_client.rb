@@ -3,6 +3,7 @@
 require 'uri'
 require 'net/http'
 require 'json'
+require_relative './rpc_request_builder'
 require_relative './http_client_metadata'
 require_relative './http_client_storage'
 
