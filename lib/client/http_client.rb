@@ -3,6 +3,7 @@
 require 'uri'
 require 'net/http'
 require 'json'
+require_relative './http_client_metadata'
 
 # TODO: method_name = cmd.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
 module ScaleRb
