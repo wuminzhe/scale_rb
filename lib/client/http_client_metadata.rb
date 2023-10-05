@@ -4,14 +4,16 @@ require 'fileutils'
 module ScaleRb
   module HttpClient
     class << self
+      def get_metadata(url, at = nil)
+        hex = state_getMetadata(url, at)
+        Metadata.decode_metadata(hex.strip.to_bytes)
+      end
+
       # cached version of get_metadata
       # get metadata from cache first
-      def get_metadata_cached(url, at: nil, dir: File.join(Dir.pwd, 'metadata'))
-        # if at
-        #   require_block_hash_correct(url, at)
-        # else
-        #   at = ScaleRb::HttpClient.chain_getFinalizedHead(url)
-        # end
+      def get_metadata_cached(url, at: nil, dir: nil)
+        dir = ENV['SCALE_RB_METADATA_DIR'] || File.join(Dir.pwd, 'metadata') if dir.nil?
+
         at = ScaleRb::HttpClient.chain_getFinalizedHead(url) if at.nil?
         spec_name, spec_version = get_spec(url, at)
 
@@ -27,7 +29,7 @@ module ScaleRb
         metadata = ScaleRb::HttpClient.get_metadata(url, at)
 
         # cache it
-        puts "caching metadata `#{spec_name}_#{spec_version}.json`"
+        ScaleRb.logger.debug "caching metadata `#{spec_name}_#{spec_version}.json`"
         save_metadata_to_file(
           spec_name: spec_name,
           spec_version: spec_version,
@@ -54,7 +56,7 @@ module ScaleRb
         file_path = File.join(dir, "#{spec_name}_#{spec_version}.json")
         return unless File.exist?(file_path)
 
-        puts "found metadata `#{spec_name}_#{spec_version}.json` in cache"
+        ScaleRb.logger.debug "found metadata `#{spec_name}_#{spec_version}.json` in cache"
         JSON.parse(File.read(file_path))
       end
 
