@@ -145,12 +145,12 @@ module ScaleRb
       when 0
         [bytes[0] >> 2, bytes[1..]]
       when 1
-        [bytes[0..1].flip.to_uint >> 2, bytes[2..]]
+        [bytes[0..1]._flip._to_uint >> 2, bytes[2..]]
       when 2
-        [bytes[0..3].flip.to_uint >> 2, bytes[4..]]
+        [bytes[0..3]._flip._to_uint >> 2, bytes[4..]]
       when 3
         length = 4 + (bytes[0] >> 2)
-        [bytes[1..length].flip.to_uint, bytes[length + 1..]]
+        [bytes[1..length]._flip._to_uint, bytes[length + 1..]]
       else
         raise Unreachable, 'type: Compact'
       end
@@ -220,7 +220,7 @@ module ScaleRb
 
     def decode_bytes(bytes)
       length, remaining_bytes = _do_decode_compact(bytes)
-      value = remaining_bytes[0...length].to_hex
+      value = remaining_bytes[0...length]._to_hex
       # debug 'length', length
       # debug 'value', value
       [
@@ -246,7 +246,7 @@ module ScaleRb
       length, remaining_bytes = _do_decode_compact(bytes)
       raise NotEnoughBytesError, 'type: String' if remaining_bytes.length < length
 
-      value = remaining_bytes[0...length].to_utf8
+      value = remaining_bytes[0...length]._to_utf8
       # debug 'byte length', length
       # debug 'value', value.inspect
       [
@@ -260,7 +260,7 @@ module ScaleRb
       byte_length = bit_length / 8
       raise NotEnoughBytesError, "type: #{type}" if bytes.length < byte_length
 
-      value = bytes[0...byte_length].flip.to_int(bit_length)
+      value = bytes[0...byte_length]._flip._to_int(bit_length)
       # debug 'value', value
       [
         value,
@@ -273,7 +273,7 @@ module ScaleRb
       byte_length = bit_length / 8
       raise NotEnoughBytesError, "type: #{type_def}" if bytes.length < byte_length
 
-      value = bytes[0...byte_length].flip.to_uint
+      value = bytes[0...byte_length]._flip._to_uint
       # debug 'value', value
       [
         value,
@@ -396,16 +396,16 @@ module ScaleRb
 
     def encode_compact(value)
       return [value << 2] if (value >= 0) && (value < 64)
-      return ((value << 2) + 1).to_bytes.flip if value < 2**14
-      return ((value << 2) + 2).to_bytes.flip if value < 2**30
+      return ((value << 2) + 1)._to_bytes._flip if value < 2**14
+      return ((value << 2) + 2)._to_bytes._flip if value < 2**30
 
-      bytes = value.to_bytes.flip
+      bytes = value._to_bytes._flip
       [(((bytes.length - 4) << 2) + 3)] + bytes
     end
 
     def encode_uint(type, value)
       bit_length = type[1..].to_i
-      value.to_bytes(bit_length).flip
+      value._to_bytes(bit_length)._flip
     end
 
     def encode_option(type, value, registry = {})

@@ -75,8 +75,8 @@ module ScaleRb
       # callbytes's structure is: pallet_index + call_index + argsbytes
       #
       # callbytes examples:
-      #   "0x0901".to_bytes
-      #   "0x05000a1287977578f888bdc1c7627781af1cc000e6ab1300004c31b8d9a798".to_bytes
+      #   "0x0901"._to_bytes
+      #   "0x05000a1287977578f888bdc1c7627781af1cc000e6ab1300004c31b8d9a798"._to_bytes
       def decode_call(callbytes, metadata)
         pallet_index = callbytes[0]
         pallet = get_module_by_index(pallet_index, metadata)
@@ -97,7 +97,7 @@ module ScaleRb
 
         {
           pallet_name: pallet_name,
-          call_name: decoded.first.is_a?(String) ? decoded.first.to_camel : decoded.first.keys.first.to_s.to_camel,
+          call_name: decoded.first.is_a?(String) ? decoded.first._to_camel : decoded.first.keys.first.to_s._to_camel,
           call: decoded
         }
       end

@@ -35,7 +35,7 @@ module ScaleRb
           item['changes'].map do |change|
             storage_key = change[0]
             data = change[1] || default
-            storage = data.nil? ? nil : PortableCodec.decode(type_id, data.to_bytes, registry)[0]
+            storage = data.nil? ? nil : PortableCodec.decode(type_id, data._to_bytes, registry)[0]
             { storage_key: storage_key, storage: storage }
           end
         end.flatten
@@ -80,7 +80,7 @@ module ScaleRb
       #   'System',
       #   'Account',
       #   key = {
-      #     value: [['0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'.to_bytes]], # [AccountId]
+      #     value: [['0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'._to_bytes]], # [AccountId]
       #     type: 0,
       #     hashers: ['Blake2128Concat']
       #   },
@@ -96,7 +96,7 @@ module ScaleRb
         if key
           if key[:value].nil? || key[:value].empty?
             # map, but no key's value provided. get all storages under the partial storage key
-            partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name).to_hex
+            partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name)._to_hex
             get_storages_by_partial_key(
               url,
               partial_storage_key,
@@ -107,7 +107,7 @@ module ScaleRb
             )
           elsif key[:value].length != key[:hashers].length
             # map with multi parts, but not have all values
-            partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry).to_hex
+            partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry)._to_hex
             get_storages_by_partial_key(
               url,
               partial_storage_key,
@@ -118,7 +118,7 @@ module ScaleRb
             )
           end
         else
-          storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry).to_hex
+          storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry)._to_hex
           data = state_getStorage(url, storage_key, at)
           StorageHelper.decode_storage(data, value[:type], value[:modifier] == 'Optional', value[:fallback], registry)
         end
@@ -168,7 +168,7 @@ module ScaleRb
       # convert key to byte array
       def c(key)
         if key.start_with?('0x')
-          key.to_bytes
+          key._to_bytes
         elsif key.to_i.to_s == key # check if key is a number
           key.to_i
         else

@@ -76,7 +76,7 @@ module ScaleRb
         # check if the type of inner_type_id is a u8
         if _u8?(inner_type_id, registry)
           [
-            bytes[0...len].to_hex,
+            bytes[0...len]._to_hex,
             bytes[len..]
           ]
         else

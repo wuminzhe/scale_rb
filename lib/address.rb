@@ -31,11 +31,6 @@ module ScaleRb
     ]
 
     class << self
-      def array_to_hex_string(arr)
-        body = arr.map { |i| i.to_s(16).rjust(2, '0') }.join
-        "0x#{body}"
-      end
-
       def decode(address, addr_type = 42, _ignore_checksum = true)
         decoded = Base58.base58_to_binary(address, :bitcoin)
         is_pubkey = decoded.size == 35
@@ -84,7 +79,7 @@ module ScaleRb
                             end
 
         input_bytes = ss58_format_bytes.bytes + pubkey_bytes
-        checksum = Blake2b.hex(SS58_PREFIX.bytes + input_bytes, 64).to_bytes
+        checksum = Blake2b.hex(SS58_PREFIX.bytes + input_bytes, 64)._to_bytes
 
         Base58.binary_to_base58((input_bytes + checksum[0...checksum_length]).pack('C*'), :bitcoin)
       end

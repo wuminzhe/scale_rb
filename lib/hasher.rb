@@ -11,7 +11,7 @@ module ScaleRb
       #    bytes: u8 array
       # return: u8 array
       def apply_hasher(hasher, bytes)
-        function_name = hasher.gsub('_', '').sr_underscore
+        function_name = hasher.gsub('_', '')._underscore
         Hasher.send(function_name, bytes)
       end
     end
@@ -22,7 +22,7 @@ module ScaleRb
       end
 
       def twox64_concat(bytes)
-        data = bytes.to_utf8
+        data = bytes._to_utf8
         twox64(data) + bytes
       end
 
@@ -32,24 +32,24 @@ module ScaleRb
 
       def twox64(str)
         result = XXhash.xxh64 str, 0
-        result.to_bytes.reverse
+        result._to_bytes.reverse
       end
 
       def twox128(str)
         bytes = []
         2.times do |i|
           result = XXhash.xxh64 str, i
-          bytes += result.to_bytes.reverse
+          bytes += result._to_bytes.reverse
         end
         bytes
       end
 
       def blake2_128(bytes)
-        Blake2b.hex(bytes, 16).to_bytes
+        Blake2b.hex(bytes, 16)._to_bytes
       end
 
       def blake2_256(bytes)
-        Blake2b.hex(bytes, 32).to_bytes
+        Blake2b.hex(bytes, 32)._to_bytes
       end
     end
   end

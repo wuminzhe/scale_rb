@@ -6,7 +6,7 @@ module ScaleRb
     class << self
       def get_metadata(url, at = nil)
         hex = state_getMetadata(url, at)
-        Metadata.decode_metadata(hex.strip.to_bytes)
+        Metadata.decode_metadata(hex.strip._to_bytes)
       end
 
       # cached version of get_metadata

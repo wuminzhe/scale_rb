@@ -31,12 +31,12 @@ module ScaleRb
     # derived functions
     ###################################
     def derived_state_get_storage(rpc_id, pallet_name, item_name, key = nil, registry = nil)
-      storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry).to_hex
+      storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry)._to_hex
       state_getStorage(rpc_id, [storage_key])
     end
 
     def derived_state_subscribe_storage(rpc_id, pallet_name, item_name, key = nil, registry = nil)
-      storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry).to_hex
+      storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry)._to_hex
       state_subscribeStorage(rpc_id, [storage_key])
     end
 

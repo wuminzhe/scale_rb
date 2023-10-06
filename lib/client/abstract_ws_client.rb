@@ -53,7 +53,7 @@ module ScaleRb
           return if resp['id'] != id
 
           metadata_hex = resp['result']
-          metadata = Metadata.decode_metadata(metadata_hex.strip.to_bytes)
+          metadata = Metadata.decode_metadata(metadata_hex.strip._to_bytes)
           return unless metadata
 
           @metadata = metadata
