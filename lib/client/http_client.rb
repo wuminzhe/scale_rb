@@ -36,7 +36,7 @@ module ScaleRb
         ScaleRb.logger.error e.message
         ScaleRb.logger.error 'retry after 5 seconds...'
         sleep 5
-        request(url, body)
+        request(url, body, tries + 1)
       end
 
       def json_rpc_call(url, method, *params)
