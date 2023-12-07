@@ -13,7 +13,7 @@ module ScaleRb
     extend RpcRequestBuilder
 
     class << self
-      def request(url, body)
+      def request(url, body, tries = 0)
         ScaleRb.logger.debug "url: #{url}"
         ScaleRb.logger.debug "body: #{body}"
         uri = URI(url)
@@ -31,9 +31,11 @@ module ScaleRb
 
         result['result']
       rescue StandardError => e
+        raise e unless tries < 5
+
         ScaleRb.logger.error e.message
-        ScaleRb.logger.error 'retry...'
-        sleep 2
+        ScaleRb.logger.error 'retry after 5 seconds...'
+        sleep 5
         request(url, body)
       end
 
@@ -65,3 +67,31 @@ module ScaleRb
     end
   end
 end
+
+# https://polkadot.js.org/docs/substrate/rpc/
+#
+# Examples:
+# # Get all supported rpc methods
+# ScaleRb::HttpClient.rpc_methods("https://rpc.darwinia.network")
+#
+# # eth_blockNumber
+# ScaleRb::HttpClient.eth_blockNumber("https://rpc.darwinia.network")
+#
+# # system_name
+# ScaleRb::HttpClient.system_name("https://rpc.darwinia.network")
+#
+# # chain_getHead
+# ScaleRb::HttpClient.chain_getHead("https://rpc.darwinia.network")
+#
+# # state_getMetadata of darwinia block #1582
+# ScaleRb::HttpClient.state_getMetadata(
+#   "https://rpc.darwinia.network",
+#   "0xb5a4f16d0feba7531e75315432b4d31a5b918987e026437890a2cbf5b8d9956d"
+# )
+#
+# # eth_getBalance of address 0x0000000000000000000000000000000000000000 at block #1582
+# ScaleRb::HttpClient.eth_getBalance(
+#   "https://rpc.darwinia.network",
+#   "0x0000000000000000000000000000000000000000",
+#   1582
+# )
