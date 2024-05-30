@@ -6,20 +6,22 @@
 
 ### Docker
 
-Build and run Docker container
-```ruby
+* Install and run Docker
+
+* Build and run Docker container
+```bash
 docker build --platform linux/x86_64 -f ./Dockerfile --tag scale-rb:v0.2.2 ./
 docker run --platform linux/x86_64 \
     --network host \
     -it -d --hostname scale-rb --name scale-rb --volume ./:/scale-rb:rw scale-rb:v0.2.2
 ```
 Enter shell of Docker container
-```
+```bash
 docker exec -it scale-rb /bin/bash
 ```
 
-Build and run Ruby program
-```
+* Build and run Ruby program in Docker container
+```bash
 bundle install
 ruby example/main.rb
 ```
