@@ -31,7 +31,4 @@ RUN apt-get update && \
   # install gem locally
   rake install:local
 
-# EXPOSE 8080 30333 9933 9944 9615 3000 443 80
-
-# CMD ["bash"]
 CMD tail -f /dev/null
