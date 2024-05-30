@@ -23,7 +23,7 @@ docker exec -it scale-rb /bin/bash
 * Build and run Ruby program in Docker container
 ```bash
 bundle install
-ruby example/main.rb
+ruby example01/main.rb
 ```
 
 ## Installation
