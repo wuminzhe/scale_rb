@@ -26,6 +26,13 @@ bundle install
 ruby example01/main.rb
 ```
 
+* Build and run Ruby program in Docker container
+```bash
+bundle install
+cd example02/
+rspec
+```
+
 ## Installation
 
 Add this line to your application's Gemfile:
