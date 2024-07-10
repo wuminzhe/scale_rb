@@ -1,5 +1,4 @@
 require 'scale_rb'
-require 'async'
 
 ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
   client.chain_subscribeNewHead do |head|
