@@ -1,0 +1,157 @@
+require 'async'
+require 'async/websocket/client'
+require 'async/http/endpoint'
+require 'async/queue'
+require 'json'
+
+class JsonRpcRequest
+  attr_reader :id, :method, :params
+
+  def initialize(id, method, params = {})
+    @id = id
+    @method = method
+    @params = params
+  end
+
+  def to_json(*_args)
+    { jsonrpc: '2.0', id: @id, method: @method, params: @params }.to_json
+  end
+end
+
+class ResponseHandler
+  def initialize
+    @handlers = {}
+  end
+
+  # handler: a proc with response data as param
+  def register(id, handler)
+    @handlers[id] = handler
+  end
+
+  def handle(response)
+    id = response['id']
+    if @handlers.key?(id)
+      handler = @handlers[id]
+      handler.call(response)
+      @handlers.delete(id)
+    else
+      puts "Received a message with unknown id: #{response}"
+    end
+  end
+end
+
+class SubscriptionHandler
+  def initialize
+    @subscriptions = {}
+  end
+
+  def subscribe(subscription_id, handler)
+    @subscriptions[subscription_id] = handler
+  end
+
+  def handle(notification)
+    subscription_id = notification.dig('params', 'subscription')
+    if subscription_id && @subscriptions.key?(subscription_id)
+      @subscriptions[subscription_id].call(notification)
+    else
+      puts "Received a notification with unknown subscription id: #{notification}"
+    end
+  end
+end
+
+class WsClient
+  def initialize
+    @queue = Async::Queue.new
+    @response_handler = ResponseHandler.new
+    @subscription_handler = SubscriptionHandler.new
+    @request_id = 1
+  end
+
+  def send_request(method, params = [])
+    response_future = Async::Notification.new
+
+    @response_handler.register(@request_id, proc { |response|
+      response_future.signal(response['result'])
+    })
+
+    request = JsonRpcRequest.new(@request_id, method, params)
+    @queue.enqueue(request)
+
+    @request_id += 1
+
+    response_future.wait
+  end
+
+  def subscribe(method, params = [], &block)
+    return unless method.include?('subscribe')
+
+    subscription_id = send_request(method, params)
+    @subscription_handler.subscribe(subscription_id, block)
+  end
+
+  def next_request
+    @queue.dequeue
+  end
+
+  def handle_response(response)
+    if response.key?('id')
+      @response_handler.handle(response)
+    elsif response.key?('method')
+      @subscription_handler.handle(response)
+    else
+      puts "Received an unknown message: #{response}"
+    end
+  end
+
+  def respond_to_missing?(*_args)
+    true
+  end
+
+  def method_missing(method, *args)
+    method = method.to_s
+    if method.include?('subscribe')
+      raise "A subscribe method needs a block" unless block_given?
+
+      subscribe(method, args) do |notification|
+        yield notification['params']['result']
+      end
+    else
+      send_request(method, args)
+    end
+  end
+
+  def self.start(url)
+    Async do |task|
+      endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
+      client = WsClient.new
+
+      task.async do
+        Async::WebSocket::Client.connect(endpoint) do |connection|
+          Async do
+            while request = client.next_request
+              connection.write(request.to_json)
+            end
+          end
+
+          while message = connection.read
+            data = JSON.parse(message)
+            client.handle_response(data)
+          end
+        end
+      rescue => e
+        puts e.message
+        puts e.backtrace
+      ensure
+        task.stop
+      end
+
+      task.async do
+        yield client
+      rescue => e
+        puts e.message
+        puts e.backtrace
+        task.stop
+      end
+    end
+  end
+end
