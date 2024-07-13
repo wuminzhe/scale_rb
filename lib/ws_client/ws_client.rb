@@ -91,12 +91,12 @@ module ScaleRb
                 client.handle_response(data)
               end
             end
+          rescue => e
+            puts e.message
+            puts e.backtrace
+          ensure
+            task.stop
           end
-        rescue => e
-          puts e.message
-          puts e.backtrace
-        ensure
-          task.stop
         end
 
         task.async do
