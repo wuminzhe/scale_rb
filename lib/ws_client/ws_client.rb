@@ -34,6 +34,13 @@ module ScaleRb
 
       subscription_id = send_request(method, params)
       @subscription_handler.subscribe(subscription_id, block)
+      subscription_id
+    end
+
+    def unsubscribe(method, subscription_id)
+      result = send_request(method, [subscription_id])
+      @subscription_handler.unsubscribe(subscription_id)
+      result
     end
 
     def next_request
@@ -56,7 +63,9 @@ module ScaleRb
 
     def method_missing(method, *args)
       method = method.to_s
-      if method.include?('subscribe')
+      if method.include?('unsubscribe')
+        unsubscribe(method, args[0])
+      elsif method.include?('subscribe')
         raise "A subscribe method needs a block" unless block_given?
 
         subscribe(method, args) do |notification|
@@ -157,6 +166,10 @@ module ScaleRb
 
     def subscribe(subscription_id, handler)
       @subscriptions[subscription_id] = handler
+    end
+
+    def unsubscribe(subscription_id)
+      @subscriptions.delete(subscription_id)
     end
 
     def handle(notification)
