@@ -6,6 +6,8 @@ require 'json'
 
 module ScaleRb
   class WsClient
+    attr_accessor :supported_methods
+
     def initialize
       @queue = Async::Queue.new
       @response_handler = ResponseHandler.new
@@ -14,6 +16,10 @@ module ScaleRb
     end
 
     def send_request(method, params = [])
+      if method != 'rpc_methods' && !@supported_methods.include?(method)
+        raise "Method `#{method}` is not supported. It should be in [#{@supported_methods.join(', ')}]."
+      end
+
       response_future = Async::Notification.new
 
       @response_handler.register(@request_id, proc { |response|
@@ -109,6 +115,7 @@ module ScaleRb
         end
 
         task.async do
+          client.supported_methods = client.send_request('rpc_methods')['methods']
           yield client
         rescue => e
           puts e.message
