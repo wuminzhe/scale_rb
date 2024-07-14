@@ -1,5 +1,7 @@
 require 'scale_rb'
 
+ScaleRb.logger.level = Logger::DEBUG
+
 # the commented code below is the same as the code above
 ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
   block_hash = client.chain_getBlockHash(21585684)

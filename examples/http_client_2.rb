@@ -1,5 +1,6 @@
-
 require 'scale_rb'
+
+ScaleRb.logger.level = Logger::DEBUG
 
 client = ScaleRb::HttpClient.new('https://polkadot-rpc.dwellir.com')
 block_number = 21585684

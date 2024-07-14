@@ -1,5 +1,7 @@
 require 'scale_rb'
 
+ScaleRb.logger.level = Logger::DEBUG
+
 ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
   count = 0
 
