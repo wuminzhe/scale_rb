@@ -5,7 +5,7 @@ ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
     block_number = head['number'].to_i(16)
     block_hash = client.chain_getBlockHash(block_number)
 
-    result = client.get_storage(block_hash, 'System', 'Events')
-    puts "block #{block_number}(#{block_hash}) has #{result.length} events"
+    storage = client.get_storage(block_hash, 'System', 'Events')
+    puts "block #{block_number}(#{block_hash}) has #{storage.length} events"
   end
 end
