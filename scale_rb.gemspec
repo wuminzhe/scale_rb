@@ -34,4 +34,8 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'base58'
   spec.add_dependency 'blake2b_rs', '~> 0.1.4'
   spec.add_dependency 'xxhash'
+  # for websocket client
+  spec.add_dependency 'async'
+  spec.add_dependency 'async-http', '~> 0.69.0'
+  spec.add_dependency 'async-websocket', '~> 0.26.2'
 end

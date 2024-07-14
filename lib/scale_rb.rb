@@ -20,14 +20,14 @@ require 'metadata/metadata'
 require 'hasher'
 require 'storage_helper'
 
-# client
-require 'client/http_client'
-require 'client/abstract_ws_client'
-
 # get registry from config
 require 'registry'
 
 require 'address'
+
+# clients
+require 'client/http_client'
+require 'client/ws_client'
 
 module ScaleRb
   class << self

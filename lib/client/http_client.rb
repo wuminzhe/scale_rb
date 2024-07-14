@@ -3,95 +3,55 @@
 require 'uri'
 require 'net/http'
 require 'json'
-require_relative './rpc_request_builder'
-require_relative './http_client_metadata'
-require_relative './http_client_storage'
 
-# TODO: method_name = cmd.gsub(/([a-z\d])([A-Z])/, '\1_\2').downcase
+require_relative 'client_ext'
+
 module ScaleRb
-  module HttpClient
-    extend RpcRequestBuilder
+  class HttpClient
+    include ClientExt
+    attr_accessor :supported_methods
 
-    class << self
-      def request(url, body, tries = 0)
-        ScaleRb.logger.debug "url: #{url}"
-        ScaleRb.logger.debug "body: #{body}"
-        uri = URI(url)
-        req = Net::HTTP::Post.new(uri, 'Content-Type' => 'application/json')
-        req.body = body
-        http = Net::HTTP.new(uri.host, uri.port)
-        http.use_ssl = true if uri.instance_of? URI::HTTPS
-        res = http.request(req)
+    def initialize(url)
+      # check if the url is started with http or https
+      url_regex = %r{^https?://}
+      raise 'url format is not correct' unless url.match?(url_regex)
 
-        raise res.class.name unless res.is_a?(Net::HTTPSuccess)
+      @uri = URI.parse(url)
+      @supported_methods = request('rpc_methods', [])['methods']
+    end
 
-        result = JSON.parse(res.body)
-        ScaleRb.logger.debug result
-        raise result['error']['message'] if result['error']
-
-        result['result']
-      rescue StandardError => e
-        raise e unless tries < 5
-
-        ScaleRb.logger.error e.message
-        ScaleRb.logger.error 'retry after 5 seconds...'
-        sleep 5
-        request(url, body, tries + 1)
+    def request(method, params = [])
+      # don't check for rpc_methods, because there is no @supported_methods when initializing
+      if method != 'rpc_methods' && !@supported_methods.include?(method)
+        raise "Method `#{method}` is not supported. It should be in [#{@supported_methods.join(', ')}]."
       end
 
-      def json_rpc_call(url, method, *params)
-        body = build_json_rpc_body(method, params, Time.now.to_i)
-        request(url, body)
-      end
+      http = Net::HTTP.new(@uri.host, @uri.port)
+      http.use_ssl = @uri.scheme == 'https'
 
-      def respond_to_missing?(*_args)
-        true
-      end
+      request = Net::HTTP::Post.new(@uri, 'Content-Type' => 'application/json')
+      request.body = { jsonrpc: '2.0', method: method, params: params, id: Time.now.to_i }.to_json
+      ScaleRb.logger.debug "Request: #{request.body}"
 
-      def method_missing(method, *args)
-        ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
-        # check if the first argument is a url
-        url_regex = %r{^https?://}
-        raise 'url format is not correct' unless args[0].match?(url_regex)
+      # https://docs.ruby-lang.org/en/master/Net/HTTPResponse.html
+      response = http.request(request)
+      raise response unless response.is_a?(Net::HTTPOK)
 
-        url = args[0]
-        raise NoMethodError, "undefined rpc method `#{method}'" unless rpc_methods(url).include?(method.to_s)
+      body = JSON.parse(response.body)
+      ScaleRb.logger.debug "Response: #{body}"
+      raise body['error'] if body['error']
 
-        json_rpc_call(url, method, *args[1..])
-      end
+      body['result']
+    end
 
-      def rpc_methods(url)
-        result = json_rpc_call(url, 'rpc_methods', [])
-        result['methods']
-      end
+    def respond_to_missing?(*_args)
+      true
+    end
+
+    def method_missing(method, *args)
+      ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
+
+      request(method.to_s, args)
     end
   end
 end
-
-# https://polkadot.js.org/docs/substrate/rpc/
-#
-# Examples:
-# # Get all supported rpc methods
-# ScaleRb::HttpClient.rpc_methods("https://rpc.darwinia.network")
-#
-# # eth_blockNumber
-# ScaleRb::HttpClient.eth_blockNumber("https://rpc.darwinia.network")
-#
-# # system_name
-# ScaleRb::HttpClient.system_name("https://rpc.darwinia.network")
-#
-# # chain_getHead
-# ScaleRb::HttpClient.chain_getHead("https://rpc.darwinia.network")
-#
-# # state_getMetadata of darwinia block #1582
-# ScaleRb::HttpClient.state_getMetadata(
-#   "https://rpc.darwinia.network",
-#   "0xb5a4f16d0feba7531e75315432b4d31a5b918987e026437890a2cbf5b8d9956d"
-# )
-#
-# # eth_getBalance of address 0x0000000000000000000000000000000000000000 at block #1582
-# ScaleRb::HttpClient.eth_getBalance(
-#   "https://rpc.darwinia.network",
-#   "0x0000000000000000000000000000000000000000",
-#   1582
-# )
