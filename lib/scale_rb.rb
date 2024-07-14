@@ -23,7 +23,7 @@ require 'storage_helper'
 # client
 require 'client/http_client'
 require 'ws_client/ws_client'
-require 'ws_client/metadata_helper'
+require 'ws_client/client_helper'
 
 # get registry from config
 require 'registry'

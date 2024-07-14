@@ -104,11 +104,15 @@ module ScaleRb
               # 可以简单的理解为，这里的handle_response就是通知wait中的send_request，可以继续了.
               Async do
                 client.handle_response(data)
+              rescue => e
+                ScaleRb.logger.error "#{e.class}: #{e.message}"
+                ScaleRb.logger.error e.backtrace.join("\n")
+                task.stop
               end
             end
           rescue => e
-            puts e.message
-            puts e.backtrace
+            ScaleRb.logger.error "#{e.class}: #{e.message}"
+            ScaleRb.logger.error e.backtrace.join("\n")
           ensure
             task.stop
           end
@@ -118,8 +122,8 @@ module ScaleRb
           client.supported_methods = client.send_request('rpc_methods')['methods']
           yield client
         rescue => e
-          puts e.message
-          puts e.backtrace
+          ScaleRb.logger.error "#{e.class}: #{e.message}"
+          ScaleRb.logger.error e.backtrace.join("\n")
           task.stop
         end
       end
