@@ -6,7 +6,6 @@ module ScaleRb
       get_metadata_by_block_hash(dir, block_hash)
     end
 
-
     # get storage at block_hash
     def get_storage(block_hash, pallet_name, storage_name, key_part1: nil, key_part2: nil)
       metadata = get_metadata(block_hash)

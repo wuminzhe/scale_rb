@@ -18,7 +18,8 @@ module ScaleRb
       @request_id = 1
     end
 
-    def send_request(method, params = [])
+    def request(method, params = [])
+      # don't check for rpc_methods, because there is no @supported_methods when initializing
       if method != 'rpc_methods' && !@supported_methods.include?(method)
         raise "Method `#{method}` is not supported. It should be in [#{@supported_methods.join(', ')}]."
       end
@@ -41,13 +42,13 @@ module ScaleRb
     def subscribe(method, params = [], &block)
       return unless method.include?('subscribe')
 
-      subscription_id = send_request(method, params)
+      subscription_id = request(method, params)
       @subscription_handler.subscribe(subscription_id, block)
       subscription_id
     end
 
     def unsubscribe(method, subscription_id)
-      result = send_request(method, [subscription_id])
+      result = request(method, [subscription_id])
       @subscription_handler.unsubscribe(subscription_id)
       result
     end
@@ -71,6 +72,8 @@ module ScaleRb
     end
 
     def method_missing(method, *args)
+      ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
+
       method = method.to_s
       if method.include?('unsubscribe')
         unsubscribe(method, args[0])
@@ -81,7 +84,7 @@ module ScaleRb
           yield notification['params']['result']
         end
       else
-        send_request(method, args)
+        request(method, args)
       end
     end
 
@@ -104,7 +107,7 @@ module ScaleRb
               data = JSON.parse(message)
               ScaleRb.logger.debug "Received message: #{data}"
 
-              # 可以简单的理解为，这里的handle_response就是通知wait中的send_request，可以继续了.
+              # 可以简单的理解为，这里的handle_response就是通知wait中的request，可以继续了.
               Async do
                 client.handle_response(data)
               rescue => e
@@ -122,7 +125,7 @@ module ScaleRb
         end
 
         task.async do
-          client.supported_methods = client.send_request('rpc_methods')['methods']
+          client.supported_methods = client.request('rpc_methods')['methods']
           yield client
         rescue => e
           ScaleRb.logger.error "#{e.class}: #{e.message}"
