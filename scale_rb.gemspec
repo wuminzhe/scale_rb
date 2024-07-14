@@ -6,11 +6,11 @@ Gem::Specification.new do |spec|
   spec.authors       = ['Aki Wu']
   spec.email         = ['wuminzhe@gmail.com']
 
-  spec.summary       = 'New Ruby SCALE Codec Library'
-  spec.description   = 'Ruby implementation of the parity SCALE data format'
+  spec.summary       = 'A Ruby SCALE Codec Library, and, Substrate RPC Client'
+  spec.description   = 'This gem includes a ruby implementation of SCALE Codec, a general Substrate Http JSONRPC Client, and, a general Substrate Websocket JSON-RPC Client.'
   spec.homepage      = 'https://github.com/wuminzhe/scale_rb'
   spec.license       = 'MIT'
-  spec.required_ruby_version = Gem::Requirement.new('>= 2.6.0')
+  spec.required_ruby_version = Gem::Requirement.new('>= 3.1.1') # async gem's requirement
 
   spec.metadata['allowed_push_host'] = 'https://rubygems.org'
 
