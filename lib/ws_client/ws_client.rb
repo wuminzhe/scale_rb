@@ -4,8 +4,11 @@ require 'async/http/endpoint'
 require 'async/queue'
 require 'json'
 
+require_relative 'client_ext'
+
 module ScaleRb
   class WsClient
+    include ClientExt
     attr_accessor :supported_methods
 
     def initialize
