@@ -13,7 +13,8 @@ ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
       block_hash = client.chain_getBlockHash(block_number)
       puts "Received new head at height: #{block_number}, block hash: #{block_hash}"
     else
-      client.chain_unsubscribeNewHead(subscription_id)
+      unsub_result = client.chain_unsubscribeNewHead(subscription_id)
+      puts "Unsubscribed from new heads: #{unsub_result}"
     end
   end
 
