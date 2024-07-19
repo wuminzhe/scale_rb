@@ -1,21 +1,29 @@
 module ScaleRb
-  module ClientExt
-    def get_metadata(block_hash)
-      dir = ENV['SCALE_RB_METADATA_DIR'] || File.join(Dir.pwd, 'metadata')
 
-      get_metadata_by_block_hash(dir, block_hash)
+  # This module is used to add extra methods to both the ScaleRb::WsClient ScaleRb::HttpClient
+  module ClientExt
+    StorageQuery = Struct.new(:pallet_name, :storage_name, :key_part1, :key_part2, keyword_init: true) do
+      def initialize(pallet_name:, storage_name:, key_part1: nil, key_part2: nil)
+        super
+      end
     end
 
-    # get storage at block_hash
-    def get_storage(block_hash, pallet_name, storage_name, key_part1: nil, key_part2: nil)
-      metadata = get_metadata(block_hash)
+    # get decoded metadata at block_hash
+    def get_metadata(block_hash)
+      metadata_hex = state_getMetadata(block_hash)
+      ScaleRb::Metadata.decode_metadata(metadata_hex.strip._to_bytes)
+    end
+
+    # Get decoded storage at block_hash
+    def get_storage(block_hash, storage_query, metadata = nil)
+      metadata ||= get_metadata(block_hash)
 
       # storeage item
-      pallet_name = to_pascal pallet_name
-      storage_name = to_pascal storage_name
+      pallet_name = convert_to_camel_case storage_query.pallet_name
+      storage_name = convert_to_camel_case storage_query.storage_name
 
       # storage param
-      key = [key_part1, key_part2].compact
+      key = [storage_query.key_part1, storage_query.key_part2].compact
       ScaleRb.logger.debug "#{pallet_name}.#{storage_name}(#{key.join(', ')})"
       key = key.map { |part_of_key| c(part_of_key) }
       ScaleRb.logger.debug "converted key: #{key}"
@@ -30,41 +38,6 @@ module ScaleRb
     end
 
     private
-
-    def get_metadata_by_block_hash(cache_dir, block_hash)
-      # Get metadata from cache if it exists
-      runtime_version = state_getRuntimeVersion(block_hash)
-      spec_name = runtime_version['specName']
-      spec_version = runtime_version['specVersion']
-      metadata = cached_metadata(spec_name, spec_version, cache_dir)
-      return metadata if metadata
-
-      # Get metadata from node
-      metadata_hex = state_getMetadata(block_hash)
-      metadata = ScaleRb::Metadata.decode_metadata(metadata_hex.strip._to_bytes)
-
-      # cache it
-      save_metadata_to_file(spec_name, spec_version, metadata, cache_dir)
-
-      return metadata
-    end
-
-    def cached_metadata(spec_name, spec_version, dir)
-      file_path = File.join(dir, "#{spec_name}-#{spec_version}.json")
-      return unless File.exist?(file_path)
-
-      JSON.parse(File.read(file_path))
-    end
-
-    def save_metadata_to_file(spec_name, spec_version, metadata, dir)
-      FileUtils.mkdir_p(dir)
-
-      File.open(File.join(dir, "#{spec_name}-#{spec_version}.json"), 'w') do |f|
-        f.write(JSON.pretty_generate(metadata))
-      end
-    end
-
-    ####
 
     def query_storage_at(block_hash, storage_keys, type_id, default, registry)
       result = state_queryStorageAt(storage_keys, block_hash)
@@ -91,11 +64,11 @@ module ScaleRb
       storage_keys = get_storage_keys_by_partial_key(block_hash, partial_storage_key, partial_storage_key)
       storage_keys.each_slice(250).map do |slice|
         query_storage_at(
+          block_hash,
           slice,
           type_id_of_value,
           default,
-          registry,
-          block_hash
+          registry
         )
       end.flatten
     end
@@ -127,8 +100,10 @@ module ScaleRb
     #   },
     #   ..
     #
-    # TODO: part of the key is provided, but not all
+    # key is for the param, value is for the return
     def get_storage1(block_hash, pallet_name, item_name, key, value, registry)
+      ScaleRb::logger.debug "get_storage1: #{pallet_name}.#{item_name} key: #{key} value: #{value}"
+
       if key
         if key[:value].nil? || key[:value].empty?
           # map, but no key's value provided. get all storages under the partial storage key
@@ -150,15 +125,20 @@ module ScaleRb
             value[:modifier] == 'Default' ? value[:fallback] : nil,
             registry
           )
+        else
+          storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry)._to_hex
+          data = state_getStorage(storage_key, block_hash)
+          StorageHelper.decode_storage(data, value[:type], value[:modifier] == 'Optional', value[:fallback], registry)
         end
       else
-        storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry)._to_hex
+        storage_key = StorageHelper.encode_storage_key(pallet_name, item_name)._to_hex
         data = state_getStorage(storage_key, block_hash)
         StorageHelper.decode_storage(data, value[:type], value[:modifier] == 'Optional', value[:fallback], registry)
       end
     end
 
-    def get_storage2(block_hash, pallet_name, item_name, value_of_key, metadata)
+    def get_storage2(block_hash, pallet_name, item_name, params, metadata)
+      ScaleRb.logger.debug "get_storage2: #{pallet_name}.#{item_name} params: #{params}"
       raise 'Metadata should not be nil' if metadata.nil?
 
       registry = Metadata.build_registry(metadata)
@@ -179,15 +159,12 @@ module ScaleRb
         if plain
           [
             nil,
-            { type: plain,
-              modifier: modifier, fallback: fallback }
+            { type: plain, modifier: modifier, fallback: fallback }
           ]
         elsif map
           [
-            { value: value_of_key,
-              type: map._get(:key), hashers: map._get(:hashers) },
-          { type: map._get(:value),
-            modifier: modifier, fallback: fallback }
+            { value: params, type: map._get(:key), hashers: map._get(:hashers) },
+            { type: map._get(:value), modifier: modifier, fallback: fallback }
           ]
         else
           raise 'NoSuchStorageType'
@@ -195,16 +172,17 @@ module ScaleRb
       get_storage1(block_hash, pallet_name, item_name, key, value, registry)
     end
 
-    def to_pascal(str)
-      str.split('_').collect(&:capitalize).join
+    def convert_to_camel_case(str)
+      words = str.split(/_|(?=[A-Z])/)
+      words.map(&:capitalize).join
     end
 
     # convert key to byte array
     def c(key)
-      if key.start_with?('0x')
-        key._to_bytes
-      elsif key.to_i.to_s == key # check if key is a number
+      if key.is_a?(Integer)
         key.to_i
+      elsif key.is_a?(String) && key.start_with?('0x')
+        key._to_bytes
       else
         key
       end
