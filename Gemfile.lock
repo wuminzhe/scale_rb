@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    scale_rb (0.3.1)
+    scale_rb (0.3.2)
       async
       async-http (~> 0.69.0)
       async-websocket (~> 0.26.2)
@@ -12,7 +12,7 @@ PATH
 GEM
   remote: https://rubygems.org/
   specs:
-    async (2.14.1)
+    async (2.14.2)
       console (~> 1.25, >= 1.25.2)
       fiber-annotation
       io-event (~> 1.6, >= 1.6.5)
@@ -35,7 +35,7 @@ GEM
     blake2b_rs (0.1.4)
       ffi (~> 1.0)
       thermite (~> 0)
-    console (1.25.2)
+    console (1.27.0)
       fiber-annotation
       fiber-local (~> 1.1)
       json
@@ -51,7 +51,7 @@ GEM
     json (2.7.2)
     minitar (0.9)
     protocol-hpack (1.4.3)
-    protocol-http (0.27.0)
+    protocol-http (0.28.1)
     protocol-http1 (0.19.1)
       protocol-http (~> 0.22)
     protocol-http2 (0.18.0)
