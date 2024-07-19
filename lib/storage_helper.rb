@@ -3,11 +3,7 @@
 module ScaleRb
   module StorageHelper
     class << self
-      # key: {
-      #   value: ,
-      #   type: ,
-      #   hashers: []
-      # }
+      # key example: {:value=>[0], :type=>4, :hashers=>["Twox64Concat"]}
       def encode_storage_key(pallet_name, item_name, key = nil, registry = nil)
         storage_key = Hasher.twox128(pallet_name) + Hasher.twox128(item_name)
 
@@ -15,16 +11,18 @@ module ScaleRb
 
           key_types, key_values, key_hashers =
             if key[:hashers].length == 1
+              # {:value=>[0], :type=>4, :hashers=>["Twox64Concat"]}
+              # type 4 is Uint32
               [
                 [key[:type]],
-                [key[:value]],
+                key[:value],
                 key[:hashers]
               ]
             else
               [
-                registry[key[:type]]._get(:def)._get(:tuple).first(key[:value].length),
+                registry[key[:type]]._get(:def)._get(:tuple),
                 key[:value],
-                key[:hashers].first(key[:value].length)
+                key[:hashers]
               ]
             end
 

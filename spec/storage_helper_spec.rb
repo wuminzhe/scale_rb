@@ -18,7 +18,7 @@ module ScaleRb
     it 'can encode storage key with one param' do
       # account_id
       key = {
-        value: '0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'._to_bytes,
+        value: ['0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'._to_bytes],
         type: 0,
         hashers: ['Blake2_128Concat']
       }
