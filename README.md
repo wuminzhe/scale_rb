@@ -49,9 +49,14 @@ Or install it yourself as:
 
     $ gem install scale_rb
 
-## Usage
+## Run examples
 
-TODO: Write usage instructions here
+```bash
+git clone https://github.com/wuminzhe/scale_rb.git
+cd scale_rb
+bundle install
+bundle exec ruby examples/http_client_1.rb
+```
 
 ## Development
 
