@@ -1,21 +1,27 @@
 module ScaleRb
   module ClientExt
-    def get_metadata(block_hash)
-      dir = ENV['SCALE_RB_METADATA_DIR'] || File.join(Dir.pwd, 'metadata')
-
-      get_metadata_by_block_hash(dir, block_hash)
+    StorageQuery = Struct.new(:pallet_name, :storage_name, :key_part1, :key_part2, keyword_init: true) do
+      def initialize(pallet_name:, storage_name:, key_part1: nil, key_part2: nil)
+        super
+      end
     end
 
-    # get storage at block_hash
-    def get_storage(block_hash, pallet_name, storage_name, key_part1: nil, key_part2: nil)
-      metadata = get_metadata(block_hash)
+    # get decoded metadata at block_hash
+    def get_metadata(block_hash)
+      metadata_hex = state_getMetadata(block_hash)
+      ScaleRb::Metadata.decode_metadata(metadata_hex.strip._to_bytes)
+    end
+
+    # get decoded storage at block_hash
+    def get_storage(block_hash, storage_query, metadata = nil)
+      metadata ||= get_metadata(block_hash)
 
       # storeage item
-      pallet_name = to_pascal pallet_name
-      storage_name = to_pascal storage_name
+      pallet_name = to_pascal storage_query.pallet_name
+      storage_name = to_pascal storage_query.storage_name
 
       # storage param
-      key = [key_part1, key_part2].compact
+      key = [storage_query.key_part1, storage_query.key_part2].compact
       ScaleRb.logger.debug "#{pallet_name}.#{storage_name}(#{key.join(', ')})"
       key = key.map { |part_of_key| c(part_of_key) }
       ScaleRb.logger.debug "converted key: #{key}"
@@ -30,41 +36,6 @@ module ScaleRb
     end
 
     private
-
-    def get_metadata_by_block_hash(cache_dir, block_hash)
-      # Get metadata from cache if it exists
-      runtime_version = state_getRuntimeVersion(block_hash)
-      spec_name = runtime_version['specName']
-      spec_version = runtime_version['specVersion']
-      metadata = cached_metadata(spec_name, spec_version, cache_dir)
-      return metadata if metadata
-
-      # Get metadata from node
-      metadata_hex = state_getMetadata(block_hash)
-      metadata = ScaleRb::Metadata.decode_metadata(metadata_hex.strip._to_bytes)
-
-      # cache it
-      save_metadata_to_file(spec_name, spec_version, metadata, cache_dir)
-
-      return metadata
-    end
-
-    def cached_metadata(spec_name, spec_version, dir)
-      file_path = File.join(dir, "#{spec_name}-#{spec_version}.json")
-      return unless File.exist?(file_path)
-
-      JSON.parse(File.read(file_path))
-    end
-
-    def save_metadata_to_file(spec_name, spec_version, metadata, dir)
-      FileUtils.mkdir_p(dir)
-
-      File.open(File.join(dir, "#{spec_name}-#{spec_version}.json"), 'w') do |f|
-        f.write(JSON.pretty_generate(metadata))
-      end
-    end
-
-    ####
 
     def query_storage_at(block_hash, storage_keys, type_id, default, registry)
       result = state_queryStorageAt(storage_keys, block_hash)
