@@ -9,49 +9,31 @@ require_relative 'client_ext'
 module ScaleRb
   class WsClient
     def self.start(url)
-      Async do |task|
+
+      Sync do |task|
         endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
-        client = WsClient.new
 
-        task.async do
-          Async::WebSocket::Client.connect(endpoint) do |connection|
-            Async do
-              while request = client.next_request
-                ScaleRb.logger.debug "Sending request: #{request.to_json}"
-                connection.write(request.to_json)
-              end
-            end
+        Async::WebSocket::Client.connect(endpoint) do |connection|
+          client = WsClient.new(connection)
 
-            # inside main task
-            while message = connection.read
-              data = JSON.parse(message)
-              ScaleRb.logger.debug "Received message: #{data}"
-
-              Async do
-                client.handle_response(data)
-              rescue => e
-                ScaleRb.logger.error "#{e.class}: #{e.message}"
-                ScaleRb.logger.error e.backtrace.join("\n")
-                task.stop
-              end
-            end
-          rescue => e
-            ScaleRb.logger.error "#{e.class}: #{e.message}"
-            ScaleRb.logger.error e.backtrace.join("\n")
-          ensure
-            task.stop
+          main_task = task.async do
+            client.supported_methods = client.rpc_methods()['methods']
+            yield client
           end
-        end
 
-        task.async do
-          client.supported_methods = client.rpc_methods()['methods']
-          yield client
-        rescue => e
-          ScaleRb.logger.error "#{e.class}: #{e.message}"
-          ScaleRb.logger.error e.backtrace.join("\n")
-          task.stop
+          while message = connection.read
+            data = message.parse
+            ScaleRb.logger.debug "Received message: #{data}"
+
+            task.async do
+              client.handle_response(data)
+            end
+          end
+        ensure
+          main_task&.stop
         end
       end
+
     end
   end
 end
@@ -61,8 +43,8 @@ module ScaleRb
     include ClientExt
     attr_accessor :supported_methods
 
-    def initialize
-      @queue = Async::Queue.new
+    def initialize(connection)
+      @connection = connection
       @response_handler = ResponseHandler.new
       @subscription_handler = SubscriptionHandler.new
       @request_id = 1
@@ -111,10 +93,6 @@ module ScaleRb
       end
     end
 
-    def next_request
-      @queue.dequeue
-    end
-
     def handle_response(response)
       if response.key?('id')
         @response_handler.handle(response)
@@ -131,35 +109,15 @@ module ScaleRb
       response_future = Async::Notification.new
 
       @response_handler.register(@request_id, proc { |response|
-        # this is running in the main task
         response_future.signal(response['result'])
       })
 
-      request = JsonRpcRequest.new(@request_id, method, params)
-      @queue.enqueue(request)
+      @connection.write({ jsonrpc: '2.0', id: @request_id, method: method, params: params }.to_json)
 
       @request_id += 1
 
       response_future.wait
     end
-  end
-
-  class JsonRpcRequest
-    attr_reader :id, :method, :params
-
-    def initialize(id, method, params = {})
-      @id = id
-      @method = method
-      @params = params
-    end
-
-    def to_json(*_args)
-      { jsonrpc: '2.0', id: @id, method: @method, params: @params }.to_json
-    end
-
-    # def to_s
-    #   to_json
-    # end
   end
 
   class ResponseHandler
