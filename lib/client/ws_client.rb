@@ -17,7 +17,7 @@ module ScaleRb
           client = WsClient.new(connection)
 
           main_task = task.async do
-            client.supported_methods = client.rpc_methods()['methods']
+            client.supported_methods = client.rpc_methods()[:methods]
             yield client
           end
 
@@ -94,9 +94,9 @@ module ScaleRb
     end
 
     def handle_response(response)
-      if response.key?('id')
+      if response.key?(:id)
         @response_handler.handle(response)
-      elsif response.key?('method')
+      elsif response.key?(:method)
         @subscription_handler.handle(response)
       else
         puts "Received an unknown message: #{response}"
@@ -109,13 +109,14 @@ module ScaleRb
       response_future = Async::Notification.new
 
       @response_handler.register(@request_id, proc { |response|
-        response_future.signal(response['result'])
+        response_future.signal(response[:result])
       })
 
-      @connection.write({ jsonrpc: '2.0', id: @request_id, method: method, params: params }.to_json)
+      request = { jsonrpc: '2.0', id: @request_id, method: method, params: params }
+      ScaleRb.logger.debug "Sending request: #{request}"
+      @connection.write(request.to_json)
 
       @request_id += 1
-
       response_future.wait
     end
   end
@@ -131,7 +132,7 @@ module ScaleRb
     end
 
     def handle(response)
-      id = response['id']
+      id = response[:id]
       if @handlers.key?(id)
         handler = @handlers[id]
         handler.call(response)
@@ -156,7 +157,7 @@ module ScaleRb
     end
 
     def handle(notification)
-      subscription_id = notification.dig('params', 'subscription')
+      subscription_id = notification.dig(:params, :subscription)
       return if subscription_id.nil?
 
       if @subscriptions.key?(subscription_id)
