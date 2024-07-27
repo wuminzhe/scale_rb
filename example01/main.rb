@@ -10,6 +10,7 @@ ScaleRb.logger.level = Logger::DEBUG
 ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
   puts client
   block_hash = client.chain_getBlockHash(21585684)
+  puts block_hash
   runtime_version = client.state_getRuntimeVersion(block_hash)
   puts runtime_version['specName']
   puts runtime_version['specVersion']
@@ -66,6 +67,3 @@ ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
   puts "child bounties: #{client.get_storage(block_hash, storage_query, metadata)}"
   # child bounties: {:parent_bounty=>11, :value=>3791150000000, :fee=>0, :curator_deposit=>0, :status=>{:PendingPayout=>{:curator=>"0xb1725c0de514e0df808b19dbfca26672019ea5f9e2eb69c0055c7f1d01b4f18a", :beneficiary=>"0xb089dedc24a15308874dc862b035d74f2f7b45cad475d6121a2d944921bbe237", :unlock_at=>21703671}}}
 end
-
-
-
