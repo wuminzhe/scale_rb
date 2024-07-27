@@ -1,4 +1,4 @@
-FROM ruby:2.6-slim
+FROM ruby:3.3.4-slim
 
 WORKDIR /usr/src/scale-rb
 
