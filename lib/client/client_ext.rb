@@ -42,7 +42,7 @@ module ScaleRb
     def query_storage_at(block_hash, storage_keys, type_id, default, registry)
       result = state_queryStorageAt(storage_keys, block_hash)
       result.map do |item|
-        item['changes'].map do |change|
+        item[:changes].map do |change|
           storage_key = change[0]
           data = change[1] || default
           storage = data.nil? ? nil : PortableCodec.decode(type_id, data._to_bytes, registry)[0]

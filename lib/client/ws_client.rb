@@ -16,25 +16,27 @@ module ScaleRb
         Async::WebSocket::Client.connect(endpoint) do |connection|
           client = WsClient.new(connection)
 
-          main_task = task.async do
-            client.supported_methods = client.rpc_methods()[:methods]
-            yield client
-          end
+          recv_task = task.async do
+            while message = connection.read
+              data = message.parse
+              ScaleRb.logger.debug "Received message: #{data}"
 
-          while message = connection.read
-            data = message.parse
-            ScaleRb.logger.debug "Received message: #{data}"
-
-            task.async do
-              client.handle_response(data)
+              task.async do
+                client.handle_response(data)
+              end
             end
           end
-        ensure
-          main_task&.stop
-        end
-      end
 
-    end
+          client.supported_methods = client.rpc_methods()[:methods]
+          yield client
+
+          recv_task.wait
+        ensure
+          recv_task&.stop
+        end
+      end # Sync
+
+    end # start
   end
 end
 
@@ -69,7 +71,7 @@ module ScaleRb
         raise "A subscribe method needs a block" unless block_given?
 
         subscribe(method, args) do |notification|
-          yield notification['params']['result']
+          yield notification[:params][:result]
         end
       else
         request(method, args)
@@ -123,20 +125,20 @@ module ScaleRb
 
   class ResponseHandler
     def initialize
-      @handlers = {}
+      @callbacks = {}
     end
 
-    # handler: a proc with response data as param
-    def register(id, handler)
-      @handlers[id] = handler
+    # callback: a proc with response data as param
+    def register(id, callback)
+      @callbacks[id] = callback
     end
 
     def handle(response)
       id = response[:id]
-      if @handlers.key?(id)
-        handler = @handlers[id]
-        handler.call(response)
-        @handlers.delete(id)
+      if @callbacks.key?(id)
+        callback = @callbacks[id]
+        callback.call(response)
+        @callbacks.delete(id)
       else
         ScaleRb.logger.debug "Received a message with unknown id: #{response}"
       end
@@ -145,33 +147,23 @@ module ScaleRb
 
   class SubscriptionHandler
     def initialize
-      @subscriptions = {}
+      @callbacks = {}
     end
 
-    def subscribe(subscription_id, handler)
-      @subscriptions[subscription_id] = handler
+    def subscribe(subscription_id, callback)
+      @callbacks[subscription_id] = callback
     end
 
     def unsubscribe(subscription_id)
-      @subscriptions.delete(subscription_id)
+      @callbacks.delete(subscription_id)
     end
 
     def handle(notification)
       subscription_id = notification.dig(:params, :subscription)
       return if subscription_id.nil?
 
-      if @subscriptions.key?(subscription_id)
-        @subscriptions[subscription_id].call(notification)
-      else
-        # the subscription_id may be not registered. 
-        # in client.subscribe function, 
-        #   ...
-        #   subscription_id = request(method, params)
-        #   @subscription_handler.subscribe(subscription_id, block)
-        #   ...
-        # the request(method, params) may be slow, so the subscription_id may be not registered when the first notification comes.
-        sleep 0.01
-        handle(notification)
+      if @callbacks.key?(subscription_id)
+        @callbacks[subscription_id].call(notification)
       end
     end
   end
