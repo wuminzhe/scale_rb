@@ -1,11 +1,13 @@
 # ScaleRb
 
+It is still under heavy development. Use the latest version.
+
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'scale_rb'
+gem 'scale_rb', '~> 0.3.2'
 ```
 
 And then execute:
