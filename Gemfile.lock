@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    scale_rb (0.3.2)
+    scale_rb (0.3.3)
       async
       async-http (~> 0.69.0)
       async-websocket (~> 0.26.2)
@@ -50,7 +50,7 @@ GEM
     io-stream (0.4.0)
     json (2.7.2)
     minitar (0.9)
-    protocol-hpack (1.4.3)
+    protocol-hpack (1.5.0)
     protocol-http (0.28.1)
     protocol-http1 (0.19.1)
       protocol-http (~> 0.22)

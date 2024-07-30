@@ -7,7 +7,7 @@ It is still under heavy development. Use the latest version.
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'scale_rb', '~> 0.3.2'
+gem 'scale_rb', '~> 0.3.3'
 ```
 
 And then execute:
