@@ -1,13 +1,12 @@
 require 'async'
 require 'async/websocket/client'
 require 'async/http/endpoint'
-require 'async/queue'
-require 'json'
 
 require_relative 'client_ext'
 
 module ScaleRb
   class WsClient
+    # @param [string] url
     def self.start(url)
 
       Sync do |task|
@@ -21,9 +20,7 @@ module ScaleRb
               data = message.parse
               ScaleRb.logger.debug "Received message: #{data}"
 
-              task.async do
-                client.handle_response(data)
-              end
+              client.handle_response(data)
             end
           end
 
@@ -34,9 +31,9 @@ module ScaleRb
         ensure
           recv_task&.stop
         end
-      end # Sync
+      end
 
-    end # start
+    end
   end
 end
 
@@ -68,7 +65,7 @@ module ScaleRb
       if method.include?('unsubscribe')
         unsubscribe(method, args[0])
       elsif method.include?('subscribe')
-        raise "A subscribe method needs a block" unless block_given?
+        raise 'A subscribe method needs a block' unless block_given?
 
         subscribe(method, args) do |notification|
           yield notification[:params][:result]
