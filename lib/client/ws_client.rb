@@ -1,42 +1,55 @@
 require 'async'
 require 'async/websocket/client'
 require 'async/http/endpoint'
-require 'async/queue'
-require 'json'
 
 require_relative 'client_ext'
 
 module ScaleRb
   class WsClient
-    def self.start(url)
 
-      Sync do |task|
-        endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
+    class << self
+      # @param [string] url
+      def start(url)
+        Sync do
+          endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
 
-        Async::WebSocket::Client.connect(endpoint) do |connection|
-          client = WsClient.new(connection)
+          Async::WebSocket::Client.connect(endpoint) do |connection|
+            client = WsClient.new(connection)
 
-          recv_task = task.async do
-            while message = connection.read
-              data = message.parse
-              ScaleRb.logger.debug "Received message: #{data}"
+            # `recv_task` does not raise errors (subclass of StandardError), so it will not be stopped by any errors.
+            recv_task = Async do
+              while (message = client.read_message)
+                data = parse_message(message)
+                next if data.nil?
 
-              task.async do
-                client.handle_response(data)
+                ScaleRb.logger.debug "Received response: #{data}"
+                Async do
+                  client.handle_response(data)
+                end
               end
             end
+
+            client.supported_methods = client.rpc_methods()[:methods]
+            yield client
+
+            recv_task.wait
+          ensure
+            recv_task&.stop
           end
-
-          client.supported_methods = client.rpc_methods()[:methods]
-          yield client
-
-          recv_task.wait
-        ensure
-          recv_task&.stop
         end
-      end # Sync
 
-    end # start
+      end
+
+      private
+
+      def parse_message(message)
+        message.parse
+      rescue StandardError => e
+        ScaleRb.logger.error "Error while parsing message: #{e.inspect}, message: #{message}"
+        nil
+      end
+    end
+
   end
 end
 
@@ -68,7 +81,7 @@ module ScaleRb
       if method.include?('unsubscribe')
         unsubscribe(method, args[0])
       elsif method.include?('subscribe')
-        raise "A subscribe method needs a block" unless block_given?
+        raise 'A subscribe method needs a block' unless block_given?
 
         subscribe(method, args) do |notification|
           yield notification[:params][:result]
@@ -101,7 +114,21 @@ module ScaleRb
       elsif response.key?(:method)
         @subscription_handler.handle(response)
       else
-        puts "Received an unknown message: #{response}"
+        ScaleRb.logger.info "Received an unknown response: #{response}"
+      end
+    rescue StandardError => e
+      ScaleRb.logger.error "Error while handling response: #{e.inspect}"
+      ScaleRb.logger.debug e.backtrace.join("\n")
+    end
+
+    def read_message
+      loop do
+        return @connection.read
+      rescue StandardError => e
+        ScaleRb.logger.error "Error while read message from connection: #{e.inspect}"
+        ScaleRb.logger.debug e.backtrace.join("\n")
+        sleep 1
+        retry
       end
     end
 
@@ -140,7 +167,7 @@ module ScaleRb
         callback.call(response)
         @callbacks.delete(id)
       else
-        ScaleRb.logger.debug "Received a message with unknown id: #{response}"
+        ScaleRb.logger.info "Received a message with unknown id: #{response}"
       end
     end
   end

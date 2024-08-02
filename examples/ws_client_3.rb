@@ -2,12 +2,12 @@ require 'scale_rb'
 
 # ScaleRb.logger.level = Logger::DEBUG
 
-# Unsubscribe after receiving 5 new heads
+# Unsubscribe after receiving 4 new heads
 ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
   count = 0
 
   subscription_id = client.chain_subscribeNewHead do |head|
-    count = count + 1
+    count += 1
 
     if count < 5
       block_number = head[:number].to_i(16)
