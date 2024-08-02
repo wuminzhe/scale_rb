@@ -2,8 +2,8 @@ require 'scale_rb'
 
 begin
   ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |_client|
-    raise 'Error'
+    raise 'MyError'
   end
 rescue StandardError => e
-  p e.message # "Error"
+  p e.message # "MyError"
 end

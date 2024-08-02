@@ -9,18 +9,30 @@ module ScaleRb
     # @param [string] url
     def self.start(url)
 
-      Sync do |task|
+      Sync do
         endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
 
         Async::WebSocket::Client.connect(endpoint) do |connection|
           client = WsClient.new(connection)
 
-          recv_task = task.async do
-            while message = connection.read
-              data = message.parse
-              ScaleRb.logger.debug "Received message: #{data}"
+          recv_task = Async do
+            loop do
+              while (message = connection.read)
+                data = message.parse
+                ScaleRb.logger.debug "Received response: #{data}"
 
-              client.handle_response(data)
+                Async do
+                  client.handle_response(data)
+                rescue StandardError => e
+                  ScaleRb.logger.error "Error while handling response: #{e.inspect}"
+                  ScaleRb.logger.debug e.backtrace.join("\n")
+                end
+              end
+            rescue StandardError => e
+              ScaleRb.logger.error "Error while receiving message: #{e.inspect}"
+              ScaleRb.logger.debug e.backtrace.join("\n")
+              sleep 1
+              retry
             end
           end
 
