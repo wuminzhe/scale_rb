@@ -1,0 +1,154 @@
+module ScaleRb
+  class Error < StandardError
+  end
+
+  class NotImplemented < Error
+  end
+
+  class NilTypeError < Error
+  end
+
+  class TypeParseError < Error
+  end
+
+  class NotEnoughBytesError < Error
+  end
+
+  class InvalidBytesError < Error
+  end
+
+  class Unreachable < Error
+  end
+
+  class IndexOutOfRangeError < Error
+  end
+
+  class LengthNotEqualErr < Error
+  end
+
+  class InvalidValueError < Error
+  end
+end
+
+# TODO: set, bitvec
+module ScaleRb
+  def self.type_def?: (untyped `type`) -> untyped
+
+  def self.bytes?: (untyped `type`) -> untyped
+
+  def self.boolean?: (untyped `type`) -> untyped
+
+  def self.string?: (untyped `type`) -> untyped
+
+  def self.compact?: (untyped `type`) -> untyped
+
+  def self.int?: (untyped `type`) -> untyped
+
+  def self.uint?: (untyped `type`) -> untyped
+
+  def self.option?: (untyped `type`) -> untyped
+
+  def self.array?: (untyped `type`) -> untyped
+
+  def self.vec?: (untyped `type`) -> untyped
+
+  def self.tuple?: (untyped `type`) -> untyped
+
+  def self.struct?: (untyped `type`) -> untyped
+
+  def self.enum?: (untyped `type`) -> untyped
+end
+
+module ScaleRb
+  def self.parse_option: (untyped `type`) -> untyped
+
+  def self.parse_array: (untyped `type`) -> ::Array[untyped]
+
+  def self.parse_vec: (untyped `type`) -> untyped
+
+  def self.parse_tuple: (untyped `type`) -> untyped
+end
+
+# Helper functions
+module ScaleRb
+  def self._get_final_type_from_registry: (untyped registry, untyped `type`) -> (nil | untyped)
+
+  def self._decode_types: (untyped types, untyped bytes, untyped registry) -> untyped
+
+  def self._decode_each: (untyped types, untyped bytes) ?{ () -> untyped } -> ::Array[untyped]
+
+  def self._do_decode_compact: (untyped bytes) -> untyped
+
+  def self._encode_each: (untyped types, untyped values) ?{ () -> untyped } -> untyped
+
+  def self._encode_each_without_merge: (untyped types, untyped values) ?{ () -> untyped } -> untyped
+
+  def self._encode_types: (untyped types, untyped values, ?::Hash[untyped, untyped] registry) -> untyped
+
+  def self._encode_each_with_hashers: (untyped types, untyped values, untyped hashers) ?{ () -> untyped } -> untyped
+end
+
+module ScaleRb
+  # @param type [String|Hash] type definition, see spec/codec_spec.rb
+  # @param bytes [String] bytes to decode, hex string format like '0x1234'
+  def self.decode: (untyped `type`, String bytes, ?::Hash[untyped, untyped] registry) -> untyped
+
+  def self.decode_bytes: (untyped bytes) -> ::Array[untyped]
+
+  def self.decode_boolean: (untyped bytes) -> ::Array[untyped]
+
+  def self.decode_string: (untyped bytes) -> ::Array[untyped]
+
+  def self.decode_int: (untyped `type`, untyped bytes) -> ::Array[untyped]
+
+  def self.decode_uint: (untyped type_def, untyped bytes) -> ::Array[untyped]
+
+  def self.decode_compact: (untyped bytes) -> untyped
+
+  def self.decode_option: (untyped type_def, untyped bytes, ?::Hash[untyped, untyped] registry) -> (::Array[nil | untyped] | untyped)
+
+  def self.decode_array: (untyped type_def, untyped bytes, ?::Hash[untyped, untyped] registry) -> untyped
+
+  def self.decode_vec: (untyped type_def, untyped bytes, ?::Hash[untyped, untyped] registry) -> untyped
+
+  def self.decode_tuple: (untyped type_def, untyped bytes, ?::Hash[untyped, untyped] registry) -> untyped
+
+  # TODO: custom index?
+  # {
+  #   _enum: {
+  #     name1: type1,
+  #     name2: type2
+  #   }
+  # }
+  # or
+  # {
+  #   _enum: ['name1', 'name2']
+  # }
+  def self.decode_enum: (untyped type_def, untyped bytes, ?::Hash[untyped, untyped] registry) -> (::Array[untyped] | ::Array[::Hash[untyped, untyped] | untyped])
+
+  def self.decode_struct: (untyped struct, untyped bytes, ?::Hash[untyped, untyped] registry) -> ::Array[untyped]
+
+  def self.encode: (untyped `type`, untyped value, ?::Hash[untyped, untyped] registry) -> untyped
+
+  def self.encode_bytes: (untyped value) -> untyped
+
+  def self.encode_boolean: (untyped value) -> (::Array[0] | ::Array[1] | untyped)
+
+  def self.encode_string: (untyped string) -> untyped
+
+  def self.encode_compact: (untyped value) -> (::Array[untyped] | untyped)
+
+  def self.encode_uint: (untyped `type`, untyped value) -> untyped
+
+  def self.encode_option: (untyped `type`, untyped value, ?::Hash[untyped, untyped] registry) -> (::Array[0] | untyped)
+
+  def self.encode_array: (untyped `type`, untyped array, ?::Hash[untyped, untyped] registry) -> untyped
+
+  def self.encode_vec: (untyped `type`, untyped array, ?::Hash[untyped, untyped] registry) -> untyped
+
+  def self.encode_tuple: (untyped tuple_type, untyped tuple, ?::Hash[untyped, untyped] registry) -> untyped
+
+  def self.encode_enum: (untyped enum_type, untyped enum, ?::Hash[untyped, untyped] registry) -> untyped
+
+  def self.encode_struct: (untyped struct_type, untyped struct, ?::Hash[untyped, untyped] registry) -> untyped
+end
