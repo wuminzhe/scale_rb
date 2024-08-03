@@ -190,6 +190,8 @@ end
 module ScaleRb
   # Decode
   class << self
+    # @param type [String|Hash] type definition, see spec/codec_spec.rb
+    # @param bytes [String] bytes to decode, hex string format like '0x1234'
     def decode(type, bytes, registry = {})
       # logger.debug '--------------------------------------------------'
       # debug 'decoding type', type
