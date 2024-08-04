@@ -20,11 +20,13 @@ module ScaleRb
               ]
             else
               [
-                registry[key[:type]]._get(:def)._get(:tuple),
+                registry[key[:type]]._get(:def)._get(:tuple).first(key[:value].length),
                 key[:value],
-                key[:hashers]
+                key[:hashers].first(key[:value].length)
               ]
             end
+
+          ScaleRb.logger.debug "encode_storage_key: key_values: #{key_values.inspect}, key_types: #{key_types.inspect}, key_hashers: #{key_hashers.inspect}"
 
           if key_types.class != key_values.class || key_types.length != key_values.length
             raise "Key's value doesn't match key's type, key's value: #{key_values.inspect}, but key's type: #{key_types.inspect}. Please check your key's value."
