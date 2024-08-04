@@ -404,6 +404,8 @@ module ScaleRb
     end
 
     def encode_uint(type, value)
+      raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.instance_of?(Integer)
+
       bit_length = type[1..].to_i
       value._to_bytes(bit_length)._flip
     end
