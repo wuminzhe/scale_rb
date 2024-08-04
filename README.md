@@ -1,6 +1,6 @@
 # ScaleRb
 
-*WARNING: UNDER DEVELOPMENT*
+*WARNING: It is still under heavy development. Use the latest version.*
 
 ## Demo
 
@@ -38,7 +38,7 @@ rspec
 Add this line to your application's Gemfile:
 
 ```ruby
-gem 'scale_rb'
+gem 'scale_rb', '~> 0.4.0'
 ```
 
 And then execute:

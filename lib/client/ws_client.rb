@@ -1,58 +1,55 @@
 require 'async'
 require 'async/websocket/client'
 require 'async/http/endpoint'
-require 'async/queue'
-require 'json'
 
 require_relative 'client_ext'
 
 module ScaleRb
   class WsClient
-    def self.start(url)
-      Async do |task|
-        endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
-        client = WsClient.new
 
-        task.async do
+    class << self
+      # @param [string] url
+      def start(url)
+        Sync do
+          endpoint = Async::HTTP::Endpoint.parse(url, alpn_protocols: Async::HTTP::Protocol::HTTP11.names)
+
           Async::WebSocket::Client.connect(endpoint) do |connection|
-            Async do
-              while request = client.next_request
-                ScaleRb.logger.debug "Sending request: #{request.to_json}"
-                connection.write(request.to_json)
+            client = WsClient.new(connection)
+
+            # `recv_task` does not raise errors (subclass of StandardError), so it will not be stopped by any errors.
+            recv_task = Async do
+              while (message = client.read_message)
+                data = parse_message(message)
+                next if data.nil?
+
+                ScaleRb.logger.debug "Response: #{data}"
+                Async do
+                  client.handle_response(data)
+                end
               end
             end
 
-            # inside main task
-            while message = connection.read
-              data = JSON.parse(message)
-              ScaleRb.logger.debug "Received message: #{data}"
+            client.supported_methods = client.rpc_methods()[:methods]
+            yield client
 
-              Async do
-                client.handle_response(data)
-              rescue => e
-                ScaleRb.logger.error "#{e.class}: #{e.message}"
-                ScaleRb.logger.error e.backtrace.join("\n")
-                task.stop
-              end
-            end
-          rescue => e
-            ScaleRb.logger.error "#{e.class}: #{e.message}"
-            ScaleRb.logger.error e.backtrace.join("\n")
+            recv_task.wait
           ensure
-            task.stop
+            recv_task&.stop
           end
         end
 
-        task.async do
-          client.supported_methods = client.rpc_methods()['methods']
-          yield client
-        rescue => e
-          ScaleRb.logger.error "#{e.class}: #{e.message}"
-          ScaleRb.logger.error e.backtrace.join("\n")
-          task.stop
-        end
+      end
+
+      private
+
+      def parse_message(message)
+        message.parse
+      rescue StandardError => e
+        ScaleRb.logger.error "Error while parsing message: #{e.inspect}, message: #{message}"
+        nil
       end
     end
+
   end
 end
 
@@ -61,8 +58,8 @@ module ScaleRb
     include ClientExt
     attr_accessor :supported_methods
 
-    def initialize
-      @queue = Async::Queue.new
+    def initialize(connection)
+      @connection = connection
       @response_handler = ResponseHandler.new
       @subscription_handler = SubscriptionHandler.new
       @request_id = 1
@@ -74,7 +71,7 @@ module ScaleRb
 
     def method_missing(method, *args)
       method = method.to_s
-      ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
+      # ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
 
       # why not check 'rpc_methods', because there is no @supported_methods when initializing
       if method != 'rpc_methods' && !@supported_methods.include?(method)
@@ -84,10 +81,10 @@ module ScaleRb
       if method.include?('unsubscribe')
         unsubscribe(method, args[0])
       elsif method.include?('subscribe')
-        raise "A subscribe method needs a block" unless block_given?
+        raise 'A subscribe method needs a block' unless block_given?
 
         subscribe(method, args) do |notification|
-          yield notification['params']['result']
+          yield notification[:params][:result]
         end
       else
         request(method, args)
@@ -111,17 +108,27 @@ module ScaleRb
       end
     end
 
-    def next_request
-      @queue.dequeue
-    end
-
     def handle_response(response)
-      if response.key?('id')
+      if response.key?(:id)
         @response_handler.handle(response)
-      elsif response.key?('method')
+      elsif response.key?(:method)
         @subscription_handler.handle(response)
       else
-        puts "Received an unknown message: #{response}"
+        ScaleRb.logger.info "Received an unknown response: #{response}"
+      end
+    rescue StandardError => e
+      ScaleRb.logger.error "Error while handling response: #{e.inspect}"
+      ScaleRb.logger.debug e.backtrace.join("\n")
+    end
+
+    def read_message
+      loop do
+        return @connection.read
+      rescue StandardError => e
+        ScaleRb.logger.error "Error while read message from connection: #{e.inspect}"
+        ScaleRb.logger.debug e.backtrace.join("\n")
+        sleep 1
+        retry
       end
     end
 
@@ -131,88 +138,59 @@ module ScaleRb
       response_future = Async::Notification.new
 
       @response_handler.register(@request_id, proc { |response|
-        # this is running in the main task
-        response_future.signal(response['result'])
+        response_future.signal(response[:result])
       })
 
-      request = JsonRpcRequest.new(@request_id, method, params)
-      @queue.enqueue(request)
+      request = { jsonrpc: '2.0', id: @request_id, method: method, params: params }
+      ScaleRb.logger.debug "Request: #{request}"
+      @connection.write(request.to_json)
 
       @request_id += 1
-
       response_future.wait
     end
   end
 
-  class JsonRpcRequest
-    attr_reader :id, :method, :params
-
-    def initialize(id, method, params = {})
-      @id = id
-      @method = method
-      @params = params
-    end
-
-    def to_json(*_args)
-      { jsonrpc: '2.0', id: @id, method: @method, params: @params }.to_json
-    end
-
-    # def to_s
-    #   to_json
-    # end
-  end
-
   class ResponseHandler
     def initialize
-      @handlers = {}
+      @callbacks = {}
     end
 
-    # handler: a proc with response data as param
-    def register(id, handler)
-      @handlers[id] = handler
+    # callback: a proc with response data as param
+    def register(id, callback)
+      @callbacks[id] = callback
     end
 
     def handle(response)
-      id = response['id']
-      if @handlers.key?(id)
-        handler = @handlers[id]
-        handler.call(response)
-        @handlers.delete(id)
+      id = response[:id]
+      if @callbacks.key?(id)
+        callback = @callbacks[id]
+        callback.call(response)
+        @callbacks.delete(id)
       else
-        ScaleRb.logger.debug "Received a message with unknown id: #{response}"
+        ScaleRb.logger.info "Received a message with unknown id: #{response}"
       end
     end
   end
 
   class SubscriptionHandler
     def initialize
-      @subscriptions = {}
+      @callbacks = {}
     end
 
-    def subscribe(subscription_id, handler)
-      @subscriptions[subscription_id] = handler
+    def subscribe(subscription_id, callback)
+      @callbacks[subscription_id] = callback
     end
 
     def unsubscribe(subscription_id)
-      @subscriptions.delete(subscription_id)
+      @callbacks.delete(subscription_id)
     end
 
     def handle(notification)
-      subscription_id = notification.dig('params', 'subscription')
+      subscription_id = notification.dig(:params, :subscription)
       return if subscription_id.nil?
 
-      if @subscriptions.key?(subscription_id)
-        @subscriptions[subscription_id].call(notification)
-      else
-        # the subscription_id may be not registered. 
-        # in client.subscribe function, 
-        #   ...
-        #   subscription_id = request(method, params)
-        #   @subscription_handler.subscribe(subscription_id, block)
-        #   ...
-        # the request(method, params) may be slow, so the subscription_id may be not registered when the first notification comes.
-        sleep 0.01
-        handle(notification)
+      if @callbacks.key?(subscription_id)
+        @callbacks[subscription_id].call(notification)
       end
     end
   end

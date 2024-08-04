@@ -17,7 +17,7 @@ module ScaleRb
       raise 'url format is not correct' unless url.match?(url_regex)
 
       @uri = URI.parse(url)
-      @supported_methods = request('rpc_methods', [])['methods']
+      @supported_methods = request('rpc_methods', [])[:methods]
     end
 
     def request(method, params = [])
@@ -37,11 +37,12 @@ module ScaleRb
       response = http.request(request)
       raise response unless response.is_a?(Net::HTTPOK)
 
-      body = JSON.parse(response.body)
+      # parse response, make key symbol
+      body = JSON.parse(response.body, symbolize_names: true)
       ScaleRb.logger.debug "Response: #{body}"
-      raise body['error'] if body['error']
+      raise body[:error] if body[:error]
 
-      body['result']
+      body[:result]
     end
 
     def respond_to_missing?(*_args)
@@ -49,7 +50,7 @@ module ScaleRb
     end
 
     def method_missing(method, *args)
-      ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
+      # ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
 
       request(method.to_s, args)
     end

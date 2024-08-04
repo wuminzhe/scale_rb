@@ -2,37 +2,31 @@ module ScaleRb
 
   # This module is used to add extra methods to both the ScaleRb::WsClient ScaleRb::HttpClient
   module ClientExt
-    StorageQuery = Struct.new(:pallet_name, :storage_name, :key_part1, :key_part2, keyword_init: true) do
-      def initialize(pallet_name:, storage_name:, key_part1: nil, key_part2: nil)
-        super
-      end
-    end
-
     # get decoded metadata at block_hash
-    def get_metadata(block_hash)
+    def get_metadata(block_hash = nil)
+      block_hash ||= chain_getHead
       metadata_hex = state_getMetadata(block_hash)
       ScaleRb::Metadata.decode_metadata(metadata_hex.strip._to_bytes)
     end
 
     # Get decoded storage at block_hash
-    def get_storage(block_hash, storage_query, metadata = nil)
+    def get_storage(pallet_name, storage_name, params = [], block_hash: nil, metadata: nil)
+      block_hash ||= chain_getHead
       metadata ||= get_metadata(block_hash)
 
       # storeage item
-      pallet_name = convert_to_camel_case storage_query.pallet_name
-      storage_name = convert_to_camel_case storage_query.storage_name
+      pallet_name = convert_to_camel_case pallet_name
+      storage_name = convert_to_camel_case storage_name
 
       # storage param
-      key = [storage_query.key_part1, storage_query.key_part2].compact
-      ScaleRb.logger.debug "#{pallet_name}.#{storage_name}(#{key.join(', ')})"
-      key = key.map { |part_of_key| c(part_of_key) }
-      ScaleRb.logger.debug "converted key: #{key}"
+      ScaleRb.logger.debug "#{pallet_name}.#{storage_name}(#{params.inspect})"
+      params = params.map { |param| c(param) }
 
       get_storage2(
         block_hash, # at
         pallet_name,
         storage_name,
-        key,
+        params,
         metadata
       )
     end
@@ -42,7 +36,7 @@ module ScaleRb
     def query_storage_at(block_hash, storage_keys, type_id, default, registry)
       result = state_queryStorageAt(storage_keys, block_hash)
       result.map do |item|
-        item['changes'].map do |change|
+        item[:changes].map do |change|
           storage_key = change[0]
           data = change[1] || default
           storage = data.nil? ? nil : PortableCodec.decode(type_id, data._to_bytes, registry)[0]
@@ -102,7 +96,7 @@ module ScaleRb
     #
     # key is for the param, value is for the return
     def get_storage1(block_hash, pallet_name, item_name, key, value, registry)
-      ScaleRb::logger.debug "get_storage1: #{pallet_name}.#{item_name} key: #{key} value: #{value}"
+      ScaleRb.logger.debug "#{pallet_name}.#{item_name}, key: #{key.inspect}, value: #{value}"
 
       if key
         if key[:value].nil? || key[:value].empty?
@@ -138,7 +132,6 @@ module ScaleRb
     end
 
     def get_storage2(block_hash, pallet_name, item_name, params, metadata)
-      ScaleRb.logger.debug "get_storage2: #{pallet_name}.#{item_name} params: #{params}"
       raise 'Metadata should not be nil' if metadata.nil?
 
       registry = Metadata.build_registry(metadata)
