@@ -50,7 +50,7 @@ module ScaleRb
     end
 
     def method_missing(method, *args)
-      ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
+      # ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
 
       request(method.to_s, args)
     end
