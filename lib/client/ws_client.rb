@@ -135,10 +135,10 @@ module ScaleRb
     private
 
     def request(method, params = [])
-      response_future = Async::Notification.new
+      response_future = Async::Variable.new
 
       @response_handler.register(@request_id, proc { |response|
-        response_future.signal(response[:result])
+        response_future.resolve(response[:result])
       })
 
       request = { jsonrpc: '2.0', id: @request_id, method: method, params: params }
