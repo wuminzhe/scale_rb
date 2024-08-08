@@ -31,7 +31,7 @@ module ScaleRb
 
       request = Net::HTTP::Post.new(@uri, 'Content-Type' => 'application/json')
       request.body = { jsonrpc: '2.0', method: method, params: params, id: Time.now.to_i }.to_json
-      ScaleRb.logger.debug "Request: #{request.body}"
+      ScaleRb.logger.debug "—→ #{request.body}"
 
       # https://docs.ruby-lang.org/en/master/Net/HTTPResponse.html
       response = http.request(request)
@@ -39,7 +39,7 @@ module ScaleRb
 
       # parse response, make key symbol
       body = JSON.parse(response.body, symbolize_names: true)
-      ScaleRb.logger.debug "Response: #{body}"
+      ScaleRb.logger.debug "←— #{body}"
       raise body[:error] if body[:error]
 
       body[:result]
@@ -50,8 +50,6 @@ module ScaleRb
     end
 
     def method_missing(method, *args)
-      # ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
-
       request(method.to_s, args)
     end
   end

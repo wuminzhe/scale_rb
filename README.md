@@ -25,6 +25,7 @@ git clone https://github.com/wuminzhe/scale_rb.git
 cd scale_rb
 bundle install
 bundle exec ruby examples/http_client_1.rb
+# CONSOLE_LEVEL=debug bundle exec ruby examples/http_client_1.rb
 ```
 
 ## Development

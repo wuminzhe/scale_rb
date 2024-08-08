@@ -38,4 +38,6 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'async'
   spec.add_dependency 'async-http', '~> 0.69.0'
   spec.add_dependency 'async-websocket', '~> 0.26.2'
+  # for logger
+  spec.add_dependency 'console'
 end

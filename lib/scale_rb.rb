@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'scale_rb/version'
-require 'logger'
+require 'console'
 
 # scale codec
 require 'monkey_patching'
@@ -39,6 +39,4 @@ module ScaleRb
   end
 end
 
-logger = Logger.new($stdout)
-logger.level = Logger::INFO
-ScaleRb.logger = logger
+ScaleRb.logger = Console

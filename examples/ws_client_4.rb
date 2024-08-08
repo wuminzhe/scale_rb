@@ -14,8 +14,6 @@ def fetch_some_storages(client, block_number)
   puts "Time taken: #{end_time - start_time} seconds"
 end
 
-ScaleRb.logger.level = Logger::DEBUG
-
 ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
   fetch_some_storages(client, 21711742)
 end
