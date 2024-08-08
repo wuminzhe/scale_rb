@@ -22,7 +22,7 @@ module ScaleRb
                 data = parse_message(message)
                 next if data.nil?
 
-                ScaleRb.logger.debug "Response: #{data}"
+                ScaleRb.logger.debug "←— #{data}"
                 Async do
                   client.handle_response(data)
                 end
@@ -45,7 +45,7 @@ module ScaleRb
       def parse_message(message)
         message.parse
       rescue StandardError => e
-        ScaleRb.logger.error "Error while parsing message: #{e.inspect}, message: #{message}"
+        Console::Event::Failure.for(e).emit(self, "Parse message failed!")
         nil
       end
     end
@@ -71,7 +71,6 @@ module ScaleRb
 
     def method_missing(method, *args)
       method = method.to_s
-      # ScaleRb.logger.debug "#{method}(#{args.join(', ')})"
 
       # why not check 'rpc_methods', because there is no @supported_methods when initializing
       if method != 'rpc_methods' && !@supported_methods.include?(method)
@@ -117,16 +116,14 @@ module ScaleRb
         ScaleRb.logger.info "Received an unknown response: #{response}"
       end
     rescue StandardError => e
-      ScaleRb.logger.error "Error while handling response: #{e.inspect}"
-      ScaleRb.logger.debug e.backtrace.join("\n")
+      Console::Event::Failure.for(e).emit(self, "Handle response failed!")
     end
 
     def read_message
       loop do
         return @connection.read
       rescue StandardError => e
-        ScaleRb.logger.error "Error while read message from connection: #{e.inspect}"
-        ScaleRb.logger.debug e.backtrace.join("\n")
+        Console::Event::Failure.for(e).emit(self, "Read message from connection failed!")
         sleep 1
         retry
       end
@@ -142,7 +139,7 @@ module ScaleRb
       })
 
       request = { jsonrpc: '2.0', id: @request_id, method: method, params: params }
-      ScaleRb.logger.debug "Request: #{request}"
+      ScaleRb.logger.debug "—→ #{request}"
       @connection.write(request.to_json)
 
       @request_id += 1

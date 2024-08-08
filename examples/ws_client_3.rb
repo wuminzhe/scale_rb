@@ -1,7 +1,5 @@
 require 'scale_rb'
 
-# ScaleRb.logger.level = Logger::DEBUG
-
 # Unsubscribe after receiving 4 new heads
 ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
   count = 0
@@ -15,7 +13,7 @@ ScaleRb::WsClient.start('wss://polkadot-rpc.dwellir.com') do |client|
       puts "Received new head at height: #{block_number}, block hash: #{block_hash}"
     else
       unsub_result = client.chain_unsubscribeNewHead(subscription_id)
-      puts "Unsubscribe result: #{unsub_result}"
+      puts "Unsubscribe #{subscription_id} #{unsub_result === true ? 'succeeded' : 'failed'}"
     end
   end
 
