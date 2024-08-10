@@ -33,6 +33,9 @@ CONSOLE_LEVEL=debug bundle exec ruby examples/http_client_1.rb
 
 Open the project in vscode, then in the command palette, type `Reopen in Container` to open the project in a devcontainer.
 
+![image](https://github.com/user-attachments/assets/39af785c-5570-46df-9e6e-bf816e7f7b68)
+
+
 After the devcontainer is opened, you can run the following commands:
 
 1. Tests:
