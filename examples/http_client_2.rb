@@ -14,7 +14,5 @@ def fetch_some_storages(client, block_number)
   puts "Time taken: #{end_time - start_time} seconds"
 end
 
-ScaleRb.logger.level = Logger::DEBUG
-
 client = ScaleRb::HttpClient.new('https://polkadot-rpc.dwellir.com')
 fetch_some_storages(client, 21711742)
