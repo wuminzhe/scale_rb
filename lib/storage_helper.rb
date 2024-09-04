@@ -20,7 +20,7 @@ module ScaleRb
               ]
             else
               [
-                registry[key[:type]]._get(:def)._get(:tuple).first(key[:value].length),
+                registry[key[:type]]._get(:type, :def, :tuple).first(key[:value].length),
                 key[:value],
                 key[:hashers].first(key[:value].length)
               ]

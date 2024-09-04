@@ -11,7 +11,7 @@ module ScaleRb
       def build_registry(metadata)
         raise ScaleRb::NotImplemented, metadata._get(:metadata).keys.first unless metadata._get(:metadata)._key?(:v14)
 
-        metadata_v14 = metadata._get(:metadata)._get(:v14)
+        metadata_v14 = metadata._get('metadata', 'v14')
         MetadataV14.build_registry(metadata_v14)
       end
 

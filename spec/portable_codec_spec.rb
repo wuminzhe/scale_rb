@@ -6,11 +6,8 @@ require 'json'
 module ScaleRb
   RSpec.describe PortableCodec do
     before(:all) do
-      types = JSON.parse(File.open(File.join(__dir__, 'assets', 'substrate-types.json')).read)
-      @registry = types.map { |type| [type['id'], type['type']] }.to_h
-
-      kusama_types = JSON.parse(File.open(File.join(__dir__, 'assets', './kusama-types.json')).read)
-      @kusama_registry = kusama_types.map { |type| [type['id'], type['type']] }.to_h
+      @registry = JSON.parse(File.open(File.join(__dir__, 'assets', 'substrate-types.json')).read)
+      @kusama_registry = JSON.parse(File.open(File.join(__dir__, 'assets', './kusama-types.json')).read)
     end
 
     it 'can decode fixed uint' do

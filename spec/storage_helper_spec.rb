@@ -6,8 +6,7 @@ require 'json'
 module ScaleRb
   RSpec.describe StorageHelper do
     before(:all) do
-      types = JSON.parse(File.open(File.join(__dir__, 'assets', 'darwinia-types.json')).read)
-      @portable_types_registry = types.map { |type| [type['id'], type['type']] }.to_h
+      @portable_types_registry = JSON.parse(File.open(File.join(__dir__, 'assets', 'darwinia-types.json')).read)
     end
 
     it 'can encode storage key without param' do

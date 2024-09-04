@@ -103,13 +103,17 @@ class Hash
     end
   end
 
-  def _get(key)
-    if key.instance_of?(String)
-      self[key] || self[key.to_sym]
-    elsif key.instance_of?(Symbol)
-      self[key] || self[key.to_s]
-    else
-      self[key]
+  def _get(*keys)
+    keys.reduce(self) do |hash, key|
+      break nil unless hash.is_a?(Hash)
+
+      if key.instance_of?(String)
+        hash[key] || hash[key.to_sym]
+      elsif key.instance_of?(Symbol)
+        hash[key] || hash[key.to_s]
+      else
+        hash[key]
+      end
     end
   end
 end

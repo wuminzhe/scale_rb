@@ -5,8 +5,7 @@ module ScaleRb
     module MetadataV14
       class << self
         def build_registry(metadata)
-          types = metadata._get(:lookup)._get(:types)
-          types.map { |type| [type._get(:id), type._get(:type)] }.to_h
+          metadata._get('lookup', 'types')
         end
 
         def get_module(pallet_name, metadata)
