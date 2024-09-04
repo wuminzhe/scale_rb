@@ -149,9 +149,12 @@ module ScaleRb
       end
 
       def _decode_types(ids, bytes, registry = {})
-        ScaleRb._decode_each(ids, bytes) do |id, remaining_bytes|
-          decode(id, remaining_bytes, registry)
+        remaining_bytes = bytes
+        values = ids.map do |id|
+          value, remaining_bytes = decode(id, remaining_bytes, registry)
+          value
         end
+        [values, remaining_bytes]
       end
 
       def encode_with_hasher(value, type_id, registry, hasher)
@@ -267,15 +270,23 @@ module ScaleRb
       end
 
       def _encode_types(ids, values, registry)
-        ScaleRb._encode_each(ids, values) do |id, value|
-          encode(id, value, registry)
+        raise LengthNotEqualErr, "ids: #{ids}, values: #{values.inspect}" if ids.length != values.length
+
+        ids.each_with_index.reduce([]) do |memo, (id, i)|
+          memo + encode(id, values[i], registry)
         end
       end
 
       def _encode_types_with_hashers(ids, values, registry, hashers)
-        ScaleRb._encode_each_with_hashers(ids, values, hashers) do |id, value|
-          encode(id, value, registry)
+        if !hashers.nil? && hashers.length != ids.length
+          raise ScaleRb::LengthNotEqualErr, "ids length: #{ids.length}, hashers length: #{hashers.length}"
         end
+
+        ids
+          .map.with_index { |id, i| encode(id, values[i], registry) }
+          .each_with_index.reduce([]) do |memo, (bytes, i)|
+            memo + Hasher.apply_hasher(hashers[i], bytes)
+          end
       end
     end
   end

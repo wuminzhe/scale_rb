@@ -13,112 +13,50 @@ module ScaleRb
   class InvalidValueError < Error; end
 end
 
+# Helper functions
 # TODO: set, bitvec
 module ScaleRb
   class << self
+    #########################################
+    # type definition check functions
+    #########################################
     def type_def?(type)
-      type.instance_of?(String) && (
-        bytes?(type) ||
-        boolean?(type) ||
-        string?(type) ||
-        compact?(type) ||
-        int?(type) ||
-        uint?(type) ||
-        option?(type) ||
-        array?(type) ||
-        vec?(type) ||
-        tuple?(type)
-      ) ||
-        type.instance_of?(Hash)
+      return true if type.is_a?(Hash)
+      return false unless type.is_a?(String)
+
+      %w[bytes boolean string compact int uint option array vec tuple].any? do |t|
+        send("#{t}?", type)
+      end
     end
+    def bytes?(type) type.casecmp('bytes').zero? end
+    def boolean?(type) %w[bool boolean].include?(type.downcase) end
+    def string?(type) %w[str string text type].include?(type.downcase) end
+    def compact?(type) type.casecmp('compact').zero? || type.match?(/\Acompact<.+>\z/i) end
+    def int?(type) type.match?(/\Ai(8|16|32|64|128|256|512)\z/i) end
+    def uint?(type) type.match?(/\Au(8|16|32|64|128|256|512)\z/i) end
+    def option?(type) type.match?(/\Aoption<.+>\z/i) end
+    def array?(type) type.match?(/\A\[.+\]\z/) end
+    def vec?(type) type.match?(/\Avec<.+>\z/i) end
+    def tuple?(type) type.match?(/\A\(.+\)\z/) end
+    def struct?(type) type.is_a?(Hash) end
+    def enum?(type) type.is_a?(Hash) && type.key?(:_enum) end
 
-    def bytes?(type)
-      type.downcase == 'bytes'
-    end
+    #########################################
+    # type string parsing functions
+    #########################################
+    def parse_option(type) type[/\Aoption<(.+)>\z/i, 1] end
+    def parse_array(type) type.match(/\A\[\s*(.+?)\s*;\s*(\d+)\s*\]\z/)&.yield_self { |m| [m[1], m[2].to_i] } || raise(ScaleRb::TypeParseError, type) end
+    def parse_vec(type) type[/\Avec<(.+)>\z/i, 1] end
+    def parse_tuple(type) type[/\A\(\s*(.+)\s*\)\z/, 1].split(',').map(&:strip) end
 
-    def boolean?(type)
-      type.downcase == 'bool' || type.downcase == 'boolean'
-    end
-
-    def string?(type)
-      type.downcase == 'str' || type.downcase == 'string' || type.downcase == 'text' || type.downcase == 'type'
-    end
-
-    def compact?(type)
-      type.downcase == 'compact' ||
-        (type[0..7].downcase == 'compact<' && type[-1] == '>')
-    end
-
-    def int?(type)
-      type[0].downcase == 'i' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
-    end
-
-    def uint?(type)
-      type[0].downcase == 'u' && type[1..] =~ /\A(8|16|32|64|128|256|512)\z/
-    end
-
-    def option?(type)
-      type[0..6].downcase == 'option<' && type[-1] == '>'
-    end
-
-    def array?(type)
-      type[0] == '[' && type[-1] == ']'
-    end
-
-    def vec?(type)
-      type[0..3].downcase == 'vec<' && type[-1] == '>'
-    end
-
-    def tuple?(type)
-      type[0] == '(' && type[-1] == ')'
-    end
-
-    def struct?(type)
-      type.instance_of?(Hash)
-    end
-
-    def enum?(type)
-      type.instance_of?(Hash) && type.key?(:_enum)
-    end
-  end
-end
-
-module ScaleRb
-  class << self
-    def parse_option(type)
-      type.scan(/\A[O|o]ption<(.+)>\z/).first.first
-    end
-
-    def parse_array(type)
-      scan_out = type.scan(/\A\[\s*(.+)\s*;\s*(\d+)\s*\]\z/)
-      raise ScaleRb::TypeParseError, type if scan_out.empty?
-      raise ScaleRb::TypeParseError, type if scan_out[0].length != 2
-
-      inner_type = scan_out[0][0]
-      length = scan_out[0][1].to_i
-      [inner_type, length]
-    end
-
-    def parse_vec(type)
-      type.scan(/\A[V|v]ec<(.+)>\z/).first.first
-    end
-
-    def parse_tuple(type)
-      type.scan(/\A\(\s*(.+)\s*\)\z/)[0][0].split(',').map(&:strip)
-    end
-  end
-end
-
-# Helper functions
-module ScaleRb
-  class << self
+    #########################################
+    # type registry functions
+    #########################################
     def _get_final_type_from_registry(registry, type)
-      raise "Wrong lookup type #{type.class}" if !type.instance_of?(String) && !type.instance_of?(Hash)
+      raise "Wrong lookup type #{type.class}" unless type.is_a?(String) || type.is_a?(Hash)
+      return if type.is_a?(Hash)
 
-      return if type.instance_of?(Hash)
-
-      mapped = registry._get(type) # mapped: String(name, type_def) | Hash(type_def: struct, enum) | nil
-
+      mapped = registry._get(type)
       return if mapped.nil?
       return mapped if type_def?(mapped)
 
@@ -126,15 +64,9 @@ module ScaleRb
     end
 
     def _decode_types(types, bytes, registry)
-      _decode_each(types, bytes) do |type, remaining_bytes|
-        decode(type, remaining_bytes, registry)
-      end
-    end
-
-    def _decode_each(types, bytes, &decode)
       remaining_bytes = bytes
       values = types.map do |type|
-        value, remaining_bytes = decode.call(type, remaining_bytes)
+        value, remaining_bytes = decode(type, remaining_bytes, registry)
         value
       end
       [values, remaining_bytes]
@@ -142,12 +74,9 @@ module ScaleRb
 
     def _do_decode_compact(bytes)
       case bytes[0] & 3
-      when 0
-        [bytes[0] >> 2, bytes[1..]]
-      when 1
-        [bytes[0..1]._flip._to_uint >> 2, bytes[2..]]
-      when 2
-        [bytes[0..3]._flip._to_uint >> 2, bytes[4..]]
+      when 0 then [bytes[0] >> 2, bytes[1..]]
+      when 1 then [bytes[0..1]._flip._to_uint >> 2, bytes[2..]]
+      when 2 then [bytes[0..3]._flip._to_uint >> 2, bytes[4..]]
       when 3
         length = 4 + (bytes[0] >> 2)
         [bytes[1..length]._flip._to_uint, bytes[length + 1..]]
@@ -156,32 +85,11 @@ module ScaleRb
       end
     end
 
-    def _encode_each(types, values, &encode)
-      _encode_each_without_merge(types, values, &encode).flatten
-    end
-
-    def _encode_each_without_merge(types, values, &encode)
+    def _encode_types(types, values, registry = {})
       raise LengthNotEqualErr, "types: #{types}, values: #{values.inspect}" if types.length != values.length
 
-      types.map.with_index do |type, i|
-        encode.call(type, values[i])
-      end
-    end
-
-    def _encode_types(types, values, registry = {})
-      _encode_each(types, values) do |type, value|
-        encode(type, value, registry)
-      end
-    end
-
-    def _encode_each_with_hashers(types, values, hashers, &encode)
-      if !hashers.nil? && hashers.length != types.length
-        raise ScaleRb::LengthNotEqualErr, "types length: #{types.length}, hashers length: #{hashers.length}"
-      end
-
-      bytes_array = ScaleRb._encode_each_without_merge(types, values, &encode)
-      bytes_array.each_with_index.reduce([]) do |memo, (bytes, i)|
-        memo + Hasher.apply_hasher(hashers[i], bytes)
+      types.each_with_index.reduce([]) do |memo, (type, i)|
+        memo + encode(type, values[i], registry)
       end
     end
   end
@@ -191,11 +99,7 @@ module ScaleRb
   # Decode
   class << self
     def decode(type, bytes, registry = {})
-      # logger.debug '--------------------------------------------------'
-      # debug 'decoding type', type
-      # debug 'bytes', bytes&.length
-
-      if type.instance_of?(String)
+      if type.is_a?(String)
         return decode_bytes(bytes) if bytes?(type) # Bytes
         return decode_boolean(bytes) if boolean?(type) # Boolean
         return decode_string(bytes) if string?(type) # String
@@ -210,7 +114,7 @@ module ScaleRb
         # search the type from registry if not the types above
         registry_type = _get_final_type_from_registry(registry, type)
         return decode(registry_type, bytes, registry) if registry_type
-      elsif type.instance_of?(Hash)
+      elsif type.is_a?(Hash)
         return decode_enum(type, bytes, registry) if enum?(type)
         return decode_struct(type, bytes, registry) if struct?(type)
       end
@@ -220,25 +124,15 @@ module ScaleRb
 
     def decode_bytes(bytes)
       length, remaining_bytes = _do_decode_compact(bytes)
-      value = remaining_bytes[0...length]._to_hex
-      # debug 'length', length
-      # debug 'value', value
-      [
-        value,
-        remaining_bytes[length..]
-      ]
+      [remaining_bytes[0...length]._to_hex, remaining_bytes[length..]]
     end
 
     def decode_boolean(bytes)
-      value =
-        if bytes[0] == 0x00
-          false
-        elsif bytes[0] == 0x01
-          true
-        else
-          raise InvalidBytesError, 'type: Boolean'
-        end
-      # debug 'value', value
+      value = case bytes[0]
+              when 0x00 then false
+              when 0x01 then true
+              else raise InvalidBytesError, 'type: Boolean'
+              end
       [value, bytes[1..]]
     end
 
@@ -246,13 +140,7 @@ module ScaleRb
       length, remaining_bytes = _do_decode_compact(bytes)
       raise NotEnoughBytesError, 'type: String' if remaining_bytes.length < length
 
-      value = remaining_bytes[0...length]._to_utf8
-      # debug 'byte length', length
-      # debug 'value', value.inspect
-      [
-        value,
-        remaining_bytes[length..]
-      ]
+      [remaining_bytes[0...length]._to_utf8, remaining_bytes[length..]]
     end
 
     def decode_int(type, bytes)
@@ -352,10 +240,6 @@ module ScaleRb
   # Encode
   class << self
     def encode(type, value, registry = {})
-      # logger.debug '--------------------------------------------------'
-      # debug 'encoding type', type
-      # debug 'value', value
-
       if type.instance_of?(String)
         return encode_bytes(value) if bytes?(type)
         return encode_boolean(value) if boolean?(type)
@@ -390,12 +274,11 @@ module ScaleRb
 
     def encode_string(string)
       body = string.unpack('C*')
-      prefix = encode_compact(body.length)
-      prefix + body
+      encode_compact(body.length) + body
     end
 
     def encode_compact(value)
-      return [value << 2] if (value >= 0) && (value < 64)
+      return [value << 2] if value.between?(0, 63)
       return ((value << 2) + 1)._to_bytes._flip if value < 2**14
       return ((value << 2) + 2)._to_bytes._flip if value < 2**30
 
@@ -404,7 +287,7 @@ module ScaleRb
     end
 
     def encode_uint(type, value)
-      raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.instance_of?(Integer)
+      raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(Integer)
 
       bit_length = type[1..].to_i
       value._to_bytes(bit_length)._flip
@@ -413,7 +296,7 @@ module ScaleRb
     def encode_option(type, value, registry = {})
       return [0x00] if value.nil?
 
-      inner_type = type.scan(/\A[O|o]ption<(.+)>\z/).first.first
+      inner_type =  parse_option(type)
       [0x01] + encode(inner_type, value, registry)
     end
 
@@ -425,13 +308,12 @@ module ScaleRb
     end
 
     def encode_vec(type, array, registry = {})
-      inner_type = type.scan(/\A[V|v]ec<(.+)>\z/).first.first
-      length_bytes = encode_compact(array.length)
-      length_bytes + _encode_types([inner_type] * array.length, array, registry)
+      inner_type = parse_vec(type)
+      encode_compact(array.length) + _encode_types([inner_type] * array.length, array, registry)
     end
 
     def encode_tuple(tuple_type, tuple, registry = {})
-      inner_types = tuple_type.scan(/\A\(\s*(.+)\s*\)\z/)[0][0].split(',').map(&:strip)
+      inner_types = parse_tuple(tuple_type)
       _encode_types(inner_types, tuple, registry)
     end
 
