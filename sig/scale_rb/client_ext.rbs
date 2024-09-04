@@ -1,5 +1,0 @@
-module ScaleRb
-  module ClientExt
-    def get_metadata: -> untyped
-  end
-end
