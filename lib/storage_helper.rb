@@ -52,7 +52,7 @@ module ScaleRb
       def decode_storage2(data, storage_item, registry)
         modifier = storage_item._get(:modifier) # Default | Optional
         fallback = storage_item._get(:fallback)
-        type = storage_item._get(:type)._get(:plain) || storage_item._get(:type)._get(:map)._get(:value)
+        type = storage_item._get(:type, :plain) || storage_item._get(:type, :map, :value)
         decode_storage(data, type, modifier == 'Optional', fallback, registry)
       end
 

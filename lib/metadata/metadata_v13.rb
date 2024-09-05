@@ -5,7 +5,7 @@ module ScaleRb
     module MetadataV13
       class << self
         def get_module(module_name, metadata)
-          metadata._get(:metadata)._get(:v13)._get(:modules).find do |m|
+          metadata._get(:metadata, :v13, :modules).find do |m|
             m._get(:name) == module_name
           end
         end
@@ -14,7 +14,7 @@ module ScaleRb
           modula = get_module(module_name, metadata)
           raise "Module `#{module_name}` not found" if modula.nil?
 
-          modula._get(:storage)._get(:items).find do |item|
+          modula._get(:storage, :items).find do |item|
             item._get(:name) == item_name
           end
         end

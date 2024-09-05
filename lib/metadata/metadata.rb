@@ -11,7 +11,7 @@ module ScaleRb
       def build_registry(metadata)
         raise ScaleRb::NotImplemented, metadata._get(:metadata).keys.first unless metadata._get(:metadata)._key?(:v14)
 
-        metadata_v14 = metadata._get('metadata', 'v14')
+        metadata_v14 = metadata._get(:metadata, :v14)
         MetadataV14.build_registry(metadata_v14)
       end
 
@@ -88,7 +88,7 @@ module ScaleRb
         # This is because the pallet index is not part of the call type.
         # Its structure is: call_index + call_args
         callbytes_without_pallet_index = callbytes[1..]
-        calls_type_id = pallet._get(:calls)._get(:type)
+        calls_type_id = pallet._get(:calls, :type)
         decoded = PortableCodec.decode(
           calls_type_id,
           callbytes_without_pallet_index,
@@ -104,11 +104,11 @@ module ScaleRb
     end
 
     TYPES = {
-      'MetadataTop' => {
+      MetadataTop: {
         magicNumber: 'U32',
         metadata: 'Metadata'
       },
-      'Metadata' => {
+      Metadata: {
         _enum: {
           v0: 'MetadataV0',
           v1: 'MetadataV1',

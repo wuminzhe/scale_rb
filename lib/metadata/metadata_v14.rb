@@ -5,17 +5,17 @@ module ScaleRb
     module MetadataV14
       class << self
         def build_registry(metadata)
-          metadata._get('lookup', 'types')
+          metadata._get(:lookup, :types)
         end
 
         def get_module(pallet_name, metadata)
-          metadata._get(:metadata)._get(:v14)._get(:pallets).find do |p|
+          metadata._get(:metadata, :v14, :pallets).find do |p|
             p._get(:name) == pallet_name
           end
         end
 
         def get_module_by_index(pallet_index, metadata)
-          metadata._get(:metadata)._get(:v14)._get(:pallets).find do |p|
+          metadata._get(:metadata, :v14, :pallets).find do |p|
             p._get(:index) == pallet_index
           end
         end
@@ -24,7 +24,7 @@ module ScaleRb
           pallet = get_module(pallet_name, metadata)
           raise "Pallet `#{pallet_name}` not found" if pallet.nil?
 
-          pallet._get(:storage)._get(:items).find do |item|
+          pallet._get(:storage, :items).find do |item|
             item._get(:name) == item_name
           end
         end
@@ -33,19 +33,19 @@ module ScaleRb
           pallet = get_module(pallet_name, metadata)
           raise "Pallet `#{pallet_name}` not found" if pallet.nil?
 
-          pallet._get(:calls)._get(:type)
+          pallet._get(:calls, :type)
         end
 
         def get_calls_type(pallet_name, metadata)
           type_id = get_calls_type_id(pallet_name, metadata)
-          metadata._get(:metadata)._get(:v14)._get(:lookup)._get(:types).find do |type|
+          metadata._get(:metadata, :v14, :lookup, :types).find do |type|
             type._get(:id) == type_id
           end
         end
 
         def get_call_type(pallet_name, call_name, metadata)
           calls_type = get_calls_type(pallet_name, metadata)
-          calls_type._get(:type)._get(:def)._get(:variant)._get(:variants).find do |variant|
+          calls_type._get(:type, :def, :variant, :variants).find do |variant|
             variant._get(:name).downcase == call_name.downcase
           end
         end
