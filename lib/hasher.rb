@@ -8,10 +8,12 @@ module ScaleRb
     class << self
       # params:
       #   hasher: 'Identity' | 'Twox64Concat' | 'Blake2128Concat'
-      #    bytes: u8 array
-      # return: u8 array
+      #   bytes: u8a | hex string
+      # return: u8a
       def apply_hasher(hasher, bytes)
-        function_name = hasher.gsub('_', '')._underscore
+        bytes = Utils.hex_to_u8a(bytes) if bytes.is_a?(::String)
+
+        function_name = Utils.underscore(hasher.gsub('_', ''))
         Hasher.send(function_name, bytes)
       end
     end
@@ -22,7 +24,7 @@ module ScaleRb
       end
 
       def twox64_concat(bytes)
-        data = bytes._to_utf8
+        data = Utils.u8a_to_utf8(bytes)
         twox64(data) + bytes
       end
 
@@ -32,24 +34,24 @@ module ScaleRb
 
       def twox64(str)
         result = XXhash.xxh64 str, 0
-        result._to_bytes.reverse
+        Utils.hex_to_u8a(result).reverse
       end
 
       def twox128(str)
         bytes = []
         2.times do |i|
           result = XXhash.xxh64 str, i
-          bytes += result._to_bytes.reverse
+          bytes += Utils.hex_to_u8a(result).reverse
         end
         bytes
       end
 
       def blake2_128(bytes)
-        Blake2b.hex(bytes, 16)._to_bytes
+        Utils.hex_to_u8a(Blake2b.hex(bytes, 16))
       end
 
       def blake2_256(bytes)
-        Blake2b.hex(bytes, 32)._to_bytes
+        Utils.hex_to_u8a(Blake2b.hex(bytes, 32))
       end
     end
   end

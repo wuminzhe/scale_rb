@@ -10,6 +10,7 @@ module ScaleRb
     class VariantItemNotFound < Error; end
     class VariantIndexOutOfRange < Error; end
     class VariantInvalidValue < Error; end
+    class VariantFieldsLengthNotMatch < Error; end
 
     class << self
       def u256(value)
@@ -41,17 +42,20 @@ module ScaleRb
         type = registry[id]
         raise TypeNotFound, "id: #{id}" if type.nil?
 
-        _path    = type._get(:type, :path)
-        _params  = type._get(:type, :params)
-        type_def = type._get(:type, :def)
+        bytes = ScaleRb::Utils.hex_to_u8a(bytes) if bytes.is_a?(::String)
 
-        return decode_primitive(type_def, bytes) if type_def._key?(:primitive)
-        return decode_compact(bytes) if type_def._key?(:compact)
-        return decode_array(type_def._get(:array), bytes, registry) if type_def._key?(:array)
-        return decode_sequence(type_def._get(:sequence), bytes, registry) if type_def._key?(:sequence)
-        return decode_tuple(type_def._get(:tuple), bytes, registry) if type_def._key?(:tuple)
-        return decode_composite(type_def._get(:composite), bytes, registry) if type_def._key?(:composite)
-        return decode_variant(type_def._get(:variant), bytes, registry) if type_def._key?(:variant)
+        # type_def = type._get(:type, :def)
+        case type.kind
+        when 'Primitive' then decode_primitive(type, bytes)
+        end
+
+        return decode_primitive(type_def, bytes) if Utils.keys?(type_def, :primitive)
+        return decode_compact(bytes) if Utils.keys?(type_def, :compact)
+        return decode_array(type_def._get(:array), bytes, registry) if Utils.keys?(type_def, :array)
+        return decode_sequence(type_def._get(:sequence), bytes, registry) if Utils.keys?(type_def, :sequence)
+        return decode_tuple(type_def._get(:tuple), bytes, registry) if Utils.keys?(type_def, :tuple)
+        return decode_composite(type_def._get(:composite), bytes, registry) if Utils.keys?(type_def, :composite)
+        return decode_variant(type_def._get(:variant), bytes, registry) if Utils.keys?(type_def, :variant)
 
         raise TypeNotImplemented, "id: #{id}"
       end
@@ -79,7 +83,7 @@ module ScaleRb
         # check if the type of inner_type_id is a u8
         if _u8?(inner_type_id, registry)
           [
-            bytes[0...len]._to_hex,
+            Utils.u8a_to_hex(bytes[0...len]),
             bytes[len..]
           ]
         else
@@ -168,13 +172,13 @@ module ScaleRb
 
         type_def = type._get(:type, :def)
 
-        return encode_primitive(type_def, value) if type_def._key?(:primitive)
-        return encode_compact(value) if type_def._key?(:compact)
-        return encode_array(type_def._get(:array), value, registry) if type_def._key?(:array)
-        return encode_sequence(type_def._get(:sequence), value, registry) if type_def._key?(:sequence)
-        return encode_tuple(type_def._get(:tuple), value, registry) if type_def._key?(:tuple)
-        return encode_composite(type_def._get(:composite), value, registry) if type_def._key?(:composite)
-        return encode_variant(type_def._get(:variant), value, registry) if type_def._key?(:variant)
+        return encode_primitive(type_def, value) if Utils.keys?(type_def, :primitive)
+        return encode_compact(value) if Utils.keys?(type_def, :compact)
+        return encode_array(type_def._get(:array), value, registry) if Utils.keys?(type_def, :array)
+        return encode_sequence(type_def._get(:sequence), value, registry) if Utils.keys?(type_def, :sequence)
+        return encode_tuple(type_def._get(:tuple), value, registry) if Utils.keys?(type_def, :tuple)
+        return encode_composite(type_def._get(:composite), value, registry) if Utils.keys?(type_def, :composite)
+        return encode_variant(type_def._get(:variant), value, registry) if Utils.keys?(type_def, :variant)
 
         raise TypeNotImplemented, "id: #{id}"
       end

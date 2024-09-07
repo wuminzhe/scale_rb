@@ -6,13 +6,13 @@ require 'json'
 # https://github.com/polkadot-js/api/tree/master/packages/types-support/src/metadata
 def expect_decode_metadata(version)
   hex = File.read("./spec/assets/substrate-metadata-#{version}-hex").strip
-  metadata = ScaleRb::Metadata.decode_metadata(hex._to_bytes)
+  metadata = ScaleRb::Metadata.decode_metadata(hex)
   expect(metadata[:metadata][version.to_sym]).not_to be_nil
 end
 
 def expect_get_storage_item(version)
   hex = File.read("./spec/assets/substrate-metadata-#{version}-hex").strip
-  metadata = ScaleRb::Metadata.decode_metadata(hex._to_bytes)
+  metadata = ScaleRb::Metadata.decode_metadata(hex)
   storage_item = ScaleRb::Metadata.const_get("Metadata#{version.upcase}").get_storage_item(
     'System', 'BlockHash',
     metadata

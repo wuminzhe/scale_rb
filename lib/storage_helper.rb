@@ -45,7 +45,7 @@ module ScaleRb
       # returns nil or data
       def decode_storage(data, type, optional, fallback, registry)
         data ||= (optional ? nil : fallback)
-        PortableCodec.decode(type, data._to_bytes, registry)[0] if data
+        PortableCodec.decode(type, Utils.hex_to_u8a(data), registry)[0] if data
       end
 
       # storage_item: the storage item from metadata

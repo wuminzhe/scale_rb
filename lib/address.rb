@@ -79,7 +79,7 @@ module ScaleRb
                             end
 
         input_bytes = ss58_format_bytes.bytes + pubkey_bytes
-        checksum = Blake2b.hex(SS58_PREFIX.bytes + input_bytes, 64)._to_bytes
+        checksum = Utils.hex_to_u8a(Blake2b.hex(SS58_PREFIX.bytes + input_bytes, 64))
 
         Base58.binary_to_base58((input_bytes + checksum[0...checksum_length]).pack('C*'), :bitcoin)
       end

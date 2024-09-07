@@ -23,7 +23,7 @@ module ScaleRb
     end
 
     it 'can decode sequence' do
-      value, remaining_bytes = PortableCodec.decode 11, '0x0c003afe'._to_bytes, @registry
+      value, remaining_bytes = PortableCodec.decode 11, '0x0c003afe', @registry
       expect(value).to eql([0, 58, 254])
       expect(remaining_bytes).to eql([])
     end
@@ -61,7 +61,7 @@ module ScaleRb
       bytes =
         '0x05000000000000000100000000000000142ba3d4e80000000000000000000000'\
           '0000000000000000000000000000000000000000000000000000000000000000'\
-          '00000000000000000000000000000000'._to_bytes
+          '00000000000000000000000000000000'
 
       value, = PortableCodec.decode 3, bytes, @registry
       expect(value).to eql({
@@ -84,7 +84,7 @@ module ScaleRb
         '0x020406010700f2052a017d01260000400d030000000000000000000000000000'\
           '00000000000000000000000000000001004617d470f847ce166019d19a794404'\
           '9ebb017400000000000000000000000000000000000000000000000000000000'\
-          '00000000001019ff1d2100'._to_bytes
+          '00000000001019ff1d2100'
       value, = PortableCodec.decode 542, bytes, @kusama_registry
       expect =
         {
@@ -110,7 +110,7 @@ module ScaleRb
 
     it 'can decode tuple' do
       bytes =
-        '0x12345678123456781234567812345678123456781234567812345678123456780bfeffffffffffff0000000000000000'._to_bytes
+        '0x12345678123456781234567812345678123456781234567812345678123456780bfeffffffffffff0000000000000000'
       # tuple: [0, 6]
       value, remaining_bytes = PortableCodec.decode 55, bytes, @registry
       expect(value).to eql(
@@ -135,13 +135,13 @@ module ScaleRb
 
     # kusama registry 125 - Junctions
     it 'can decode variant with tuple' do
-      value, remaining_bytes = PortableCodec.decode 125, '0x0200300422'._to_bytes, @kusama_registry
+      value, remaining_bytes = PortableCodec.decode 125, '0x0200300422', @kusama_registry
       expect(value).to eql({ X2: [{ Parachain: 12 }, { PalletInstance: 34 }] })
       expect(remaining_bytes).to eql([])
     end
 
     it 'can decode versioned xcm' do
-      bytes = '0x020c000400010200e520040500170000d01309468e15011300010200e520040500170000d01309468e15010006010700f2052a01180a070c313233'._to_bytes
+      bytes = '0x020c000400010200e520040500170000d01309468e15011300010200e520040500170000d01309468e15010006010700f2052a01180a070c313233'
       value, remaining_bytes = PortableCodec.decode 542, bytes, @kusama_registry
       expected = { V2: [
         { WithdrawAsset: [{

@@ -40,7 +40,7 @@ RSpec.describe ScaleRb do
     expect(value).to eql(14_294_967_296)
     expect(remaining_bytes).to eql([])
 
-    value, remaining_bytes = ScaleRb.decode('u128', '0x0bfeffffffffffff0000000000000000'._to_bytes)
+    value, remaining_bytes = ScaleRb.decode('u128', ScaleRb.Utils.hex_to_u8a('0x0bfeffffffffffff0000000000000000'))
     expect(value).to eql(18_446_744_073_709_551_115)
     expect(remaining_bytes).to eql([])
   end
@@ -59,10 +59,10 @@ RSpec.describe ScaleRb do
     expect(bytes).to eql([0xff, 0xff, 0xff, 0x00])
 
     bytes = ScaleRb.encode('u64', 14_294_967_296)
-    expect(bytes).to eql('0x00e40b5403000000'._to_bytes)
+    expect(bytes).to eql(ScaleRb.Utils.hex_to_u8a('0x00e40b5403000000'))
 
     bytes = ScaleRb.encode('u128', 18_446_744_073_709_551_115)
-    expect(bytes).to eql('0x0bfeffffffffffff0000000000000000'._to_bytes)
+    expect(bytes).to eql(ScaleRb.Utils.hex_to_u8a('0x0bfeffffffffffff0000000000000000'))
   end
 
   it 'can decode fixed array' do
@@ -108,17 +108,17 @@ RSpec.describe ScaleRb do
   end
 
   it 'can decode two-byte compact uint' do
-    value, = ScaleRb.decode('Compact', '0x1501'._to_bytes)
+    value, = ScaleRb.decode('Compact', ScaleRb.Utils.hex_to_u8a('0x1501'))
     expect(value).to eql(69)
   end
 
   it 'can decode four-byte compact uint' do
-    value, = ScaleRb.decode('Compact', '0xfeffffff'._to_bytes)
+    value, = ScaleRb.decode('Compact', ScaleRb.Utils.hex_to_u8a('0xfeffffff'))
     expect(value).to eql(1_073_741_823)
   end
 
   it 'can decode big-integer compact uint' do
-    value, = ScaleRb.decode('Compact', '0x0300000040'._to_bytes)
+    value, = ScaleRb.decode('Compact', ScaleRb.Utils.hex_to_u8a('0x0300000040'))
     expect(value).to eql(1_073_741_824)
   end
 
@@ -158,12 +158,12 @@ RSpec.describe ScaleRb do
 
   it 'can encode four-byte compact' do
     bytes = ScaleRb.encode('Compact', 1_073_741_823)
-    expect(bytes).to eql('0xfeffffff'._to_bytes)
+    expect(bytes).to eql(ScaleRb.Utils.hex_to_u8a('0xfeffffff'))
   end
 
   it 'can encode big-integer compact' do
     bytes = ScaleRb.encode('Compact', 1_073_741_824)
-    expect(bytes).to eql('0x0300000040'._to_bytes)
+    expect(bytes).to eql(ScaleRb.Utils.hex_to_u8a('0x0300000040'))
   end
 
   it 'can encode struct' do
@@ -215,14 +215,14 @@ RSpec.describe ScaleRb do
   end
 
   it 'can decode vec' do
-    arr, remaining_bytes = ScaleRb.decode('vec<u8>', '0x0c003afe'._to_bytes)
+    arr, remaining_bytes = ScaleRb.decode('vec<u8>', '0x0c003afe')
     expect(arr).to eql([0, 58, 254])
     expect(remaining_bytes).to eql([])
   end
 
   it 'can encode vec' do
     bytes = ScaleRb.encode('Vec<u8>', [0, 58, 254])
-    expect(bytes).to eql('0x0c003afe'._to_bytes)
+    expect(bytes).to eql(ScaleRb.Utils.hex_to_u8a('0x0c003afe'))
   end
 
   it 'can decode tuple' do
@@ -272,20 +272,20 @@ RSpec.describe ScaleRb do
   end
 
   it 'can decode bytes' do
-    value, = ScaleRb.decode('Bytes', '0x14436166c3a9'._to_bytes)
-    expect(value).to eql('0x436166c3a9')
+    value, = ScaleRb.decode('Bytes', '0x14436166c3a9')
+    expect(value).to eql(ScaleRb.Utils.hex_to_u8a('0x436166c3a9'))
   end
 
   it 'can encode bytes' do
-    bytes = ScaleRb.encode('Bytes', '0x436166c3a9'._to_bytes)
-    expect(bytes).to eql('0x14436166c3a9'._to_bytes)
+    bytes = ScaleRb.encode('Bytes', '0x436166c3a9')
+    expect(bytes).to eql(ScaleRb.Utils.hex_to_u8a('0x14436166c3a9'))
   end
 
   it 'can decode option' do
-    value, = ScaleRb.decode('Option<Compact>', '0x00'._to_bytes)
+    value, = ScaleRb.decode('Option<Compact>', '0x00')
     expect(value).to eql(nil)
 
-    value, = ScaleRb.decode('Option<Compact>', '0x011501'._to_bytes)
+    value, = ScaleRb.decode('Option<Compact>', '0x011501')
     expect(value).to eql(69)
 
     expect { ScaleRb.decode('Option<Compact>', '0x02') }.to raise_error(ScaleRb::InvalidBytesError)
@@ -302,15 +302,15 @@ RSpec.describe ScaleRb do
   it 'can encode uint' do
     # 2**64 - 1
     bytes = ScaleRb.encode('u256', 18_446_744_073_709_551_615)
-    expect(bytes._to_hex).to eql('0xffffffffffffffff000000000000000000000000000000000000000000000000')
+    expect(ScaleRb::Utils.u8a_to_hex(bytes)).to eql('0xffffffffffffffff000000000000000000000000000000000000000000000000')
 
     # 2**64 - 1
     bytes = ScaleRb.encode('u64', 18_446_744_073_709_551_615)
-    expect(bytes._to_hex).to eql('0xffffffffffffffff')
+    expect(ScaleRb::Utils.u8a_to_hex(bytes)).to eql('0xffffffffffffffff')
 
     # 2**64
     bytes = ScaleRb.encode('u256', 18_446_744_073_709_551_616)
-    expect(bytes._to_hex).to eql('0x0000000000000000010000000000000000000000000000000000000000000000')
+    expect(ScaleRb::Utils.u8a_to_hex(bytes)).to eql('0x0000000000000000010000000000000000000000000000000000000000000000')
 
     bytes = ScaleRb.encode('u256', 18_446_744_073_709_551_616)
     o = bytes.each_slice(8).map do |slice|

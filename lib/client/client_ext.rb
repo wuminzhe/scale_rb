@@ -1,12 +1,11 @@
 module ScaleRb
-
   # This module is used to add extra methods to both the ScaleRb::WsClient ScaleRb::HttpClient
   module ClientExt
     # get decoded metadata at block_hash
     def get_metadata(block_hash = nil)
       block_hash ||= chain_getHead
       metadata_hex = state_getMetadata(block_hash)
-      ScaleRb::Metadata.decode_metadata(metadata_hex.strip._to_bytes)
+      ScaleRb::Metadata.decode_metadata(Utils.hex_to_u8a(metadata_hex.strip))
     end
 
     # Get decoded storage at block_hash
@@ -39,8 +38,8 @@ module ScaleRb
         item[:changes].map do |change|
           storage_key = change[0]
           data = change[1] || default
-          storage = data.nil? ? nil : PortableCodec.decode(type_id, data._to_bytes, registry)[0]
-          { storage_key: storage_key, storage: storage }
+          storage = data.nil? ? nil : PortableCodec.decode(type_id, Utils.hex_to_u8a(data), registry)[0]
+          { storage_key:, storage: }
         end
       end.flatten
     end
@@ -83,7 +82,7 @@ module ScaleRb
     #   'System',
     #   'Account',
     #   key = {
-    #     value: [['0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641'._to_bytes]], # [AccountId]
+    #     value: [[Utils.hex_to_u8a('0x724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641')]], # [AccountId]
     #     type: 0,
     #     hashers: ['Blake2128Concat']
     #   },
@@ -101,7 +100,7 @@ module ScaleRb
       if key
         if key[:value].nil? || key[:value].empty?
           # map, but no key's value provided. get all storages under the partial storage key
-          partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name)._to_hex
+          partial_storage_key = Utils.u8a_to_hex(StorageHelper.encode_storage_key(pallet_name, item_name))
           get_storages_by_partial_key(
             block_hash,
             partial_storage_key,
@@ -111,7 +110,8 @@ module ScaleRb
           )
         elsif key[:value].length != key[:hashers].length
           # map with multi parts, but not have all values
-          partial_storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry)._to_hex
+          partial_storage_key = Utils.u8a_to_hex(StorageHelper.encode_storage_key(pallet_name, item_name, key,
+                                                                                  registry))
           get_storages_by_partial_key(
             block_hash,
             partial_storage_key,
@@ -120,12 +120,12 @@ module ScaleRb
             registry
           )
         else
-          storage_key = StorageHelper.encode_storage_key(pallet_name, item_name, key, registry)._to_hex
+          storage_key = Utils.u8a_to_hex(StorageHelper.encode_storage_key(pallet_name, item_name, key, registry))
           data = state_getStorage(storage_key, block_hash)
           StorageHelper.decode_storage(data, value[:type], value[:modifier] == 'Optional', value[:fallback], registry)
         end
       else
-        storage_key = StorageHelper.encode_storage_key(pallet_name, item_name)._to_hex
+        storage_key = Utils.u8a_to_hex(StorageHelper.encode_storage_key(pallet_name, item_name))
         data = state_getStorage(storage_key, block_hash)
         StorageHelper.decode_storage(data, value[:type], value[:modifier] == 'Optional', value[:fallback], registry)
       end
@@ -152,12 +152,12 @@ module ScaleRb
         if plain
           [
             nil,
-            { type: plain, modifier: modifier, fallback: fallback }
+            { type: plain, modifier:, fallback: }
           ]
         elsif map
           [
             { value: params, type: map._get(:key), hashers: map._get(:hashers) },
-            { type: map._get(:value), modifier: modifier, fallback: fallback }
+            { type: map._get(:value), modifier:, fallback: }
           ]
         else
           raise 'NoSuchStorageType'
@@ -175,11 +175,10 @@ module ScaleRb
       if key.is_a?(Integer)
         key.to_i
       elsif key.is_a?(String) && key.start_with?('0x')
-        key._to_bytes
+        Utils.hex_to_u8a(key)
       else
         key
       end
     end
-
   end
 end

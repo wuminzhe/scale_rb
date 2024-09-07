@@ -3,8 +3,9 @@
 require 'scale_rb/version'
 require 'console'
 
+require 'utils'
+
 # scale codec
-require 'monkey_patching'
 require 'codec'
 require 'portable_codec'
 
