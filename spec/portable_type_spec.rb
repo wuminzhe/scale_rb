@@ -44,25 +44,11 @@ module ScaleRb
         when :Unit
           expect(t).to be_a(ScaleRb::UnitType)
         when :Variant
-
-          case t.variant_kind
-          when :Simple
-            expect(t.variants).to be_a(Array)
-            t.variants.each do |v|
-              expect(v).to be_a(ScaleRb::SimpleVariant)
-            end
-          when :Tuple
-            expect(t.variants).to be_a(Array)
-            t.variants.each do |v|
-              expect(v).to be_a(ScaleRb::TupleVariant)
-            end
-          when :Struct
-            expect(t.variants).to be_a(Array)
-            t.variants.each do |v|
-              expect(v).to be_a(ScaleRb::StructVariant)
-            end
-          when :Void
-            expect(t.variants).to be_a(NilClass)
+          expect(t.variants).to be_a(Array)
+          p "-------------------"
+          t.variants.each do |v|
+            p v
+            expect([ScaleRb::SimpleVariant, ScaleRb::TupleVariant, ScaleRb::StructVariant]).to include(v.class)
           end
 
         end

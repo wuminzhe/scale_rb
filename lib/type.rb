@@ -52,32 +52,29 @@ module ScaleRb
         )
       when :variant
         variants = type_def._get(:variants)
-        first_variant = variants.first
-        return ScaleRb::VariantType.new([]) if first_variant.nil? # sp_core::Void
+        return ScaleRb::VariantType.new([]) if variants.empty?
 
-        fields_of_first_variant = first_variant._get(:fields)
-        first_field_of_first_variant = fields_of_first_variant.first
-        variant_list = 
-          case first_field_of_first_variant
-          when nil
-            variants.map { |v| ScaleRb::SimpleVariant.new(v._get(:name), v._get(:index)) } 
+        variant_list = variants.map do |v|
+          fields = v._get(:fields)
+          if fields.empty?
+            ScaleRb::SimpleVariant.new(v._get(:name), v._get(:index))
           else
-            case first_field_of_first_variant._get(:name)
-            when nil
-              variants.map do |v|
-                fields = v._get(:fields)
-                types = fields.map { |f| f._get(:type) }
-                TupleVariant.new(v._get(:name), v._get(:index), types)
-              end
+            first_field_name = fields.first._get(:name)
+            if first_field_name.nil?
+              ScaleRb::TupleVariant.new(
+                v._get(:name),
+                v._get(:index),
+                fields.map { |f| f._get(:type) }
+              )
             else
-              variants.map do |v|
-                fields = v._get(:fields)
-                fields = fields.map { |f| Field.new(f._get(:name), f._get(:type)) }
-                StructVariant.new(v._get(:name), v._get(:index), fields)
-              end
+              ScaleRb::StructVariant.new(
+                v._get(:name),
+                v._get(:index),
+                fields.map { |f| Field.new(f._get(:name), f._get(:type)) }
+              )
             end
           end
-
+        end
         return ScaleRb::VariantType.new(variant_list)
       end
     end
@@ -198,6 +195,7 @@ module ScaleRb
     end
   end
 
+
   class SimpleVariant
     # - name :: String
     attr_reader :name
@@ -244,30 +242,13 @@ module ScaleRb
   end
 
   class VariantType < Base
-    # - variant_kind: :Simple | :Tuple | :Struct | :Void
-    attr_reader :variant_kind
-
-    # - variants :: [SimpleVariant | TupleVariant | StructVariant] | NilClass
+    # - variants :: [(SimpleVariant | TupleVariant | StructVariant)]
     attr_reader :variants
 
-    # - initialize :: SimpleVariantType | TupleVariantType | StructVariantType -> void
+    # - initialize :: [(SimpleVariant | TupleVariant | StructVariant)] -> void
     def initialize(variants)
       @kind = :Variant
       @variants = variants
-
-      if variants.nil? || variants.empty?
-        @variant_kind = :Void
-        @variants = nil
-      else
-        case variants.first
-        when SimpleVariant
-          @variant_kind = :Simple
-        when TupleVariant
-          @variant_kind = :Tuple
-        when StructVariant
-          @variant_kind = :Struct
-        end
-      end
     end
   end
 
