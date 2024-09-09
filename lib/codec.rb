@@ -106,7 +106,7 @@ module ScaleRb
   # Decode
   class << self
     def decode(type, bytes, registry = {})
-      bytes = ScaleRb.Utils.hex_to_u8a(bytes) if bytes.is_a?(::String)
+      bytes = ScaleRb::Utils.hex_to_u8a(bytes) if bytes.is_a?(::String)
 
       if type.is_a?(String)
         return decode_bytes(bytes) if bytes?(type) # Bytes

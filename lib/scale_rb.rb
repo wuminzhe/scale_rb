@@ -6,8 +6,9 @@ require 'console'
 require 'utils'
 
 # scale codec
+require 'type'
 require 'codec'
-require 'portable_codec'
+
 
 # metadata types, decoding and helpers
 require 'metadata/metadata_v9'

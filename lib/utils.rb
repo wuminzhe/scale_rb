@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
 class Hash
+  # :: String | Symbol -> Boolean
   def _key?(key)
     ScaleRb::Utils.key?(self, key)
   end
 
+  # :: *(String | Symbol) -> Object | NilClass
   def _get(*keys)
     ScaleRb::Utils.get(self, *keys)
   end
