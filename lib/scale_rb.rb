@@ -6,8 +6,10 @@ require 'console'
 require 'utils'
 
 # scale codec
-require 'type'
+require 'types'
 require 'codec'
+
+require 'scale_rb/codec'
 
 
 # metadata types, decoding and helpers

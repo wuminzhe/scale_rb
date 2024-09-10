@@ -74,7 +74,7 @@ module ScaleRb
         end
       end
 
-      # % _u8? :: Ti -> Array<PortableType> -> Bool
+      # _u8? :: Ti -> Array<PortableType> -> Bool
       def _u8?(type_id, registry)
         type = registry[type_id]
         raise TypeNotFound, "id: #{type_id}" if type.nil?
@@ -123,7 +123,7 @@ module ScaleRb
         end
       end
 
-      # % _decode_types :: Array<Ti> -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
+      # _decode_types :: Array<Ti> -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
       def _decode_types(ids, bytes, registry = {})
         remaining_bytes = bytes
         values = ids.map do |id|
