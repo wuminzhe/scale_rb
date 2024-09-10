@@ -2,7 +2,7 @@
 
 module ScaleRb
   class << self
-    # - build_types :: [Object] -> [PortableType]
+    # % build_types :: [Hash] -> [PortableType]
     def build_types(data)
       data.map.with_index do |type, i|
         id = type._get(:id)
@@ -17,7 +17,7 @@ module ScaleRb
       end
     end
 
-    private 
+    private
 
     def _build_type(type_name, type_def)
       case type_name
@@ -80,129 +80,116 @@ module ScaleRb
     end
   end
 
-  # - type Ti = Integer
-  # - type Primitive = 'I8' | 'U8' | 'I16' | 'U16' | 'I32' | 'U32' | 'I64' | 'U64' | 'I128' | 'U128' | 'I256' | 'U256' | 'Bool' | 'Str' | 'Char'
-  # - type PortableType = PrimitiveType | CompactType | SequenceType | BitSequenceType | ArrayType | TupleType | CompositeType | VariantType
+  # % type Ti = Integer
+  # % type Primitive = 'I8' | 'U8' | 'I16' | 'U16' | 'I32' | 'U32' | 'I64' | 'U64' | 'I128' | 'U128' | 'I256' | 'U256' | 'Bool' | 'Str' | 'Char'
+  # % type PortableType = PrimitiveType | CompactType | SequenceType | BitSequenceType | ArrayType | TupleType | CompositeType | VariantType
 
-  class Base
-    # - kind :: Symbol
-    attr_reader :kind
-  end
-
-  class PrimitiveType < Base
-    # - primitve :: Primitive
+  class PrimitiveType
+    # % primitve :: Primitive
     attr_reader :primitive
 
-    # - initialize :: Primitive -> void
+    # % initialize :: Primitive -> void
     def initialize(primitive)
-      @kind = :Primitive
       @primitive = primitive
     end
   end
 
-  class CompactType < Base
-    # - type :: Ti
+  class CompactType
+    # % type :: Ti
     attr_reader :type
 
-    # - initialize :: Ti -> void
+    # % initialize :: Ti -> void
     def initialize(type)
-      @kind = :Compact
       @type = type
     end
   end
 
-  class SequenceType < Base
-    # - type :: Ti
+  class SequenceType
+    # % type :: Ti
     attr_reader :type
 
-    # - initialize :: Ti -> void
+    # % initialize :: Ti -> void
     def initialize(type)
-      @kind = :Sequence
       @type = type
     end
   end
 
-  class BitSequenceType < Base
-    # - bit_store_type :: Ti
+  class BitSequenceType
+    # % bit_store_type :: Ti
     attr_reader :bit_store_type
 
-    # - bit_order_type :: Ti
+    # % bit_order_type :: Ti
     attr_reader :bit_order_type
 
-    # - initialize :: Ti -> Ti -> void
+    # % initialize :: Ti -> Ti -> void
     def initialize(bit_store_type, bit_order_type)
-      @kind = :BitSequence
       @bit_store_type = bit_store_type
       @bit_order_type = bit_order_type
     end
   end
 
-  class ArrayType < Base
-    # :: Integer
+  class ArrayType
+    # % len :: Integer
     attr_reader :len
 
-    # :: Ti
+    # % type :: Ti
     attr_reader :type
 
-    # - initialize :: Integer -> Ti -> void
+    # % initialize :: Integer -> Ti -> void
     def initialize(len, type)
-      @kind = :Array
       @len = len
       @type = type
     end
   end
 
-  class TupleType < Base
-    # :: [Ti]
+  class TupleType
+    # % tuple :: [Ti]
     attr_reader :tuple
 
-    # - initialize :: [Ti] -> void
+    # % initialize :: [Ti] -> void
     def initialize(tuple)
-      @kind = :Tuple
       @tuple = tuple
     end
   end
 
   class Field
-    # :: String
+    # % name :: String
     attr_reader :name
 
-    # :: Ti
+    # % type :: Ti
     attr_reader :type
 
-    # - initialize :: String -> Ti -> void
+    # % initialize :: String -> Ti -> void
     def initialize(name, type)
       @name = name
       @type = type
     end
   end
 
-  class CompositeType < Base
-    # :: [Field]
+  class CompositeType
+    # % fields :: [Field]
     attr_reader :fields
 
-    # - initialize :: [Field] -> void
+    # % initialize :: [Field] -> void
     def initialize(fields)
-      @kind = :Composite
       @fields = fields
     end
   end
 
-  class UnitType < Base
-    # - initialize :: void
+  class UnitType
+    # % initialize :: void
     def initialize
-      @kind = :Unit
     end
   end
 
 
   class SimpleVariant
-    # - name :: String
+    # % name :: String
     attr_reader :name
-    # - index :: Integer
+    # % index :: Integer
     attr_reader :index
 
-    # - initialize :: String -> Integer -> void
+    # % initialize :: String -> Integer -> void
     def initialize(name, index)
       @name = name
       @index = index
@@ -210,14 +197,14 @@ module ScaleRb
   end
 
   class TupleVariant
-    # - name :: String
+    # % name :: String
     attr_reader :name
-    # - index :: Integer
+    # % index :: Integer
     attr_reader :index
-    # - types :: [Ti]
+    # % types :: [Ti]
     attr_reader :types
 
-    # - initialize :: String -> Integer -> [Ti] -> void
+    # % initialize :: String -> Integer -> [Ti] -> void
     def initialize(name, index, types)
       @name = name
       @index = index
@@ -226,14 +213,14 @@ module ScaleRb
   end
 
   class StructVariant
-    # - name :: String
+    # % name :: String
     attr_reader :name
-    # - index :: Integer
+    # % index :: Integer
     attr_reader :index
-    # - fields :: [Field]
+    # % fields :: [Field]
     attr_reader :fields
 
-    # - initialize :: String -> Integer -> [Field] -> void
+    # % initialize :: String -> Integer -> [Field] -> void
     def initialize(name, index, fields)
       @name = name
       @index = index
@@ -241,13 +228,12 @@ module ScaleRb
     end
   end
 
-  class VariantType < Base
-    # - variants :: [(SimpleVariant | TupleVariant | StructVariant)]
+  class VariantType
+    # % variants :: [(SimpleVariant | TupleVariant | StructVariant)]
     attr_reader :variants
 
-    # - initialize :: [(SimpleVariant | TupleVariant | StructVariant)] -> void
+    # % initialize :: [(SimpleVariant | TupleVariant | StructVariant)] -> void
     def initialize(variants)
-      @kind = :Variant
       @variants = variants
     end
   end
