@@ -2,7 +2,7 @@
 
 module ScaleRb
   class << self
-    # % build_types :: [Hash] -> [PortableType]
+    # % build_types :: Array<Hash> -> Array<PortableType>
     def build_types(data)
       data.map.with_index do |type, i|
         id = type._get(:id)
@@ -45,7 +45,7 @@ module ScaleRb
 
         return ScaleRb::UnitType.new unless first_field
         return ScaleRb::TupleType.new(fields.map { |f| f._get(:type) }) unless first_field._get(:name)
-        return ScaleRb::CompositeType.new(
+        return ScaleRb::StructType.new(
           fields.map do |f|
             Field.new(f._get(:name), f._get(:type))
           end
@@ -81,8 +81,11 @@ module ScaleRb
   end
 
   # % type Ti = Integer
+  # % type U8 = 0 | 1 | .. | 255
+  # % type U8Array = Array<U8>
+  # % type Hex = `0x${String}`;
   # % type Primitive = 'I8' | 'U8' | 'I16' | 'U16' | 'I32' | 'U32' | 'I64' | 'U64' | 'I128' | 'U128' | 'I256' | 'U256' | 'Bool' | 'Str' | 'Char'
-  # % type PortableType = PrimitiveType | CompactType | SequenceType | BitSequenceType | ArrayType | TupleType | CompositeType | VariantType
+  # % type PortableType = PrimitiveType | CompactType | SequenceType | BitSequenceType | ArrayType | TupleType | StructType | VariantType
 
   class PrimitiveType
     # % primitve :: Primitive
@@ -143,10 +146,10 @@ module ScaleRb
   end
 
   class TupleType
-    # % tuple :: [Ti]
+    # % tuple :: Array<Ti>
     attr_reader :tuple
 
-    # % initialize :: [Ti] -> void
+    # % initialize :: Array<Ti> -> void
     def initialize(tuple)
       @tuple = tuple
     end
@@ -166,11 +169,11 @@ module ScaleRb
     end
   end
 
-  class CompositeType
-    # % fields :: [Field]
+  class StructType
+    # % fields :: Array<Field>
     attr_reader :fields
 
-    # % initialize :: [Field] -> void
+    # % initialize :: Array<Field> -> void
     def initialize(fields)
       @fields = fields
     end
@@ -201,14 +204,14 @@ module ScaleRb
     attr_reader :name
     # % index :: Integer
     attr_reader :index
-    # % types :: [Ti]
-    attr_reader :types
+    # % tuple :: TupleType
+    attr_reader :tuple
 
-    # % initialize :: String -> Integer -> [Ti] -> void
+    # % initialize :: String -> Integer -> Array<Ti> -> void
     def initialize(name, index, types)
       @name = name
       @index = index
-      @types = types
+      @tuple = TupleType.new(types)
     end
   end
 
@@ -217,22 +220,22 @@ module ScaleRb
     attr_reader :name
     # % index :: Integer
     attr_reader :index
-    # % fields :: [Field]
-    attr_reader :fields
+    # % struct :: StructType
+    attr_reader :struct
 
-    # % initialize :: String -> Integer -> [Field] -> void
+    # % initialize :: String -> Integer -> Array<Field> -> void
     def initialize(name, index, fields)
       @name = name
       @index = index
-      @fields = fields
+      @struct = StructType.new(fields)
     end
   end
 
   class VariantType
-    # % variants :: [(SimpleVariant | TupleVariant | StructVariant)]
+    # % variants :: Array<(SimpleVariant | TupleVariant | StructVariant)>
     attr_reader :variants
 
-    # % initialize :: [(SimpleVariant | TupleVariant | StructVariant)] -> void
+    # % initialize :: Array<(SimpleVariant | TupleVariant | StructVariant)> -> void
     def initialize(variants)
       @variants = variants
     end

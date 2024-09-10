@@ -136,6 +136,7 @@ module ScaleRb
       [Utils.u8a_to_hex(remaining_bytes[0...length]), remaining_bytes[length..]]
     end
 
+    # % decode_boolean :: U8Array -> (Boolean, U8Array)
     def decode_boolean(bytes)
       value = case bytes[0]
               when 0x00 then false
@@ -178,6 +179,7 @@ module ScaleRb
       ]
     end
 
+    # % decode_compact :: U8Array -> (Any, U8Array)
     def decode_compact(bytes)
       _do_decode_compact(bytes)
       # debug 'value', result[0]

@@ -22,63 +22,46 @@ module ScaleRb
     end
 
     class << self
-      # registry:
-      #   [
-      #     {
-      #       id: type_id,
-      #       path: [...],
-      #       params: [...],
-      #       def: {
-      #         primitive: 'u8' | array: {} | ...
-      #       }
-      #     },
-      #     {
-      #       id: type_id,
-      #       ...
-      #     }
-      #     ...
-      #   ]
+      # % decode :: Ti -> U8Array | Hex -> Array<PortableType> -> (Any, U8Array)
       def decode(id, bytes, registry)
         type = registry[id]
         raise TypeNotFound, "id: #{id}" if type.nil?
 
+        # convert hex string to u8 array
         bytes = ScaleRb::Utils.hex_to_u8a(bytes) if bytes.is_a?(::String)
 
-        # type_def = type._get(:type, :def)
-        case type.kind
-        when 'Primitive' then decode_primitive(type, bytes)
+        case type
+        when ScaleRb::PrimitiveType then decode_primitive(type, bytes)
+        when ScaleRb::CompactType then decode_compact(bytes)
+        when ScaleRb::ArrayType then decode_array(type, bytes, registry)
+        when ScaleRb::SequenceType then decode_sequence(type, bytes, registry)
+        when ScaleRb::TupleType then decode_tuple(type, bytes, registry)
+        when ScaleRb::StructType then decode_struct(type, bytes, registry)
+        when ScaleRb::VariantType then decode_variant(type, bytes, registry)
+        else raise TypeNotImplemented, "id: #{id}, type: #{type}"
         end
-
-        return decode_primitive(type_def, bytes) if Utils.keys?(type_def, :primitive)
-        return decode_compact(bytes) if Utils.keys?(type_def, :compact)
-        return decode_array(type_def._get(:array), bytes, registry) if Utils.keys?(type_def, :array)
-        return decode_sequence(type_def._get(:sequence), bytes, registry) if Utils.keys?(type_def, :sequence)
-        return decode_tuple(type_def._get(:tuple), bytes, registry) if Utils.keys?(type_def, :tuple)
-        return decode_composite(type_def._get(:composite), bytes, registry) if Utils.keys?(type_def, :composite)
-        return decode_variant(type_def._get(:variant), bytes, registry) if Utils.keys?(type_def, :variant)
-
-        raise TypeNotImplemented, "id: #{id}"
       end
 
-      # Uint, Str, Bool
-      # Int, Bytes ?
-      def decode_primitive(type_def, bytes)
-        primitive = type_def._get(:primitive)
-        return ScaleRb.decode_uint(primitive, bytes) if ScaleRb.uint?(primitive)
-        return ScaleRb.decode_string(bytes) if ScaleRb.string?(primitive)
+      # % decode_primitive :: PrimitiveType -> U8Array -> (Any, U8Array)
+      def decode_primitive(type, bytes)
+        primitive = type.primitive
+        return ScaleRb.decode_uint(primitive, bytes) if primitive.start_with?('U')
+        return ScaleRb.decode_int(primitive, bytes) if primitive.start_with?('I')
+        return ScaleRb.decode_string(bytes) if type.primitive == 'Str'
+        return ScaleRb.decode_boolean(bytes) if type.primitive == 'Bool'
 
-        ScaleRb.decode_boolean(bytes) if ScaleRb.boolean?(primitive)
-        # return ScaleRb.decode_int(primitive, bytes) if int?(primitive)
-        # return ScaleRb.decode_bytes(bytes) if bytes?(primitive)
+        raise TypeNotImplemented, "primitive: #{primitive}"
       end
 
+      # % decode_compact :: U8Array -> (Any, U8Array)
       def decode_compact(bytes)
         ScaleRb.decode_compact(bytes)
       end
 
-      def decode_array(array_type, bytes, registry)
-        len = array_type._get(:len)
-        inner_type_id = array_type._get(:type)
+      # % decode_array :: ArrayType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
+      def decode_array(type, bytes, registry)
+        len = type.len
+        inner_type_id = type.type
 
         # check if the type of inner_type_id is a u8
         if _u8?(inner_type_id, registry)
@@ -91,67 +74,56 @@ module ScaleRb
         end
       end
 
+      # % _u8? :: Ti -> Array<PortableType> -> Bool
       def _u8?(type_id, registry)
         type = registry[type_id]
         raise TypeNotFound, "id: #{type_id}" if type.nil?
 
-        type._get(:type, :def)._get(:primitive)&.downcase == 'u8'
+        type.is_a?(ScaleRb::PrimitiveType) && type.primitive == 'U8'
       end
 
+      # % decode_sequence :: SequenceType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
       def decode_sequence(sequence_type, bytes, registry)
         len, remaining_bytes = decode_compact(bytes)
-        inner_type_id = sequence_type._get(:type)
-        _decode_types([inner_type_id] * len, remaining_bytes, registry)
+        _decode_types([sequence_type.type] * len, remaining_bytes, registry)
       end
 
+      # % decode_tuple :: TupleType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
       def decode_tuple(tuple_type, bytes, registry)
         _decode_types(tuple_type, bytes, registry)
       end
 
-      # {
-      #   name: value,
-      #   ...
-      # }
-      def decode_composite(composite_type, bytes, registry)
-        fields = composite_type._get(:fields)
+      # % decode_struct :: StructType -> U8Array -> Array<PortableType> -> (Hash<Symbol, Any>, U8Array)
+      def decode_struct(struct_type, bytes, registry)
+        fields = struct_type.fields
 
-        # reduce composite level when composite only has one field without name
-        if fields.length == 1 && fields.first._get(:name).nil?
-          decode(fields.first._get(:type), bytes, registry)
-        else
-          type_name_list = fields.map { |f| f._get(:name) }
-          type_id_list = fields.map { |f| f._get(:type) }
+        names = fields.map { |f| f.name.to_sym }
+        type_ids = fields.map(&:type)
 
-          type_value_list, remaining_bytes = _decode_types(type_id_list, bytes, registry)
-          [
-            if type_name_list.all?(&:nil?)
-              type_value_list
-            else
-              [type_name_list.map(&:to_sym), type_value_list].transpose.to_h
-            end,
-            remaining_bytes
-          ]
-        end
+        values, remaining_bytes = _decode_types(type_ids, bytes, registry)
+        [
+          [names, values].transpose.to_h
+          remaining_bytes
+        ]
       end
 
+      # % decode_variant :: VariantType -> U8Array -> Array<PortableType> -> (Any, U8Array)
       def decode_variant(variant_type, bytes, registry)
-        variants = variant_type._get(:variants)
+        # find the variant by the index
+        index = bytes[0].to_i
+        variant = variant_type.variants.find { |v| v.index == index }
+        raise VariantIndexOutOfRange, "type: #{variant_type}, index: #{index}, bytes: #{bytes}" if variant.nil?
 
-        index = bytes[0].to_i # TODO: check
-        item = variants.find { |v| v._get(:index) == index } # item is an composite
-
-        raise VariantIndexOutOfRange, "type: #{variant_type}, index: #{index}, bytes: #{bytes}" if item.nil?
-
-        item_name = item._get(:name)
-        item_fields = item._get(:fields)
-        if item_fields.empty?
-          [item_name, bytes[1..]]
-        else
-          item_value, remaining_bytes = decode_composite(item, bytes[1..], registry)
-          [{ item_name.to_sym => item_value }, remaining_bytes]
+        # decode the variant
+        case variant
+        when ScaleRb::SimpleVariant then [variant.name, bytes[1..]]
+        when ScaleRb::TupleVariant then decode_tuple(variant.tuple, bytes[1..], registry)
+        when ScaleRb::StructVariant then decode_struct(variant.struct, bytes[1..], registry)
+        else raise "Unreachable"
         end
       end
 
+      # % _decode_types :: Array<Ti> -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
       def _decode_types(ids, bytes, registry = {})
         remaining_bytes = bytes
         values = ids.map do |id|
