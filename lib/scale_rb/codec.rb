@@ -15,4 +15,4 @@ module ScaleRb
 end
 
 require_relative 'codec/decode'
-# require_relative 'codec/encode'
+require_relative 'codec/encode'

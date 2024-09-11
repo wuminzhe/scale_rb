@@ -4,7 +4,7 @@ require 'scale_rb'
 require 'json'
 
 module ScaleRb
-  RSpec.describe "Type" do
+  RSpec.describe "Decoding Tests" do
 
     before(:all) do
       # hex = File.read("./spec/assets/substrate-metadata-v14-hex").strip
@@ -18,31 +18,32 @@ module ScaleRb
       @kusama_types = ScaleRb.build_types(data)
     end
 
-    it 'can decode fixed uint' do
+    it 'should decode uint' do
       value, remaining_bytes = ScaleRb::Codec.decode 2, [0x45], @types
       expect(value).to eql(69)
       expect(remaining_bytes).to eql([])
     end
 
-    it 'can decode array' do
+    it 'should decode array' do
       value, remaining_bytes = ScaleRb::Codec.decode 1, [0x12, 0x34, 0x56, 0x78] * 8 + [0x78], @types
       expect(value).to eql('0x1234567812345678123456781234567812345678123456781234567812345678')
       expect(remaining_bytes).to eql([0x78])
     end
 
-    it 'can decode sequence' do
+    it 'should decode sequence' do
       value, remaining_bytes = ScaleRb::Codec.decode 11, '0x0c003afe', @types
       expect(value).to eql([0, 58, 254])
       expect(remaining_bytes).to eql([])
     end
 
-    it 'can decode composite 0' do
+    it 'should decode a composite which only has one item without a name' do
+      # ([u8; 32])
       value, remaining_bytes = ScaleRb::Codec.decode 0, [0x12, 0x34, 0x56, 0x78] * 8, @types
       expect(value).to eql('0x1234567812345678123456781234567812345678123456781234567812345678')
       expect(remaining_bytes).to eql([])
     end
 
-    it 'can decode composite 1' do
+    it 'should decode composite 1' do
       bytes = [0x00, 0xe4, 0x0b, 0x54, 0x03, 0x00, 0x00, 0x00]
       value, = ScaleRb::Codec.decode 8, bytes, @types
       expect(
@@ -54,7 +55,7 @@ module ScaleRb
       )
     end
 
-    it 'can decode composite 2' do
+    it 'should decode composite 2' do
       bytes = '0x'\
         '05000000000000000100000000000000142ba3d4e80000000000000000000000'\
         '0000000000000000000000000000000000000000000000000000000000000000'\
@@ -78,7 +79,7 @@ module ScaleRb
       )
     end
 
-    it 'can decode composite4' do
+    it 'should decode composite4' do
       bytes = '0x'\
         '020406010700f2052a017d01260000400d030000000000000000000000000000'\
         '00000000000000000000000000000001004617d470f847ce166019d19a794404'\
@@ -107,7 +108,7 @@ module ScaleRb
       expect(value).to eql(expect)
     end
 
-    it 'can decode unit' do
+    it 'should decode unit' do
       value, = ScaleRb::Codec.decode 161, [], @types
       expect(value).to eql([])
     end

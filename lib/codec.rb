@@ -276,13 +276,15 @@ module ScaleRb
       encode_compact(value.length) + value
     end
 
+    # % encode_boolean :: Boolean -> U8Array
     def encode_boolean(value)
       return [0x00] if value == false
       return [0x01] if value == true
 
-      raise InvalidValueError, "type: Boolean, value: #{value.inspect}"
+      raise InvalidValueError, "type: Bool, value: #{value.inspect}"
     end
 
+    # % encode_string :: String -> U8Array
     def encode_string(string)
       body = string.unpack('C*')
       encode_compact(body.length) + body
@@ -297,11 +299,21 @@ module ScaleRb
       [(((bytes.length - 4) << 2) + 3)] + bytes
     end
 
+    # % encode_uint :: `U${Integer}` -> Any -> U8Array
     def encode_uint(type, value)
       raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(Integer)
 
       bit_length = type[1..].to_i
       Utils.int_to_u8a(value, bit_length).reverse
+    end
+
+    # % encode_int :: `I${Integer}` -> Any -> U8Array
+    def encode_int(type, value)
+      raise NotImplemented, 'encode_int'
+      # raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(Integer)
+      #
+      # bit_length = type[1..].to_i
+      # Utils.int_to_u8a(value, bit_length).reverse
     end
 
     def encode_option(type, value, registry = {})
