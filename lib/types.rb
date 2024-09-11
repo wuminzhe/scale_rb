@@ -43,7 +43,7 @@ module ScaleRb
         fields = type_def._get(:fields)
         first_field = fields.first
 
-        return ScaleRb::UnitType.new unless first_field
+        return ScaleRb::UnitType.new unless first_field # no fields
         return ScaleRb::TupleType.new(fields.map { |f| f._get(:type) }) unless first_field._get(:name)
         return ScaleRb::StructType.new(
           fields.map do |f|
@@ -57,18 +57,17 @@ module ScaleRb
         variant_list = variants.map do |v|
           fields = v._get(:fields)
           if fields.empty?
-            ScaleRb::SimpleVariant.new(v._get(:name), v._get(:index))
+            ScaleRb::SimpleVariant.new(v._get(:name).to_sym, v._get(:index))
           else
-            first_field_name = fields.first._get(:name)
-            if first_field_name.nil?
+            if fields.first._get(:name).nil?
               ScaleRb::TupleVariant.new(
-                v._get(:name),
+                v._get(:name).to_sym,
                 v._get(:index),
                 fields.map { |f| f._get(:type) }
               )
             else
               ScaleRb::StructVariant.new(
-                v._get(:name),
+                v._get(:name).to_sym,
                 v._get(:index),
                 fields.map { |f| Field.new(f._get(:name), f._get(:type)) }
               )
@@ -88,7 +87,7 @@ module ScaleRb
   # % type PortableType = PrimitiveType | CompactType | SequenceType | BitSequenceType | ArrayType | TupleType | StructType | VariantType
 
   class PrimitiveType
-    # % primitve :: Primitive
+    # % primitive :: Primitive
     attr_reader :primitive
 
     # % initialize :: Primitive -> void
@@ -187,12 +186,12 @@ module ScaleRb
 
 
   class SimpleVariant
-    # % name :: String
+    # % name :: Symbol
     attr_reader :name
     # % index :: Integer
     attr_reader :index
 
-    # % initialize :: String -> Integer -> void
+    # % initialize :: Symbol -> Integer -> void
     def initialize(name, index)
       @name = name
       @index = index
@@ -200,14 +199,14 @@ module ScaleRb
   end
 
   class TupleVariant
-    # % name :: String
+    # % name :: Symbol
     attr_reader :name
     # % index :: Integer
     attr_reader :index
     # % tuple :: TupleType
     attr_reader :tuple
 
-    # % initialize :: String -> Integer -> Array<Ti> -> void
+    # % initialize :: Symbol -> Integer -> Array<Ti> -> void
     def initialize(name, index, types)
       @name = name
       @index = index
@@ -216,14 +215,14 @@ module ScaleRb
   end
 
   class StructVariant
-    # % name :: String
+    # % name :: Symbol
     attr_reader :name
     # % index :: Integer
     attr_reader :index
     # % struct :: StructType
     attr_reader :struct
 
-    # % initialize :: String -> Integer -> Array<Field> -> void
+    # % initialize :: Symbol -> Integer -> Array<Field> -> void
     def initialize(name, index, fields)
       @name = name
       @index = index

@@ -29,10 +29,10 @@ module ScaleRb
         primitive = type.primitive
         return ScaleRb.decode_uint(primitive, bytes) if primitive.start_with?('U')
         return ScaleRb.decode_int(primitive, bytes) if primitive.start_with?('I')
-        return ScaleRb.decode_string(bytes) if type.primitive == 'Str'
-        return ScaleRb.decode_boolean(bytes) if type.primitive == 'Bool'
+        return ScaleRb.decode_string(bytes) if primitive == 'Str'
+        return ScaleRb.decode_boolean(bytes) if primitive == 'Bool'
 
-        raise TypeNotImplemented, "primitive: #{primitive}"
+        raise TypeNotImplemented, "decoding primitive: #{primitive}"
       end
 
       # % decode_compact :: U8Array -> (Any, U8Array)
@@ -90,7 +90,7 @@ module ScaleRb
         ]
       end
 
-      # % decode_variant :: VariantType -> U8Array -> Array<PortableType> -> (Any, U8Array)
+      # % decode_variant :: VariantType -> U8Array -> Array<PortableType> -> (Symbol | Hash<Symbol, Any>, U8Array)
       def decode_variant(variant_type, bytes, registry)
         # find the variant by the index
         index = bytes[0].to_i
@@ -107,13 +107,13 @@ module ScaleRb
         when ScaleRb::TupleVariant
           value, remainning_bytes = decode_tuple(variant.tuple, bytes[1..] , registry)
           [
-            { variant.name.to_sym => value },
+            { variant.name => value },
             remainning_bytes
           ]
         when ScaleRb::StructVariant then 
           value, remainning_bytes = decode_struct(variant.struct, bytes[1..], registry)
           [
-            { variant.name.to_sym => value },
+            { variant.name => value },
             remainning_bytes
           ]
         else raise "Unreachable"

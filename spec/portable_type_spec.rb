@@ -90,7 +90,7 @@ module ScaleRb
           V2: [
             {
               Transact: {
-                origin_type: 'SovereignAccount',
+                origin_type: :SovereignAccount,
                 require_weight_at_most: 5_000_000_000,
                 call: {
                   encoded: [
