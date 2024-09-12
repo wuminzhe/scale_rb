@@ -13,6 +13,8 @@ module ScaleRb
         [value, []]
       )
 
+      p value
+      p types[ti].inspect
       expect(
         ScaleRb::Codec.encode(ti, value, types)
       ).to eql(
@@ -50,7 +52,7 @@ module ScaleRb
       test(
         0,
         [0x12, 0x34, 0x56, 0x78] * 8,
-        [ScaleRb::Utils.hex_to_u8a('0x1234567812345678123456781234567812345678123456781234567812345678')],
+        ScaleRb::Utils.hex_to_u8a('0x1234567812345678123456781234567812345678123456781234567812345678'),
         @types
       )
     end
@@ -104,22 +106,18 @@ module ScaleRb
 
       value = {
         V2: [
-          [
-            [
-              {
-                Transact: {
-                  origin_type: :SovereignAccount,
-                  require_weight_at_most: 5_000_000_000,
-                  call: {
-                    encoded: [
-                      38, 0, 0, 64, 13, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      0, 0, 0, 0, 0, 0, 1, 0, 70, 23, 212, 112, 248, 71, 206, 22, 96, 25, 209, 154, 121, 68, 4, 158, 187, 1, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 25, 255, 29, 33, 0
-                    ]
-                  }
-                }
+          {
+            Transact: {
+              origin_type: :SovereignAccount,
+              require_weight_at_most: 5_000_000_000,
+              call: {
+                encoded: [
+                  38, 0, 0, 64, 13, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 1, 0, 70, 23, 212, 112, 248, 71, 206, 22, 96, 25, 209, 154, 121, 68, 4, 158, 187, 1, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 25, 255, 29, 33, 0
+                ]
               }
-            ]
-          ]
+            }
+          }
         ]
       }
 
@@ -141,7 +139,7 @@ module ScaleRb
 
     it 'can decode tuple variant' do
       bytes = ScaleRb::Utils.hex_to_u8a('0x0200300422')
-      value = { X2: [{ Parachain: [12] }, { PalletInstance: [34] }] }
+      value = { X2: [{ Parachain: 12 }, { PalletInstance: 34 }] }
       test(125, bytes, value, @kusama_types)
     end
 
@@ -151,53 +149,52 @@ module ScaleRb
       )
 
       value = {
-        V2: [[[
+        V2: [
           {
-            WithdrawAsset: [[[{
+            WithdrawAsset: [{
               id: {
-                Concrete: [{
+                Concrete: {
                   parents: 1,
                   interior: {
                     X2: [
-                      { Parachain: [2105] },
-                      { PalletInstance: [5] }
+                      { Parachain: 2105 },
+                      { PalletInstance: 5 }
                     ]
                   }
-                }]
+                }
               },
               fun: {
-                Fungible: [20_000_000_000_000_000_000]
+                Fungible: 20_000_000_000_000_000_000
               }
-            }]]]
+            }]
           },
           {
             BuyExecution: {
               fees: {
                 id: {
-                  Concrete: [{
+                  Concrete: {
                     parents: 1,
                     interior: {
                       X2: [
-                        { Parachain: [2105] },
-                        { PalletInstance: [5] }
+                        { Parachain: 2105 },
+                        { PalletInstance: 5 }
                       ]
                     }
-                  }]
+                  }
                 },
-                fun: {
-                  Fungible: [20_000_000_000_000_000_000]
-                }
+                fun: { Fungible: 20_000_000_000_000_000_000 }
               },
               weight_limit: :Unlimited
             }
-          }, {
+          },
+          {
             Transact: {
               origin_type: :SovereignAccount,
               require_weight_at_most: 5_000_000_000,
               call: { encoded: [10, 7, 12, 49, 50, 51] }
             }
           }
-        ]]]
+        ]
       }
 
       test 542, bytes, value, @kusama_types

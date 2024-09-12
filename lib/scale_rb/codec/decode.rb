@@ -64,7 +64,15 @@ module ScaleRb
       def decode_tuple(tuple_type, bytes, registry)
         ScaleRb.logger.debug("Decoding tuple: #{tuple_type}, bytes: #{bytes}")
 
-        _decode_types(tuple_type.tuple, bytes, registry)
+        type_ids = tuple_type.tuple
+
+        # NOTE: If the tuple has only one element, decode that element directly.
+        # This is to make the structure of the decoded result clear.
+        if type_ids.length == 1
+          decode(type_ids.first, bytes, registry)
+        else
+          _decode_types(type_ids, bytes, registry)
+        end
       end
 
       # % decode_struct :: StructType -> U8Array -> Array<PortableType> -> (Hash<Symbol, Any>, U8Array)

@@ -66,7 +66,13 @@ module ScaleRb
       def encode_tuple(tuple_type, value, registry)
         ScaleRb.logger.debug("Encoding tuple: #{tuple_type}, value: #{value}")
 
-        _encode_types(tuple_type.tuple, value, registry)
+        type_ids = tuple_type.tuple
+
+        # For example: if the tuple type is (AccountId32), the value can be a AccountId32
+        # TODO: Check if this is correct
+        value = [value] if type_ids.length == 1
+
+        _encode_types(type_ids, value, registry)
       end
 
       # % encode_struct :: StructType -> Hash<Symbol, Any> -> Array<PortableType> -> U8Array

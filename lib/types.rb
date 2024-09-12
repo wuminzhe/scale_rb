@@ -45,7 +45,8 @@ module ScaleRb
 
         return ScaleRb::UnitType.new unless first_field # no fields
         return ScaleRb::TupleType.new(fields.map { |f| f._get(:type) }) unless first_field._get(:name)
-        return ScaleRb::StructType.new(
+
+        ScaleRb::StructType.new(
           fields.map do |f|
             Field.new(f._get(:name), f._get(:type))
           end
@@ -58,23 +59,21 @@ module ScaleRb
           fields = v._get(:fields)
           if fields.empty?
             ScaleRb::SimpleVariant.new(v._get(:name).to_sym, v._get(:index))
+          elsif fields.first._get(:name).nil?
+            ScaleRb::TupleVariant.new(
+              v._get(:name).to_sym,
+              v._get(:index),
+              fields.map { |f| f._get(:type) }
+            )
           else
-            if fields.first._get(:name).nil?
-              ScaleRb::TupleVariant.new(
-                v._get(:name).to_sym,
-                v._get(:index),
-                fields.map { |f| f._get(:type) }
-              )
-            else
-              ScaleRb::StructVariant.new(
-                v._get(:name).to_sym,
-                v._get(:index),
-                fields.map { |f| Field.new(f._get(:name), f._get(:type)) }
-              )
-            end
+            ScaleRb::StructVariant.new(
+              v._get(:name).to_sym,
+              v._get(:index),
+              fields.map { |f| Field.new(f._get(:name), f._get(:type)) }
+            )
           end
         end
-        return ScaleRb::VariantType.new(variant_list)
+        ScaleRb::VariantType.new(variant_list)
       end
     end
   end
@@ -94,6 +93,10 @@ module ScaleRb
     def initialize(primitive)
       @primitive = primitive
     end
+
+    def to_s
+      @primitive
+    end
   end
 
   class CompactType
@@ -104,6 +107,10 @@ module ScaleRb
     def initialize(type)
       @type = type
     end
+
+    def to_s
+      "Compact<#{@type}>"
+    end
   end
 
   class SequenceType
@@ -113,6 +120,10 @@ module ScaleRb
     # % initialize :: Ti -> void
     def initialize(type)
       @type = type
+    end
+
+    def to_s
+      "[#{@type}]"
     end
   end
 
@@ -128,6 +139,10 @@ module ScaleRb
       @bit_store_type = bit_store_type
       @bit_order_type = bit_order_type
     end
+
+    def to_s
+      "BitSequence<#{@bit_store_type}, #{@bit_order_type}>"
+    end
   end
 
   class ArrayType
@@ -142,6 +157,10 @@ module ScaleRb
       @len = len
       @type = type
     end
+
+    def to_s
+      "[#{@type}; #{@len}]"
+    end
   end
 
   class TupleType
@@ -151,6 +170,11 @@ module ScaleRb
     # % initialize :: Array<Ti> -> void
     def initialize(tuple)
       @tuple = tuple
+    end
+
+    def to_s
+      tuple_str = @tuple.map(&:to_s).join(', ')
+      "(#{tuple_str})"
     end
   end
 
@@ -176,14 +200,21 @@ module ScaleRb
     def initialize(fields)
       @fields = fields
     end
+
+    def to_s
+      fields_str = @fields.map { |f| "#{f.name}: #{f.type}" }.join(', ')
+      "{#{fields_str}}"
+    end
   end
 
   class UnitType
     # % initialize :: void
-    def initialize
+    def initialize; end
+
+    def to_s
+      '()'
     end
   end
-
 
   class SimpleVariant
     # % name :: Symbol
@@ -195,6 +226,10 @@ module ScaleRb
     def initialize(name, index)
       @name = name
       @index = index
+    end
+
+    def to_s
+      @name
     end
   end
 
@@ -212,6 +247,10 @@ module ScaleRb
       @index = index
       @tuple = TupleType.new(types)
     end
+
+    def to_s
+      "#{@name}: #{@tuple}"
+    end
   end
 
   class StructVariant
@@ -228,6 +267,10 @@ module ScaleRb
       @index = index
       @struct = StructType.new(fields)
     end
+
+    def to_s
+      "#{@name}: #{@struct}"
+    end
   end
 
   class VariantType
@@ -238,6 +281,9 @@ module ScaleRb
     def initialize(variants)
       @variants = variants
     end
-  end
 
+    def to_s
+      @variants.map(&:to_s).join(' | ')
+    end
+  end
 end
