@@ -4,9 +4,10 @@ module ScaleRb
   module Codec
     class << self
       # % encode :: Ti -> Any -> Array<PortableType> -> U8Array
-      def encode(id, value, registry)
-        type = registry[id]
-        raise TypeNotFound, "id: #{id}" if type.nil?
+      def encode(ti, value, registry)
+        ScaleRb.logger.debug("Encoding #{ti}, value: #{value}")
+        type = registry[ti]
+        raise TypeNotFound, "ti: #{ti}" if type.nil?
 
         case type # type: PortableType
         when ScaleRb::PrimitiveType then encode_primitive(type, value)
@@ -17,13 +18,15 @@ module ScaleRb
         when ScaleRb::StructType then encode_struct(type, value, registry)
         when ScaleRb::UnitType then []
         when ScaleRb::VariantType then encode_variant(type, value, registry)
-        else raise TypeNotImplemented, "encoding id: #{id}, type: #{type}"
+        else raise TypeNotImplemented, "encoding ti: #{ti}, type: #{type}"
         end
       end
 
       # % encode_primitive :: PrimitiveType -> Any -> U8Array
       def encode_primitive(type, value)
         primitive = type.primitive
+        ScaleRb.logger.debug("Encoding primitive: #{primitive}, value: #{value}")
+
         return ScaleRb.encode_uint(primitive, value) if primitive.start_with?('U')
         return ScaleRb.encode_int(primitive, value) if primitive.start_with?('I')
         return ScaleRb.encode_string(value) if primitive == 'Str'
@@ -34,11 +37,15 @@ module ScaleRb
 
       # % encode_compact :: Integer -> U8Array
       def encode_compact(value)
+        ScaleRb.logger.debug("Encoding compact: #{value}")
+
         ScaleRb.encode_compact(value)
       end
 
       # % encode_array :: ArrayType -> Array<Any> -> Array<PortableType> -> U8Array
       def encode_array(array_type, value, registry)
+        ScaleRb.logger.debug("Encoding array: #{array_type}, value: #{value}")
+
         len = array_type.len
         inner_type_id = array_type.type
 
@@ -47,6 +54,8 @@ module ScaleRb
 
       # % encode_sequence :: SequenceType -> Array<Any> -> Array<PortableType> -> U8Array
       def encode_sequence(sequence_type, value, registry)
+        ScaleRb.logger.debug("Encoding sequence: #{sequence_type}, value: #{value}")
+
         len = value.length
         inner_type_id = sequence_type.type
 
@@ -55,39 +64,36 @@ module ScaleRb
 
       # % encode_tuple :: TupleType -> Array<Any> -> Array<PortableType> -> U8Array
       def encode_tuple(tuple_type, value, registry)
-        type_ids = tuple_type.tuple
+        ScaleRb.logger.debug("Encoding tuple: #{tuple_type}, value: #{value}")
 
-        # For example: if the tuple type is (AccountId32), the value can be a AccountId32
-        # TODO: Check if this is correct
-        if type_ids.length == 1 && type_ids.length != value.length
-          value = [value]
-        end
-
-        _encode_types(type_ids, value, registry)
+        _encode_types(tuple_type.tuple, value, registry)
       end
 
       # % encode_struct :: StructType -> Hash<Symbol, Any> -> Array<PortableType> -> U8Array
       def encode_struct(struct_type, value, registry)
+        ScaleRb.logger.debug("Encoding struct: #{struct_type}, value: #{value}")
+
         fields = struct_type.fields
 
-        names = fields.map { |f| f.name.to_sym }
         type_ids = fields.map(&:type)
-
         _encode_types(type_ids, value.values, registry)
       end
 
       # % encode_variant :: VariantType -> Symbol | Hash<Symbol, Any> -> Array<PortableType> -> U8Array
       def encode_variant(variant_type, value, registry)
-        variant = variant_type.variants.find { |v| v.name.to_sym == value }
+        ScaleRb.logger.debug("Encoding variant: #{variant_type}, value: #{value}")
+
+        name = value.is_a?(Symbol) ? value : value.keys.first
+        variant = variant_type.variants.find { |v| v.name == name }
         raise VariantItemNotFound, "type: #{variant_type}, name: #{value}" if variant.nil?
 
         case variant
         when ScaleRb::SimpleVariant
-          return ScaleRb.encode_uint('U8', variant.index) 
+          ScaleRb.encode_uint('U8', variant.index)
         when ScaleRb::TupleVariant
-          return ScaleRb.encode_uint('U8', variant.index) + encode_tuple(variant.tuple, value, registry)
+          ScaleRb.encode_uint('U8', variant.index) + encode_tuple(variant.tuple, value.values.first, registry)
         when ScaleRb::StructVariant
-          return ScaleRb.encode_uint('U8', variant.index) + encode_struct(variant.struct, value, registry)
+          ScaleRb.encode_uint('U8', variant.index) + encode_struct(variant.struct, value.values.first, registry)
         end
       end
 

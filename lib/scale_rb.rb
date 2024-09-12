@@ -11,7 +11,6 @@ require 'codec'
 
 require 'scale_rb/codec'
 
-
 # metadata types, decoding and helpers
 require 'metadata/metadata_v9'
 require 'metadata/metadata_v10'
