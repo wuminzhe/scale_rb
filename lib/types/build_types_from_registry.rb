@@ -1,21 +1,68 @@
 # frozen_string_literal: true
 
-require_relative 'tokenizer'
 module ScaleRb
   module TypeExp
-    class Type
-      attr_reader :kind
+    class Tokenizer
+      attr_reader :tokens, :index
 
-      def initialize(kind)
-        @kind = kind
+      # % tokenize :: String -> [String]
+      def initialize(type_exp)
+        @tokens = tokenize(type_exp)
+        @index = 0
+      end
+
+      # % next_token :: -> String
+      def next_token
+        token = @tokens[@index]
+        @index += 1
+        token
+      end
+
+      # % peek_token :: -> String
+      def peek_token
+        @tokens[@index]
+      end
+
+      # % eof? :: -> Bool
+      def eof?
+        @index >= @tokens.length
+      end
+
+      private
+
+      def tokenize(type_exp)
+        tokens = []
+        current_token = ''
+
+        type_exp.each_char do |char|
+          case char
+          when /[a-zA-Z0-9_]/
+            current_token += char
+          when ':', '<', '>', '(', ')', '[', ']', ',', ';', '&', "'"
+            tokens << current_token unless current_token.empty?
+            if char == ':' && tokens.last == ':'
+              tokens[-1] = '::'
+            else
+              tokens << char
+            end
+            current_token = ''
+          when /\s/
+            tokens << current_token unless current_token.empty?
+            current_token = ''
+          else
+            raise abort
+          end
+        end
+
+        tokens << current_token unless current_token.empty?
+        tokens
       end
     end
 
-    class NamedType < Type
+    class NamedType
       attr_reader :name, :params
 
       def initialize(name, params)
-        super('named')
         @name = name
         @params = params
       end
@@ -25,11 +72,10 @@ module ScaleRb
       end
     end
 
-    class ArrayType < Type
+    class ArrayType
       attr_reader :item, :len
 
       def initialize(item, len)
-        super('array')
         @item = item
         @len = len
       end
@@ -39,11 +85,10 @@ module ScaleRb
       end
     end
 
-    class TupleType < Type
+    class TupleType
       attr_reader :params
 
       def initialize(params)
-        super('tuple')
         @params = params
       end
 
@@ -52,10 +97,12 @@ module ScaleRb
       end
     end
 
+    # % print :: NamedType | ArrayType | TupleType -> String
     def self.print(type)
       type.to_s
     end
 
+    # % parse :: String -> NamedType | ArrayType | TupleType
     def self.parse(type_exp)
       TypeExpParser.new(type_exp).parse
     end

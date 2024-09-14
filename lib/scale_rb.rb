@@ -7,6 +7,9 @@ require 'utils'
 
 # scale codec
 require 'types/types'
+require 'types/build_types_from_registry'
+require 'types/build_types_from_portable_registry'
+
 require 'codec'
 
 require 'scale_rb/codec'

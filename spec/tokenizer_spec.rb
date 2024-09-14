@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../lib/types/tokenizer'
+require 'scale_rb'
 
 # rubocop:disable Metrics/BlockLength
 RSpec.describe ScaleRb::TypeExp::Tokenizer do
