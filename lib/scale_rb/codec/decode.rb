@@ -3,7 +3,7 @@
 module ScaleRb
   module Codec
     class << self
-      # % decode :: Ti -> U8Array -> Array<PortableType> -> (Any, U8Array)
+      # % decode :: Ti -> U8Array -> Array<TypeDef> -> (Any, U8Array)
       def decode(id, bytes, registry)
         ScaleRb.logger.debug("Decoding #{id}, bytes: #{bytes}")
         type = registry[id]
@@ -42,7 +42,7 @@ module ScaleRb
         ScaleRb.decode_compact(bytes)
       end
 
-      # % decode_array :: ArrayType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
+      # % decode_array :: ArrayType -> U8Array -> Array<TypeDef> -> (Array<Any>, U8Array)
       def decode_array(type, bytes, registry)
         ScaleRb.logger.debug("Decoding array: #{type}, bytes: #{bytes}")
 
@@ -52,7 +52,7 @@ module ScaleRb
         _decode_types([inner_type_id] * len, bytes, registry)
       end
 
-      # % decode_sequence :: SequenceType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
+      # % decode_sequence :: SequenceType -> U8Array -> Array<TypeDef> -> (Array<Any>, U8Array)
       def decode_sequence(sequence_type, bytes, registry)
         ScaleRb.logger.debug("Decoding sequence: #{sequence_type}, bytes: #{bytes}")
 
@@ -60,7 +60,7 @@ module ScaleRb
         _decode_types([sequence_type.type] * len, remaining_bytes, registry)
       end
 
-      # % decode_tuple :: TupleType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
+      # % decode_tuple :: TupleType -> U8Array -> Array<TypeDef> -> (Array<Any>, U8Array)
       def decode_tuple(tuple_type, bytes, registry)
         ScaleRb.logger.debug("Decoding tuple: #{tuple_type}, bytes: #{bytes}")
 
@@ -75,7 +75,7 @@ module ScaleRb
         end
       end
 
-      # % decode_struct :: StructType -> U8Array -> Array<PortableType> -> (Hash<Symbol, Any>, U8Array)
+      # % decode_struct :: StructType -> U8Array -> Array<TypeDef> -> (Hash<Symbol, Any>, U8Array)
       def decode_struct(struct_type, bytes, registry)
         ScaleRb.logger.debug("Decoding struct: #{struct_type}, bytes: #{bytes}")
 
@@ -91,7 +91,7 @@ module ScaleRb
         ]
       end
 
-      # % decode_variant :: VariantType -> U8Array -> Array<PortableType> -> (Symbol | Hash<Symbol, Any>, U8Array)
+      # % decode_variant :: VariantType -> U8Array -> Array<TypeDef> -> (Symbol | Hash<Symbol, Any>, U8Array)
       def decode_variant(variant_type, bytes, registry)
         ScaleRb.logger.debug("Decoding variant: #{variant_type}, bytes: #{bytes}")
 
@@ -125,7 +125,7 @@ module ScaleRb
 
       private
 
-      # _u8? :: Ti -> Array<PortableType> -> Bool
+      # _u8? :: Ti -> Array<TypeDef> -> Bool
       def _u8?(type_id, registry)
         type = registry[type_id]
         raise TypeNotFound, "id: #{type_id}" if type.nil?
@@ -133,7 +133,7 @@ module ScaleRb
         type.is_a?(ScaleRb::PrimitiveType) && type.primitive == 'U8'
       end
 
-      # _decode_types :: Array<Ti> -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
+      # _decode_types :: Array<Ti> -> U8Array -> Array<TypeDef> -> (Array<Any>, U8Array)
       def _decode_types(ids, bytes, registry = {})
         remaining_bytes = bytes
         values = ids.map do |id|

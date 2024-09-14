@@ -6,7 +6,7 @@ require 'console'
 require 'utils'
 
 # scale codec
-require 'types'
+require 'types/types'
 require 'codec'
 
 require 'scale_rb/codec'
