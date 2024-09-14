@@ -26,13 +26,22 @@ RSpec.describe ScaleRb::TypeExp do
 
     ast('[u8; 16; H128]', ScaleRb::TypeExp::ArrayType.new(ScaleRb::TypeExp::NamedType.new('u8', []), 16))
 
-    ast('(A, B, [u8; 5])', ScaleRb::TypeExp::TupleType.new([
-                                                             ScaleRb::TypeExp::NamedType.new('A', []),
-                                                             ScaleRb::TypeExp::NamedType.new('B', []),
-                                                             ScaleRb::TypeExp::ArrayType.new(
-                                                               ScaleRb::TypeExp::NamedType.new('u8', []), 5
-                                                             )
-                                                           ]))
+    ast(
+      '(A, B, [u8; 5])',
+      ScaleRb::TypeExp::TupleType.new(
+        [
+          ScaleRb::TypeExp::NamedType.new('A', []),
+          ScaleRb::TypeExp::NamedType.new(
+            'B', []
+          ),
+          ScaleRb::TypeExp::ArrayType.new(
+            ScaleRb::TypeExp::NamedType.new(
+              'u8', []
+            ), 5
+          )
+        ]
+      )
+    )
   end
 
   describe 'Parsing and printing' do

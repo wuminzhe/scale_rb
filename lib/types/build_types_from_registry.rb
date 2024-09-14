@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative 'tokenizer'
 module ScaleRb
   module TypeExp
     class Type
@@ -62,118 +63,128 @@ module ScaleRb
     class TypeExpParser
       def initialize(type_exp)
         @type_exp = type_exp
-        @tokens = tokenize(type_exp)
-        @idx = 0
-      end
-
-      def self.tokenize(type_exp)
-        new(type_exp).send(:tokenize, type_exp)
+        @tokenizer = Tokenizer.new(type_exp)
+        @current_token = @tokenizer.next_token
       end
 
       def parse
-        type = assert(any_type)
-        raise abort unless eof?
-
-        type
+        build_type
       end
 
       private
 
-      def eof?
-        @idx >= @tokens.length
+      # Consume and return the current token, or nil if it doesn't equal the expected token.
+      def expect(token)
+        return unless @current_token == token
+
+        current_token = @current_token
+        @current_token = @tokenizer.next_token
+        current_token
       end
 
-      def tok(tok)
-        return nil if eof?
-
-        current = @tokens[@idx]
-        match = tok.is_a?(Regexp) ? !current.nil? && tok.match?(current) : current == tok
-        @idx += 1 if match
-        match ? current : nil
+      def expect!(token)
+        expect(token) || raise("Expected #{token}, got #{@current_token}")
       end
 
-      def assert_tok(tok)
-        assert(tok(tok))
+      # Consume and return the current token if it matches the expected regex pattern.
+      def expect_regex(pattern)
+        return unless pattern.match?(@current_token)
+
+        current_token = @current_token
+        @current_token = @tokenizer.next_token
+        current_token
       end
 
-      def nat
-        tok(/^\d+$/)&.to_i
+      def expect_regex!(pattern)
+        expect_regex(pattern) || raise("Expected current token matching #{pattern.inspect}, got #{@current_token}")
       end
 
-      def assert_nat
-        assert(nat)
+      # Consume and return a natural number (integer) if the current token matches.
+      def expect_nat
+        expect_regex(/^\d+$/)&.to_i
       end
 
-      def name_tok
-        tok(/^[a-zA-Z]\w*$/)
+      def expect_nat!
+        expect_nat || raise("Expected natural number, got #{@current_token}")
       end
 
-      def assert_name
-        assert(name_tok)
+      def expect_name
+        expect_regex(/^[a-zA-Z]\w*$/)
       end
 
-      def list(sep)
+      def expect_name!
+        expect_name || raise("Expected name, got #{@current_token}")
+      end
+
+      def list(sep, &block)
         result = []
-        item = yield
+        item = block.call
         return result if item.nil?
 
         result << item
-        while tok(sep)
-          item = yield
-          break if item.nil?
+        while expect(sep)
+          item = block.call
+          break if item.nil? # (A, B,)
 
           result << item
         end
         result
       end
 
-      def tuple
-        return nil unless tok('(')
+      def build_tuple_type
+        return nil unless expect('(')
 
-        params = list(',') { any_type }
-        assert_tok(')')
+        params = list(',') { build_type }
+        expect!(')')
+
         TupleType.new(params)
       end
 
-      def array
-        return nil unless tok('[')
+      # [u8; 16; H128]
+      # [u8; 16]
+      def build_array_type
+        return nil unless expect('[')
 
-        item = assert(any_type)
-        assert_tok(';')
-        len = assert_nat
-        tok(';') && assert_name
-        assert_tok(']')
+        item = build_type
+        raise "Expected array item, got #{@current_token}" if item.nil?
+
+        expect!(';')
+        len = expect_nat!
+
+        # [u8; 16; H128]
+        if expect(';')
+          expect_name! # Just consume the name
+        end
+
+        expect!(']')
         ArrayType.new(item, len)
       end
 
-      def named_type
-        name = name_tok
-        return nil if name.nil?
-
+      def build_named_type
+        name = nil
         trait = nil
         item = nil
 
-        if tok('<')
-          trait = assert_named_type.name
-          assert_tok('as')
-          name = assert_named_type.name
-          assert_tok('>')
+        if expect('<')
+          # Handle trait syntax: <T::Trait as OtherTrait>::Type
+          #                          name     trait        item
+          # '<T::InherentOfflineReport as InherentOfflineReport>::Inherent' -> 'InherentOfflineReport'
+          # '<T::Balance as HasCompact>' -> 'Compact<Balance>'
+          # '<T as Trait<I>>::Proposal' -> 'Proposal'
+          name = build_named_type.name
+          expect!('as')
+          trait = build_named_type.name
+          expect!('>')
+        else
+          name = expect_name
+          return if name.nil?
         end
 
-        while tok('::')
-          next_part = name_tok
-          if next_part.nil?
-            # Handle cases like 'EthHeaderBrief::<T::AccountId>'
-            raise abort unless tok('<')
+        # Consume the :: and get the next name
+        item = expect_name while expect('::')
 
-            params = type_parameters
-            return NamedType.new(name, params)
-
-          end
-          item = next_part
-          name = "#{name}::#{item}"
-        end
-
+        # Handle special cases
+        # From subsquid's code. But where are these coming from?
         if name == 'InherentOfflineReport' && name == trait && item == 'Inherent'
           # Do nothing
         elsif name == 'exec' && item == 'StorageKey'
@@ -183,81 +194,43 @@ module ScaleRb
         elsif name == 'Lookup' && item == 'Target'
           name = 'LookupTarget'
         elsif item
-          assert(trait != 'HasCompact')
+          # '<T::Balance as HasCompact>::Item' will raise error
+          raise "Expected item, got #{item}" if trait == 'HasCompact'
+
           name = item
-        elsif trait == 'HasCompact'
-          return NamedType.new('Compact', [NamedType.new(name, type_parameters)])
+        elsif trait == 'HasCompact' # '<T::Balance as HasCompact>'
+          return NamedType.new('Compact', [NamedType.new(name, [])])
         end
 
-        params = tok('<') ? type_parameters : []
-        NamedType.new(name, params)
-      end
-
-      def assert_named_type
-        assert(named_type)
+        NamedType.new(name, type_parameters)
       end
 
       def type_parameters
-        params = list(',') { nat || any_type }
-        assert_tok('>')
+        if expect('<')
+          params = list(',') { expect_nat || build_type }
+          expect!('>')
+        else
+          params = []
+        end
+
         params
       end
 
-      def pointer_bytes
-        return nil unless tok('&')
+      # &[u8]
+      # &'static [u8]
+      def build_pointer_bytes
+        return nil unless expect('&') # &
 
-        tok("'") && assert_tok('static')
-        assert_tok('[')
-        assert_tok('u8')
-        assert_tok(']')
+        expect("'") && expect!('static')
+        expect!('[')
+        expect!('u8')
+        expect!(']')
         NamedType.new('Vec', [NamedType.new('u8', [])])
       end
 
-      def any_type
-        tuple || array || named_type || pointer_bytes
-      end
-
-      def abort
-        StandardError.new("Invalid type expression: #{@type_exp}")
-      end
-
-      def assert(val)
-        raise abort if val.nil? || val == false
-
-        val
-      end
-
-      def tokenize(type_exp)
-        tokens = []
-        current_token = ''
-        skip_next = false
-
-        type_exp.each_char.with_index do |char, index|
-          if skip_next
-            skip_next = false
-            next
-          end
-
-          if char == ':' && type_exp[index + 1] == ':'
-            tokens << current_token unless current_token.empty?
-            tokens << '::'
-            current_token = ''
-            skip_next = true
-          elsif char == "'"
-            tokens << current_token unless current_token.empty?
-            tokens << "'"
-            current_token = ''
-          elsif /\w/.match?(char)
-            current_token += char
-          else
-            tokens << current_token unless current_token.empty?
-            tokens << char unless char.strip.empty?
-            current_token = ''
-          end
-        end
-
-        tokens << current_token unless current_token.empty?
-        tokens
+      # % build_type :: TupleType | ArrayType | NamedType
+      def build_type
+        build_tuple_type || build_array_type || build_named_type || build_pointer_bytes
       end
     end
   end
