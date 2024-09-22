@@ -1,5 +1,6 @@
-require 'rspec'
-require_relative '../lib/types/build_types_from_registry'
+# frozen_string_literal: true
+
+require 'scale_rb'
 
 RSpec.describe ScaleRb::TypeExp do
   def self.ast(exp, type)
@@ -46,6 +47,7 @@ RSpec.describe ScaleRb::TypeExp do
 
   describe 'Parsing and printing' do
     test('A')
+    test('Text')
     test('Vec<u8>')
     test('[A; 20]')
     test('(A, B, C, [Foo; 5])')

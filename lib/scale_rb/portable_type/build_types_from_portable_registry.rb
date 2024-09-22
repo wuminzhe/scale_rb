@@ -2,7 +2,7 @@
 
 module ScaleRb
   class << self
-    # % build_types_from_portable_registry :: Array<Hash> -> Array<TypeDef>
+    # % build_types_from_portable_registry :: Array<Hash> -> Array<PortableType>
     def build_types_from_portable_registry(data)
       data.map.with_index do |type, i|
         id = type._get(:id)

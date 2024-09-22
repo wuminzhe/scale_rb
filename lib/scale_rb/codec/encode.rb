@@ -3,13 +3,13 @@
 module ScaleRb
   module Codec
     class << self
-      # % encode :: Ti -> Any -> Array<TypeDef> -> U8Array
+      # % encode :: Ti -> Any -> Array<PortableType> -> U8Array
       def encode(ti, value, registry)
         ScaleRb.logger.debug("Encoding #{ti}, value: #{value}")
         type = registry[ti]
         raise TypeNotFound, "ti: #{ti}" if type.nil?
 
-        case type # type: TypeDef
+        case type # type: PortableType
         when ScaleRb::PrimitiveType then encode_primitive(type, value)
         when ScaleRb::CompactType then encode_compact(value)
         when ScaleRb::ArrayType then encode_array(type, value, registry)
@@ -42,7 +42,7 @@ module ScaleRb
         ScaleRb.encode_compact(value)
       end
 
-      # % encode_array :: ArrayType -> Array<Any> -> Array<TypeDef> -> U8Array
+      # % encode_array :: ArrayType -> Array<Any> -> Array<PortableType> -> U8Array
       def encode_array(array_type, value, registry)
         ScaleRb.logger.debug("Encoding array: #{array_type}, value: #{value}")
 
@@ -52,7 +52,7 @@ module ScaleRb
         _encode_types([inner_type_id] * len, value, registry)
       end
 
-      # % encode_sequence :: SequenceType -> Array<Any> -> Array<TypeDef> -> U8Array
+      # % encode_sequence :: SequenceType -> Array<Any> -> Array<PortableType> -> U8Array
       def encode_sequence(sequence_type, value, registry)
         ScaleRb.logger.debug("Encoding sequence: #{sequence_type}, value: #{value}")
 
@@ -62,7 +62,7 @@ module ScaleRb
         encode_compact(len) + _encode_types([inner_type_id] * len, value, registry)
       end
 
-      # % encode_tuple :: TupleType -> Array<Any> -> Array<TypeDef> -> U8Array
+      # % encode_tuple :: TupleType -> Array<Any> -> Array<PortableType> -> U8Array
       def encode_tuple(tuple_type, value, registry)
         ScaleRb.logger.debug("Encoding tuple: #{tuple_type}, value: #{value}")
 
@@ -75,7 +75,7 @@ module ScaleRb
         _encode_types(type_ids, value, registry)
       end
 
-      # % encode_struct :: StructType -> Hash<Symbol, Any> -> Array<TypeDef> -> U8Array
+      # % encode_struct :: StructType -> Hash<Symbol, Any> -> Array<PortableType> -> U8Array
       def encode_struct(struct_type, value, registry)
         ScaleRb.logger.debug("Encoding struct: #{struct_type}, value: #{value}")
 
@@ -85,7 +85,7 @@ module ScaleRb
         _encode_types(type_ids, value.values, registry)
       end
 
-      # % encode_variant :: VariantType -> Symbol | Hash<Symbol, Any> -> Array<TypeDef> -> U8Array
+      # % encode_variant :: VariantType -> Symbol | Hash<Symbol, Any> -> Array<PortableType> -> U8Array
       def encode_variant(variant_type, value, registry)
         ScaleRb.logger.debug("Encoding variant: #{variant_type}, value: #{value}")
 
@@ -105,7 +105,7 @@ module ScaleRb
 
       private
 
-      # _encode_types :: Array<Ti> -> Array<Any> -> Array<TypeDef> -> U8Array
+      # _encode_types :: Array<Ti> -> Array<Any> -> Array<PortableType> -> U8Array
       def _encode_types(ids, values, registry)
         raise LengthNotEqualErr, "ids: #{ids}, values: #{values.inspect}" if ids.length != values.length
 

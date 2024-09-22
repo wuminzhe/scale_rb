@@ -22,7 +22,7 @@ module ScaleRb
     end
 
     class << self
-      # % decode :: Ti -> U8Array | Hex -> Array<TypeDef> -> (Any, U8Array)
+      # % decode :: Ti -> U8Array | Hex -> Array<PortableType> -> (Any, U8Array)
       def decode(id, bytes, registry)
         type = registry[id]
         raise TypeNotFound, "id: #{id}" if type.nil?
@@ -58,7 +58,7 @@ module ScaleRb
         ScaleRb.decode_compact(bytes)
       end
 
-      # % decode_array :: ArrayType -> U8Array -> Array<TypeDef> -> (Array<Any>, U8Array)
+      # % decode_array :: ArrayType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
       def decode_array(type, bytes, registry)
         len = type.len
         inner_type_id = type.type
@@ -74,7 +74,7 @@ module ScaleRb
         end
       end
 
-      # _u8? :: Ti -> Array<TypeDef> -> Bool
+      # _u8? :: Ti -> Array<PortableType> -> Bool
       def _u8?(type_id, registry)
         type = registry[type_id]
         raise TypeNotFound, "id: #{type_id}" if type.nil?
@@ -82,18 +82,18 @@ module ScaleRb
         type.is_a?(ScaleRb::PrimitiveType) && type.primitive == 'U8'
       end
 
-      # % decode_sequence :: SequenceType -> U8Array -> Array<TypeDef> -> (Array<Any>, U8Array)
+      # % decode_sequence :: SequenceType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
       def decode_sequence(sequence_type, bytes, registry)
         len, remaining_bytes = decode_compact(bytes)
         _decode_types([sequence_type.type] * len, remaining_bytes, registry)
       end
 
-      # % decode_tuple :: TupleType -> U8Array -> Array<TypeDef> -> (Array<Any>, U8Array)
+      # % decode_tuple :: TupleType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
       def decode_tuple(tuple_type, bytes, registry)
         _decode_types(tuple_type, bytes, registry)
       end
 
-      # % decode_struct :: StructType -> U8Array -> Array<TypeDef> -> (Hash<Symbol, Any>, U8Array)
+      # % decode_struct :: StructType -> U8Array -> Array<PortableType> -> (Hash<Symbol, Any>, U8Array)
       def decode_struct(struct_type, bytes, registry)
         fields = struct_type.fields
 
@@ -107,7 +107,7 @@ module ScaleRb
         ]
       end
 
-      # % decode_variant :: VariantType -> U8Array -> Array<TypeDef> -> (Any, U8Array)
+      # % decode_variant :: VariantType -> U8Array -> Array<PortableType> -> (Any, U8Array)
       def decode_variant(variant_type, bytes, registry)
         # find the variant by the index
         index = bytes[0].to_i
@@ -123,7 +123,7 @@ module ScaleRb
         end
       end
 
-      # _decode_types :: Array<Ti> -> U8Array -> Array<TypeDef> -> (Array<Any>, U8Array)
+      # _decode_types :: Array<Ti> -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
       def _decode_types(ids, bytes, registry = {})
         remaining_bytes = bytes
         values = ids.map do |id|

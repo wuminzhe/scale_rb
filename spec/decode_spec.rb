@@ -5,7 +5,7 @@ require 'json'
 
 module ScaleRb
   RSpec.describe 'Decoding Tests' do
-    # test :: Ti -> U8Array -> Any -> U8Array -> Array<TypeDef> -> void
+    # test :: Ti -> U8Array -> Any -> U8Array -> Array<PortableType> -> void
     def test(ti, bytes, value, types)
       expect(
         ScaleRb::Codec.decode(ti, bytes, types)
