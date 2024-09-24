@@ -133,6 +133,9 @@ module ScaleRb
       name = named_type.name
       params = named_type.params
 
+      definition = @old_types[name]
+      return build_from_definition(name, definition) if definition
+
       primitive = as_primitive(name)
       return primitive if primitive
 
