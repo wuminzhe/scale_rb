@@ -41,13 +41,13 @@ end
 
 # require 'dry-types'
 # require 'dry-struct'
-#
+
 # module Types
 #   include Dry.Types()
-#
+
 #   NonEmptyString = Types::Strict::String.constrained(min_size: 1)
 #   PositiveInteger = Types::Coercible::Integer.constrained(gt: 0)
-#
+
 #   class User < Dry::Struct
 #     attribute :name, Types::Strict::String
 #     attribute :age, PositiveInteger
@@ -57,13 +57,18 @@ end
 # class Calculator
 #   extend TypeEnforcer
 
-#   # Enforce Integer types for add method
 #   enforce_types :add, [Types::Strict::Integer, Types::Strict::Integer], Types::Strict::Integer
+#   enforce_types :subtract, [Types::Strict::Integer, Types::Strict::Integer], Types::Strict::Integer
 
 #   def add(a, b)
 #     a + b
 #   end
+
+#   def subtract(a, b)
+#     a - b
+#   end
 # end
 
 # puts Calculator.new.add(1, 2) # => 3
-# Calculator.new.add(1, '2') # => raises Dry::Types::ConstraintError
+# puts Calculator.new.subtract(1, 2) # => -1
+# puts Calculator.new.subtract(1, '2') # => "2" violates constraints (type?(Integer, "2") failed)
