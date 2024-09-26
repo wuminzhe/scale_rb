@@ -147,48 +147,48 @@ module ScaleRb
   end
 end
 
-p1 = ScaleRb::Types::PrimitiveType.new(primitive: 'U8')
-puts "p1: #{p1}"
+# p1 = ScaleRb::Types::PrimitiveType.new(primitive: 'U8')
+# puts "p1: #{p1}"
 
-registry = { 1 => p1 }
+# registry = { 1 => p1 }
 
-p2 = ScaleRb::Types::CompactType.new
-puts "p2: #{p2}"
+# p2 = ScaleRb::Types::CompactType.new
+# puts "p2: #{p2}"
 
-p3 = ScaleRb::Types::CompactType.new(type: 1, registry:)
-puts "p3: #{p3}"
+# p3 = ScaleRb::Types::CompactType.new(type: 1, registry:)
+# puts "p3: #{p3}"
 
-p4 = ScaleRb::Types::SequenceType.new(type: 1, registry:)
-puts "p4: #{p4}"
+# p4 = ScaleRb::Types::SequenceType.new(type: 1, registry:)
+# puts "p4: #{p4}"
 
-p5 = ScaleRb::Types::ArrayType.new(type: 1, len: 3, registry:)
-puts "p5: #{p5}"
+# p5 = ScaleRb::Types::ArrayType.new(type: 1, len: 3, registry:)
+# puts "p5: #{p5}"
 
-# p6 = ScaleRb::Types::BitSequenceType.new(bit_store_type: 1, bit_order_type: 2, registry:)
-# puts "p6: #{p6}"
+# # p6 = ScaleRb::Types::BitSequenceType.new(bit_store_type: 1, bit_order_type: 2, registry:)
+# # puts "p6: #{p6}"
 
-registry = { 1 => p1, 2 => p2, 3 => p3, 4 => p4, 5 => p5 }
-p7 = ScaleRb::Types::TupleType.new(tuple: [1, 2, 3], registry:)
-puts "p7: #{p7}"
+# registry = { 1 => p1, 2 => p2, 3 => p3, 4 => p4, 5 => p5 }
+# p7 = ScaleRb::Types::TupleType.new(tuple: [1, 2, 3], registry:)
+# puts "p7: #{p7}"
 
-p8 = ScaleRb::Types::StructType.new(
-  fields: [
-    ScaleRb::Types::Field.new(name: 'name', type: 1),
-    ScaleRb::Types::Field.new(name: 'age', type: 2)
-  ],
-  registry:
-)
-puts "p8: #{p8}"
+# p8 = ScaleRb::Types::StructType.new(
+#   fields: [
+#     ScaleRb::Types::Field.new(name: 'name', type: 1),
+#     ScaleRb::Types::Field.new(name: 'age', type: 2)
+#   ],
+#   registry:
+# )
+# puts "p8: #{p8}"
 
-p9 = ScaleRb::Types::UnitType.new
-puts "p9: #{p9}"
+# p9 = ScaleRb::Types::UnitType.new
+# puts "p9: #{p9}"
 
-p10 = ScaleRb::Types::VariantType.new(
-  variants: [
-    ScaleRb::Types::TupleVariant.new(name: :Bar, index: 1, tuple: p7),
-    ScaleRb::Types::SimpleVariant.new(name: :Foo, index: 0),
-    ScaleRb::Types::StructVariant.new(name: :Baz, index: 2, struct: p8)
-  ],
-  registry:
-)
-puts "p10: #{p10}"
+# p10 = ScaleRb::Types::VariantType.new(
+#   variants: [
+#     ScaleRb::Types::TupleVariant.new(name: :Bar, index: 1, tuple: p7),
+#     ScaleRb::Types::SimpleVariant.new(name: :Foo, index: 0),
+#     ScaleRb::Types::StructVariant.new(name: :Baz, index: 2, struct: p8)
+#   ],
+#   registry:
+# )
+# puts "p10: #{p10}"
