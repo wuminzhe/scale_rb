@@ -1,27 +1,9 @@
-# frozen_string_literal: true
-
 module TypeEnforcer
   def self.extended(base)
     base.instance_variable_set(:@type_enforcements, {})
     base.instance_variable_set(:@applying_enforcement, false)
   end
 
-  # class Example
-  #   extend TypeEnforcer
-  #
-  #   enforce_types :complex, {
-  #     a: Types::Strict::Integer,
-  #     b: Types::Strict::Array.of(String),
-  #     c: Types::Strict::String.optional,
-  #     d: Types::Strict::String,
-  #     e: Types::Strict::Integer,
-  #     kwargs: Types::Hash.map(Types::Strict::Symbol, Types::Strict::Any)
-  #   }
-  #
-  #   def complex(a, *b, c: nil, d:, e:, **kwargs)
-  #     "Positional a: #{a}, b: #{b.join(', ')}, c: #{c || 'none'}, d: #{d}, e: #{e}, kwargs: #{kwargs}"
-  #   end
-  # end
   def enforce_types(method_name, param_types, return_type = nil)
     @type_enforcements[method_name] = {
       params: param_types,
@@ -45,58 +27,79 @@ module TypeEnforcer
 
   private
 
-  # class Example
-  #   extend TypeEnforcer
-  #
-  #   enforce_types :complex, {
-  #     a: Types::Strict::Integer,
-  #     b: Types::Strict::Array.of(String),
-  #     c: Types::Strict::String.optional,
-  #     d: Types::Strict::String,
-  #     e: Types::Strict::Integer,
-  #     kwargs: Types::Hash.map(Types::Strict::Symbol, Types::Strict::Any)
-  #   }
-  #
-  #   def complex(a, *b, c: nil, d:, e:, **kwargs)
-  #     "Positional a: #{a}, b: #{b.join(', ')}, c: #{c || 'none'}, d: #{d}, e: #{e}, kwargs: #{kwargs}"
-  #   end
-  # end
   def decorate(method_name, param_types, return_type)
     original_method = instance_method(method_name)
     method_parameters = original_method.parameters
 
     define_method(method_name) do |*args, **kwargs|
-      # Validate arguments
+      p "args: #{args}"
+      p "kwargs: #{kwargs}"
+      p "method_parameters: #{method_parameters}"
+      p "param_types: #{param_types}"
+      p "return_type: #{return_type}"
       validated_args = []
       validated_kwargs = {}
+      rest_type = nil
+      keyrest_type = nil
 
+      # Count required parameters
+      req_count = method_parameters.count { |param_type, _| param_type == :req }
+      rest_index = method_parameters.index { |param_type, _| param_type == :rest }
+
+      # param_type: :opt, :req, :rest, :key, :keyreq, :keyrest
+      # example:
+      # def complex1(a = 1, *b, c, d:, e: nil, **f)
+      # method_parameters: [[:opt, :a], [:rest, :b], [:req, :c], [:keyreq, :d], [:key, :e], [:keyrest, :f]]
+      #   opt: optional positional argument (a = 1)
+      #   req: required positional argument (c)
+      #   rest: rest argument (*b)
+      #   key: keyword argument (e:)
+      #   keyreq: required keyword argument (d:)
+      #   keyrest: rest keyword argument (**f)
       method_parameters.each_with_index do |(param_type, param_name), index|
         case param_type
-        when :req, :opt
+        when :req
           value = args[index]
           type = param_types[param_name]
           validated_args << (type ? type[value] : value)
+        when :rest
+          rest_type = param_types[param_name]
+        when :opt
+          value = args[index] if index < args.length
+          type = param_types[param_name]
+          validated_args << (type && value ? type[value] : value) if value
         when :keyreq, :key
           value = kwargs[param_name]
           type = param_types[param_name]
           validated_kwargs[param_name] = type ? type[value] : value
-        when :rest
-          rest_type = param_types[param_name]
-          if rest_type
-            validated_args.concat(args[validated_args.length..].map { |v| rest_type[v] })
-          else
-            validated_args.concat(args[validated_args.length..])
-          end
         when :keyrest
           keyrest_type = param_types[param_name]
-          if keyrest_type
-            kwargs.each do |k, v|
-              validated_kwargs[k] = keyrest_type[v] unless validated_kwargs.key?(k)
-            end
-          else
-            validated_kwargs.merge!(kwargs)
-          end
         end
+      end
+
+      # Correctly handle rest args (*b)
+      if rest_index
+        rest_args = args[req_count...(args.size - 1)] # Correct slicing for *b
+        if rest_type
+          validated_args.insert(rest_index, *rest_args.map { |v| rest_type[v] })
+        else
+          validated_args.insert(rest_index, *rest_args)
+        end
+      end
+
+      # Handle the last positional argument (c)
+      last_arg_value = args.last
+      last_arg_name = method_parameters[req_count][1] # Get the name of c
+      last_arg_type = param_types[last_arg_name]
+      validated_args << (last_arg_type ? last_arg_type[last_arg_value] : last_arg_value)
+
+      # Handle keyrest args (**f)
+      if keyrest_type
+        kwargs.each do |k, v|
+          validated_kwargs[k] = keyrest_type[v] unless validated_kwargs.key?(k)
+        end
+      else
+        validated_kwargs.merge!(kwargs.reject { |k, _| validated_kwargs.key?(k) })
       end
 
       # Call the original method with validated arguments
@@ -109,49 +112,38 @@ module TypeEnforcer
 end
 
 require 'dry-types'
-require 'dry-struct'
 
 module Types
   include Dry.Types()
 
   NonEmptyString = Types::Strict::String.constrained(min_size: 1)
   PositiveInteger = Types::Coercible::Integer.constrained(gt: 0)
-
-  class User < Dry::Struct
-    attribute :name, Types::Strict::String
-    attribute :age, PositiveInteger
-  end
 end
 
-# rubocop:disable Metrics/ParameterLists,Naming/MethodParameterName,Lint/MissingCopEnableDirective
 class Example
   extend TypeEnforcer
 
-  enforce_types :add, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
-  enforce_types :subtract, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
+  enforce_types :complex1,
+                {
+                  a: Types::Strict::Integer,
+                  b: Types::Array.of(Types::Strict::Integer),
+                  c: Types::Strict::Integer,
+                  d: Types::Strict::Integer,
+                  e: Types::Strict::Integer.optional,
+                  f: Types::Hash.map(Types::Strict::Symbol, Types::Strict::Integer)
+                }, Types::Strict::String
 
-  def add(a, b)
-    a + b
-  end
-
-  def subtract(a, b)
-    a - b
-  end
-
-  def complex1(a, *b, c, d:, e: nil, **kwargs)
-    "a: #{a}, \nb: #{b}, \nc: #{c}, \nd: #{d}, \ne: #{e}, \nkwargs: #{kwargs}"
+  def complex1(a = 1, *b, c, d:, e: nil, **f)
+    "a: #{a}, b: #{b}, c: #{c}, d: #{d}, e: #{e}, f: #{f}"
   end
 end
 
-puts Example.new.add(1, 2) # => 3
-puts Example.new.subtract(1, 2) # => -1
-# puts Example.new.subtract(1, '2') # => "2" violates constraints (type?(Integer, "2") failed)
-
-puts 'Complex method call:'
+# Test case
 puts Example.new.complex1(
-  1, # a
-  2, 2, 3, 4, # b
-  5, # c
-  d: 6, e: 7, # d, e
-  f: 8 # kwargs
+  1,                  # a
+  2, 3, 4,            # *b (rest args)
+  5,                  # c
+  d: 6,               # d (keyword arg)
+  e: 7,               # e (optional keyword arg)
+  x: 8, y: 9          # f (kwargs)
 )
