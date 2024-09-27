@@ -6,10 +6,10 @@ require 'console'
 require 'utils'
 
 # scale codec
-require 'types/types'
-require 'types/old_registry/type_exp'
-require 'types/build_types_from_registry'
-require 'types/build_types_from_portable_registry'
+require 'scale_rb/types'
+# require 'types/old_registry/type_exp'
+# require 'types/build_types_from_registry'
+# require 'types/build_types_from_portable_registry'
 
 require 'codec'
 

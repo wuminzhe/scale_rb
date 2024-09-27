@@ -3,6 +3,10 @@
 module ScaleRb
   module Codec
     class << self
+      extend TypeEnforcer
+
+      enforce_types :decode, [Types::Ti, Types::Hex, Types::Registry], Types::Tuple.of(Types::Any, Types::Hex)
+
       # % decode :: Ti -> U8Array -> Array<PortableType> -> (Any, U8Array)
       def decode(id, bytes, registry)
         ScaleRb.logger.debug("Decoding #{id}, bytes: #{bytes}")

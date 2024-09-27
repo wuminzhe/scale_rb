@@ -14,5 +14,7 @@ module ScaleRb
   end
 end
 
+require_relative '../type_enforcer'
+require_relative 'types'
 require_relative 'codec/decode'
 require_relative 'codec/encode'

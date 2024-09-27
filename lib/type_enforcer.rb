@@ -112,8 +112,10 @@ puts Example.new.complex1(
   x: 8, y: 9          # f (kwargs)
 )
 
-puts Example.new.add(1, 2)
-puts Example.new.subtract(3, 1)
+puts Example.new.add(1, 2) # => 3
+
+puts Example.new.subtract(3, 1) # => 2
+
 begin
   puts Example.new.subtract(3, '1')
 rescue StandardError => e
