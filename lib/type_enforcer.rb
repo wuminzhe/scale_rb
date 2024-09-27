@@ -1,3 +1,5 @@
+require_relative 'custom_assign'
+
 module TypeEnforcer
   def self.extended(base)
     base.instance_variable_set(:@type_enforcements, {})
@@ -31,31 +33,32 @@ module TypeEnforcer
     original_method = instance_method(method_name)
     method_parameters = original_method.parameters
 
+    # only support positional args and keyword args for now
+    # TODO: support splat(rest), double splat(keyrest) args, and block
     define_method(method_name) do |*args, **kwargs|
       validated_args = []
       validated_kwargs = {}
-      rest_type = nil
-      keyrest_type = nil
 
-      positional_count = method_parameters.count { |param_type, _| %i[req opt].include?(param_type) }
-      rest_index = method_parameters.index { |param_type, _| param_type == :rest }
+      # build a hash of param_name => value | default_value
+      defaults = method_parameters.each_with_object({}) do |(_param_kind, param_name), memo|
+        type = param_types[param_name]
+        memo[param_name] = type.value if type.respond_to?(:value)
+      end
+      assigned_params = build_assigned_params(original_method, defaults, args, kwargs)
 
-      method_parameters.each_with_index do |(param_type, param_name), _index|
-        case param_type
+      # validate each param
+      method_parameters.each do |param_kind, param_name|
+        case param_kind
         when :req, :opt
-          value = args[validated_args.length]
+          value = assigned_params[param_name]
           type = param_types[param_name]
           validated_args << type[value]
-        when :rest
-          rest_type = param_types[param_name]
-          validated_args.concat(rest_type[args[rest_index..(args.size - positional_count)]])
         when :keyreq, :key
-          value = kwargs[param_name]
+          value = assigned_params[param_name]
           type = param_types[param_name]
           validated_kwargs[param_name] = type[value]
-        when :keyrest
-          keyrest_type = param_types[param_name]
-          validated_kwargs.merge!(keyrest_type[kwargs.reject { |k, _| validated_kwargs.key?(k) }])
+        when :rest, :keyrest
+          raise NotImplementedError, 'rest and keyrest args not supported'
         end
       end
 
@@ -70,26 +73,23 @@ require 'dry-types'
 
 module Types
   include Dry.Types()
-
-  NonEmptyString = Types::Strict::String.constrained(min_size: 1)
-  PositiveInteger = Types::Coercible::Integer.constrained(gt: 0)
 end
 
 class Example
   extend TypeEnforcer
 
-  enforce_types :complex1,
-                {
-                  a: Types::Strict::Integer,
-                  b: Types::Array.of(Types::Strict::Integer),
-                  c: Types::Strict::Integer,
-                  d: Types::Strict::Integer,
-                  e: Types::Strict::Integer.optional,
-                  f: Types::Hash.map(Types::Strict::Symbol, Types::Strict::Integer)
-                }, Types::Strict::String
-  def complex1(a = 1, *b, c, d:, e: nil, **f)
-    "a: #{a}, b: #{b}, c: #{c}, d: #{d}, e: #{e}, f: #{f}"
-  end
+  # enforce_types :complex1,
+  #               {
+  #                 a: Types::Strict::Integer,
+  #                 b: Types::Array.of(Types::Strict::Integer),
+  #                 c: Types::Strict::Integer,
+  #                 d: Types::Strict::Integer,
+  #                 e: Types::Strict::Integer.optional,
+  #                 f: Types::Hash.map(Types::Strict::Symbol, Types::Strict::Integer)
+  #               }, Types::Strict::String
+  # def complex1(a = 1, *b, c, d:, e: nil, **f)
+  #   "a: #{a}, b: #{b}, c: #{c}, d: #{d}, e: #{e}, f: #{f}"
+  # end
 
   enforce_types :add, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
   def add(a, b)
@@ -100,17 +100,17 @@ class Example
   def subtract(a, b)
     a - b
   end
-end
 
-# Test case
-puts Example.new.complex1(
-  1,                  # a
-  2, 3, 4,            # *b (rest args)
-  5,                  # c
-  d: 6,               # d (keyword arg)
-  e: 7,               # e (optional keyword arg)
-  x: 8, y: 9          # f (kwargs)
-)
+  enforce_types :my_method, {
+    a: Types::Strict::Integer,
+    b: Types::Strict::Integer.default(2),
+    c: Types::Strict::Integer,
+    d: Types::Strict::Integer.default(4)
+  }, Types::Strict::String
+  def my_method(a, b = 2, c:, d: 4)
+    "a: #{a}, b: #{b}, c: #{c}, d: #{d}"
+  end
+end
 
 puts Example.new.add(1, 2) # => 3
 
@@ -121,4 +121,19 @@ begin
 rescue StandardError => e
   puts e.class # => Dry::Types::ConstraintError
   puts e.message # => "1" violates constraints (type?(Integer, "1") failed)
+end
+
+puts Example.new.my_method(5, c: 3) # => "a: 5, b: 2, c: 3, d: 4"
+puts Example.new.my_method(5, 6, c: 3) # => "a: 5, b: 6, c: 3, d: 4"
+puts Example.new.my_method(5, 6, c: 3, d: 10) # => "a: 5, b: 6, c: 3, d: 10"
+begin
+  puts Example.new.my_method(5, 6, c: 3, d: '10')
+rescue StandardError => e
+  puts e.class # => Dry::Types::ConstraintError
+  puts e.message # => "10" violates constraints (type?(Integer, "10") failed)
+end
+begin
+  puts Example.new.my_method(5, 6, d: 10)
+rescue StandardError => e
+  puts e.message # => Missing required keyword argument: c
 end
