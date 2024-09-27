@@ -87,9 +87,18 @@ class Example
                   e: Types::Strict::Integer.optional,
                   f: Types::Hash.map(Types::Strict::Symbol, Types::Strict::Integer)
                 }, Types::Strict::String
-
   def complex1(a = 1, *b, c, d:, e: nil, **f)
     "a: #{a}, b: #{b}, c: #{c}, d: #{d}, e: #{e}, f: #{f}"
+  end
+
+  enforce_types :add, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
+  def add(a, b)
+    a + b
+  end
+
+  enforce_types :subtract, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
+  def subtract(a, b)
+    a - b
   end
 end
 
@@ -102,3 +111,12 @@ puts Example.new.complex1(
   e: 7,               # e (optional keyword arg)
   x: 8, y: 9          # f (kwargs)
 )
+
+puts Example.new.add(1, 2)
+puts Example.new.subtract(3, 1)
+begin
+  puts Example.new.subtract(3, '1')
+rescue StandardError => e
+  puts e.class # => Dry::Types::ConstraintError
+  puts e.message # => "1" violates constraints (type?(Integer, "1") failed)
+end
