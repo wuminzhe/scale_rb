@@ -18,8 +18,8 @@ module TypeEnforcer
 
     @applying_enforcement = true
     begin
-      param_types, return_type = @type_enforcements[method_name]
-      decorate(method_name, param_types, return_type)
+      result = @type_enforcements[method_name]
+      decorate(method_name, result[:params], result[:return])
     ensure
       @applying_enforcement = false
     end
@@ -32,80 +32,35 @@ module TypeEnforcer
     method_parameters = original_method.parameters
 
     define_method(method_name) do |*args, **kwargs|
-      p "args: #{args}"
-      p "kwargs: #{kwargs}"
-      p "method_parameters: #{method_parameters}"
-      p "param_types: #{param_types}"
-      p "return_type: #{return_type}"
       validated_args = []
       validated_kwargs = {}
       rest_type = nil
       keyrest_type = nil
 
-      # Count required parameters
-      req_count = method_parameters.count { |param_type, _| param_type == :req }
+      positional_count = method_parameters.count { |param_type, _| %i[req opt].include?(param_type) }
       rest_index = method_parameters.index { |param_type, _| param_type == :rest }
 
-      # param_type: :opt, :req, :rest, :key, :keyreq, :keyrest
-      # example:
-      # def complex1(a = 1, *b, c, d:, e: nil, **f)
-      # method_parameters: [[:opt, :a], [:rest, :b], [:req, :c], [:keyreq, :d], [:key, :e], [:keyrest, :f]]
-      #   opt: optional positional argument (a = 1)
-      #   req: required positional argument (c)
-      #   rest: rest argument (*b)
-      #   key: keyword argument (e:)
-      #   keyreq: required keyword argument (d:)
-      #   keyrest: rest keyword argument (**f)
-      method_parameters.each_with_index do |(param_type, param_name), index|
+      method_parameters.each_with_index do |(param_type, param_name), _index|
         case param_type
-        when :req
-          value = args[index]
+        when :req, :opt
+          value = args[validated_args.length]
           type = param_types[param_name]
-          validated_args << (type ? type[value] : value)
+          validated_args << type[value]
         when :rest
           rest_type = param_types[param_name]
-        when :opt
-          value = args[index] if index < args.length
-          type = param_types[param_name]
-          validated_args << (type && value ? type[value] : value) if value
+          validated_args.concat(rest_type[args[rest_index..(args.size - positional_count)]])
         when :keyreq, :key
           value = kwargs[param_name]
           type = param_types[param_name]
-          validated_kwargs[param_name] = type ? type[value] : value
+          validated_kwargs[param_name] = type[value]
         when :keyrest
           keyrest_type = param_types[param_name]
+          validated_kwargs.merge!(keyrest_type[kwargs.reject { |k, _| validated_kwargs.key?(k) }])
         end
       end
 
-      # Correctly handle rest args (*b)
-      if rest_index
-        rest_args = args[req_count...(args.size - 1)] # Correct slicing for *b
-        if rest_type
-          validated_args.insert(rest_index, *rest_args.map { |v| rest_type[v] })
-        else
-          validated_args.insert(rest_index, *rest_args)
-        end
-      end
-
-      # Handle the last positional argument (c)
-      last_arg_value = args.last
-      last_arg_name = method_parameters[req_count][1] # Get the name of c
-      last_arg_type = param_types[last_arg_name]
-      validated_args << (last_arg_type ? last_arg_type[last_arg_value] : last_arg_value)
-
-      # Handle keyrest args (**f)
-      if keyrest_type
-        kwargs.each do |k, v|
-          validated_kwargs[k] = keyrest_type[v] unless validated_kwargs.key?(k)
-        end
-      else
-        validated_kwargs.merge!(kwargs.reject { |k, _| validated_kwargs.key?(k) })
-      end
-
-      # Call the original method with validated arguments
       result = original_method.bind(self).call(*validated_args, **validated_kwargs)
 
-      # Validate return value
       return_type ? return_type[result] : result
     end
   end
