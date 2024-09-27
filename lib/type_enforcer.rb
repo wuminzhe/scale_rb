@@ -6,7 +6,7 @@ module TypeEnforcer
     base.instance_variable_set(:@applying_enforcement, false)
   end
 
-  def enforce_types(method_name, param_types, return_type = nil)
+  def sig(method_name, param_types, return_type = nil)
     @type_enforcements[method_name] = {
       params: param_types,
       return: return_type
@@ -78,30 +78,17 @@ end
 class Example
   extend TypeEnforcer
 
-  # enforce_types :complex1,
-  #               {
-  #                 a: Types::Strict::Integer,
-  #                 b: Types::Array.of(Types::Strict::Integer),
-  #                 c: Types::Strict::Integer,
-  #                 d: Types::Strict::Integer,
-  #                 e: Types::Strict::Integer.optional,
-  #                 f: Types::Hash.map(Types::Strict::Symbol, Types::Strict::Integer)
-  #               }, Types::Strict::String
-  # def complex1(a = 1, *b, c, d:, e: nil, **f)
-  #   "a: #{a}, b: #{b}, c: #{c}, d: #{d}, e: #{e}, f: #{f}"
-  # end
-
-  enforce_types :add, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
+  sig :add, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
   def add(a, b)
     a + b
   end
 
-  enforce_types :subtract, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
+  sig :subtract, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
   def subtract(a, b)
     a - b
   end
 
-  enforce_types :my_method, {
+  sig :my_method, {
     a: Types::Strict::Integer,
     b: Types::Strict::Integer.default(2),
     c: Types::Strict::Integer,
