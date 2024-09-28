@@ -11,7 +11,7 @@ class TestRegistry
     @types << type
   end
 
-  def get_type(type_id)
+  def [](type_id)
     @types[type_id]
   end
 end
