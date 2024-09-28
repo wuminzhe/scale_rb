@@ -16,8 +16,8 @@ module ScaleRb
       build_types
     end
 
-    sig :get_type, { index: Types::Ti }, Types::PortableType
-    def get_type(index)
+    sig :[], { index: Types::Ti }, Types::PortableType
+    def [](index)
       @types[index]
     end
 
