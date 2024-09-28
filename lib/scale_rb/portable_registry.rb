@@ -23,7 +23,7 @@ module ScaleRb
 
     private
 
-    sig :build_types, {}, Types::Array.of(Types::PortableType)
+    sig :build_types, {}
     def build_types
       @data.each.with_index do |type, i|
         id = type._get(:id)
@@ -37,9 +37,6 @@ module ScaleRb
         type_name = def_.keys.first.to_sym
         type_def = def_._get(type_name)
         @types[id] = _build_type(id, type_name, type_def, path)
-        if id == 681
-          p @types[id]
-        end
       end
     end
 
@@ -73,18 +70,7 @@ module ScaleRb
         first_field = fields.first
 
         # type_def: {"fields"=>[]}
-        if first_field.nil?
-          if id == 681
-            p 'fuck'
-            p type_name
-            p type_def
-            p fields
-            p first_field
-            p 'end fuck'
-          end
-
-          return Types::UnitType.new(path: path)
-        end
+        return Types::UnitType.new(path: path) if first_field.nil?
 
         # type_def: {"fields"=>[{"name"=>nil, "type"=>1}, {"name"=>nil, "type"=>2}]}
         return Types::TupleType.new(tuple: fields.map { |f| f._get(:type) }, registry: self, path: path) unless first_field._get(:name)

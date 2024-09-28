@@ -145,7 +145,7 @@ module ScaleRb
       end
     end
 
-    VariantKind = Types::Instance(SimpleVariant) | Types::Instance(TupleVariant) | Types::Instance(StructVariant)
+    VariantKind = Instance(SimpleVariant) | Instance(TupleVariant) | Instance(StructVariant)
 
     class VariantType < Base
       attribute :variants, Types::Array.of(VariantKind)
@@ -162,7 +162,14 @@ module ScaleRb
       end
     end
 
-    PortableType = Types::Instance(VariantType) | Types::Instance(StructType) | Types::Instance(TupleType) | Types::Instance(ArrayType) | Types::Instance(CompactType) | Types::Instance(PrimitiveType) | Types::Instance(UnitType) | Types::Instance(SequenceType)
+    PortableType = Instance(VariantType) |
+                   Instance(StructType) |
+                   Instance(TupleType) |
+                   Instance(ArrayType) |
+                   Instance(CompactType) |
+                   Instance(PrimitiveType) |
+                   Instance(UnitType) |
+                   Instance(SequenceType)
   end
 end
 
