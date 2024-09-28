@@ -5,7 +5,7 @@ module ScaleRb
     class << self
       extend TypeEnforcer
 
-      sig :decode, [Types::Ti, Types::Hex, Types::Registry], Types::Tuple.of(Types::Any, Types::Hex)
+      sig :decode, [Types::Ti, Types::Hex, Types::Registry], Types::DecodeResult
       def decode(id, bytes, registry)
         ScaleRb.logger.debug("Decoding #{id}, bytes: #{bytes}")
         type = registry[id]
@@ -24,7 +24,7 @@ module ScaleRb
         end
       end
 
-      # % decode_primitive :: PrimitiveType -> U8Array -> (Any, U8Array)
+      sig :decode_primitive, [Types::PrimitiveType, Types::Hex], Types::DecodeResult
       def decode_primitive(type, bytes)
         primitive = type.primitive
         ScaleRb.logger.debug("Decoding primitive: #{primitive}, bytes: #{bytes}")

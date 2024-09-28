@@ -69,58 +69,58 @@ module TypeEnforcer
   end
 end
 
-require 'dry-types'
+# require 'dry-types'
 
-module Types
-  include Dry.Types()
-end
+# module Types
+#   include Dry.Types()
+# end
 
-class Example
-  extend TypeEnforcer
+# class Example
+#   extend TypeEnforcer
 
-  sig :add, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
-  def add(a, b)
-    a + b
-  end
+#   sig :add, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
+#   def add(a, b)
+#     a + b
+#   end
 
-  sig :subtract, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
-  def subtract(a, b)
-    a - b
-  end
+#   sig :subtract, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
+#   def subtract(a, b)
+#     a - b
+#   end
 
-  sig :my_method, {
-    a: Types::Strict::Integer,
-    b: Types::Strict::Integer.default(2),
-    c: Types::Strict::Integer,
-    d: Types::Strict::Integer.default(4)
-  }, Types::Strict::String
-  def my_method(a, b = 2, c:, d: 4)
-    "a: #{a}, b: #{b}, c: #{c}, d: #{d}"
-  end
-end
+#   sig :my_method, {
+#     a: Types::Strict::Integer,
+#     b: Types::Strict::Integer.default(2),
+#     c: Types::Strict::Integer,
+#     d: Types::Strict::Integer.default(4)
+#   }, Types::Strict::String
+#   def my_method(a, b = 2, c:, d: 4)
+#     "a: #{a}, b: #{b}, c: #{c}, d: #{d}"
+#   end
+# end
 
-puts Example.new.add(1, 2) # => 3
+# puts Example.new.add(1, 2) # => 3
 
-puts Example.new.subtract(3, 1) # => 2
+# puts Example.new.subtract(3, 1) # => 2
 
-begin
-  puts Example.new.subtract(3, '1')
-rescue StandardError => e
-  puts e.class # => Dry::Types::ConstraintError
-  puts e.message # => "1" violates constraints (type?(Integer, "1") failed)
-end
+# begin
+#   puts Example.new.subtract(3, '1')
+# rescue StandardError => e
+#   puts e.class # => Dry::Types::ConstraintError
+#   puts e.message # => "1" violates constraints (type?(Integer, "1") failed)
+# end
 
-puts Example.new.my_method(5, c: 3) # => "a: 5, b: 2, c: 3, d: 4"
-puts Example.new.my_method(5, 6, c: 3) # => "a: 5, b: 6, c: 3, d: 4"
-puts Example.new.my_method(5, 6, c: 3, d: 10) # => "a: 5, b: 6, c: 3, d: 10"
-begin
-  puts Example.new.my_method(5, 6, c: 3, d: '10')
-rescue StandardError => e
-  puts e.class # => Dry::Types::ConstraintError
-  puts e.message # => "10" violates constraints (type?(Integer, "10") failed)
-end
-begin
-  puts Example.new.my_method(5, 6, d: 10)
-rescue StandardError => e
-  puts e.message # => Missing required keyword argument: c
-end
+# puts Example.new.my_method(5, c: 3) # => "a: 5, b: 2, c: 3, d: 4"
+# puts Example.new.my_method(5, 6, c: 3) # => "a: 5, b: 6, c: 3, d: 4"
+# puts Example.new.my_method(5, 6, c: 3, d: 10) # => "a: 5, b: 6, c: 3, d: 10"
+# begin
+#   puts Example.new.my_method(5, 6, c: 3, d: '10')
+# rescue StandardError => e
+#   puts e.class # => Dry::Types::ConstraintError
+#   puts e.message # => "10" violates constraints (type?(Integer, "10") failed)
+# end
+# begin
+#   puts Example.new.my_method(5, 6, d: 10)
+# rescue StandardError => e
+#   puts e.message # => Missing required keyword argument: c
+# end

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'scale_rb/version'
+
 require 'console'
 
 require 'utils'
@@ -9,11 +10,14 @@ require 'utils'
 require 'scale_rb/types'
 # require 'types/old_registry/type_exp'
 # require 'types/build_types_from_registry'
-# require 'types/build_types_from_portable_registry'
+require 'scale_rb/portable_registry'
 
 require 'codec'
 
+require 'type_enforcer'
+
 require 'scale_rb/codec'
+require 'scale_rb/codec/decode'
 
 # metadata types, decoding and helpers
 require 'metadata/metadata_v9'
