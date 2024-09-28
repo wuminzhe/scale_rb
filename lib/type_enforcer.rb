@@ -64,6 +64,10 @@ module TypeEnforcer
 
       result = original_method.bind(self).call(*validated_args, **validated_kwargs)
 
+      p '------------'
+      p method_name
+      p return_type
+      p '------------'
       return_type ? return_type[result] : result
     end
   end

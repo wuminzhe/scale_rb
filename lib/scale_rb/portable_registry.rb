@@ -36,12 +36,15 @@ module ScaleRb
 
         type_name = def_.keys.first.to_sym
         type_def = def_._get(type_name)
-        @types[i] = _build_type(type_name, type_def, path)
+        @types[id] = _build_type(id, type_name, type_def, path)
+        if id == 681
+          p @types[id]
+        end
       end
     end
 
-    sig :_build_type, { type_name: Types::Symbol, type_def: Types::Hash | Types::String | Types::Array, path: Types::Strict::Array.of(Types::Strict::String) }, Types::PortableType
-    def _build_type(type_name, type_def, path)
+    sig :_build_type, { id: Types::Ti, type_name: Types::Symbol, type_def: Types::Hash | Types::String | Types::Array, path: Types::Strict::Array.of(Types::Strict::String) }, Types::PortableType
+    def _build_type(id, type_name, type_def, path)
       case type_name
       when :primitive
         # type_def: 'I32'
@@ -70,7 +73,18 @@ module ScaleRb
         first_field = fields.first
 
         # type_def: {"fields"=>[]}
-        return Types::UnitType.new(path: path) unless first_field # no fields
+        if first_field.nil?
+          if id == 681
+            p 'fuck'
+            p type_name
+            p type_def
+            p fields
+            p first_field
+            p 'end fuck'
+          end
+
+          return Types::UnitType.new(path: path)
+        end
 
         # type_def: {"fields"=>[{"name"=>nil, "type"=>1}, {"name"=>nil, "type"=>2}]}
         return Types::TupleType.new(tuple: fields.map { |f| f._get(:type) }, registry: self, path: path) unless first_field._get(:name)

@@ -31,11 +31,13 @@ module ScaleRb
     it 'can decode uint' do
       # test(2, [0x45], 69, @types)
 
-      puts @registry.types[155]
-      # @registry.types[155...155].each do |type|
+      t = @registry.get_type(681)
+      puts t
+      p t.class
+      p t.path
+      # @registry.types.each_with_index do |type, i|
+      #   puts i
       #   puts type
-      # rescue StandardError => e
-      #   p 'fuck'
       # end
     end
 

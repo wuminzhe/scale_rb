@@ -162,7 +162,7 @@ module ScaleRb
       end
     end
 
-    PortableType = VariantType | StructType | TupleType | ArrayType | CompactType | PrimitiveType | UnitType | SequenceType
+    PortableType = Types::Instance(VariantType) | Types::Instance(StructType) | Types::Instance(TupleType) | Types::Instance(ArrayType) | Types::Instance(CompactType) | Types::Instance(PrimitiveType) | Types::Instance(UnitType) | Types::Instance(SequenceType)
   end
 end
 
