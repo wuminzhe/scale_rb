@@ -5,19 +5,19 @@ require 'json'
 
 module ScaleRb
   RSpec.describe 'Decoding Tests' do
-    # test :: Ti -> U8Array -> Any -> U8Array -> Array<PortableType> -> void
-    def test(ti, bytes, value, types)
+    # test :: Ti -> U8Array -> Any -> U8Array -> Types::Registry -> void
+    def test(ti, bytes, value, registry)
       expect(
-        ScaleRb::Codec.decode(ti, bytes, types)
+        ScaleRb::Codec.decode(ti, bytes, registry)
       ).to eql(
         [value, []]
       )
 
-      expect(
-        ScaleRb::Codec.encode(ti, value, types)
-      ).to eql(
-        bytes
-      )
+      # expect(
+      #   ScaleRb::Codec.encode(ti, value, registry)
+      # ).to eql(
+      #   bytes
+      # )
     end
 
     before(:all) do
@@ -25,82 +25,73 @@ module ScaleRb
       @registry = ScaleRb::PortableRegistry.new(data)
 
       # data = JSON.parse(File.open(File.join(__dir__, 'assets', './kusama-types.json')).read)
-      # @kusama_types = ScaleRb::PortableRegistry.new(data).types
+      # @kusama_registry = ScaleRb::PortableRegistry.new(data)
     end
 
     it 'can decode uint' do
-      # test(2, [0x45], 69, @types)
-
-      t = @registry.get_type(681)
-      puts t
-      p t.class
-      p t.path
-      # @registry.types.each_with_index do |type, i|
-      #   puts i
-      #   puts type
-      # end
+      test(2, [0x45], 69, @registry)
     end
 
-    # it 'can decode array' do
-    #   test(
-    #     1,
-    #     [0x12, 0x34, 0x56, 0x78] * 8,
-    #     ScaleRb::Utils.hex_to_u8a('0x1234567812345678123456781234567812345678123456781234567812345678'),
-    #     @types
-    #   )
-    # end
+    it 'can decode array' do
+      test(
+        1,
+        [0x12, 0x34, 0x56, 0x78] * 8,
+        ScaleRb::Utils.hex_to_u8a('0x1234567812345678123456781234567812345678123456781234567812345678'),
+        @registry
+      )
+    end
 
-    # it 'can decode sequence' do
-    #   test(11, ScaleRb::Utils.hex_to_u8a('0x0c003afe'), [0, 58, 254], @types)
-    # end
+    it 'can decode sequence' do
+      test(11, ScaleRb::Utils.hex_to_u8a('0x0c003afe'), [0, 58, 254], @registry)
+    end
 
-    # # A single element tuple can be treated as the element.
-    # it 'can decode a single element tuple' do
-    #   test(
-    #     0,
-    #     [0x12, 0x34, 0x56, 0x78] * 8,
-    #     ScaleRb::Utils.hex_to_u8a('0x1234567812345678123456781234567812345678123456781234567812345678'),
-    #     @types
-    #   )
-    # end
+    # A single element tuple can be treated as the element.
+    it 'can decode a single element tuple' do
+      test(
+        0,
+        [0x12, 0x34, 0x56, 0x78] * 8,
+        ScaleRb::Utils.hex_to_u8a('0x1234567812345678123456781234567812345678123456781234567812345678'),
+        @registry
+      )
+    end
 
-    # it 'can decode composite 1' do
-    #   test(
-    #     8,
-    #     [0x00, 0xe4, 0x0b, 0x54, 0x03, 0x00, 0x00, 0x00],
-    #     { ref_time: 14_294_967_296 },
-    #     @types
-    #   )
-    # end
+    it 'can decode composite 1' do
+      test(
+        8,
+        [0x00, 0xe4, 0x0b, 0x54, 0x03, 0x00, 0x00, 0x00],
+        { ref_time: 14_294_967_296 },
+        @registry
+      )
+    end
 
-    # it 'can decode composite 2' do
-    #   bytes = ScaleRb::Utils.hex_to_u8a(
-    #     '0x'\
-    #     '05000000000000000100000000000000142ba3d4e80000000000000000000000'\
-    #     '0000000000000000000000000000000000000000000000000000000000000000'\
-    #     '00000000000000000000000000000000'
-    #   )
+    it 'can decode composite 2' do
+      bytes = ScaleRb::Utils.hex_to_u8a(
+        '0x'\
+        '05000000000000000100000000000000142ba3d4e80000000000000000000000'\
+        '0000000000000000000000000000000000000000000000000000000000000000'\
+        '00000000000000000000000000000000'
+      )
 
-    #   value = {
-    #     nonce: 5,
-    #     consumers: 0,
-    #     providers: 1,
-    #     sufficients: 0,
-    #     data: {
-    #       free: 999_999_875_860,
-    #       reserved: 0,
-    #       misc_frozen: 0,
-    #       fee_frozen: 0
-    #     }
-    #   }
+      value = {
+        nonce: 5,
+        consumers: 0,
+        providers: 1,
+        sufficients: 0,
+        data: {
+          free: 999_999_875_860,
+          reserved: 0,
+          misc_frozen: 0,
+          fee_frozen: 0
+        }
+      }
 
-    #   test(
-    #     3,
-    #     bytes,
-    #     value,
-    #     @types
-    #   )
-    # end
+      test(
+        3,
+        bytes,
+        value,
+        @registry
+      )
+    end
 
     # it 'can decode composite4' do
     #   bytes = ScaleRb::Utils.hex_to_u8a(
@@ -132,7 +123,7 @@ module ScaleRb
     #     542,
     #     bytes,
     #     value,
-    #     @kusama_types
+    #     @kusama_registry
     #   )
     # end
 

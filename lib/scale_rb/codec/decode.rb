@@ -12,14 +12,14 @@ module ScaleRb
         raise TypeNotFound, "id: #{id}" if type.nil?
 
         case type
-        when ScaleRb::PrimitiveType then decode_primitive(type, bytes)
-        when ScaleRb::CompactType then decode_compact(bytes)
-        when ScaleRb::ArrayType then decode_array(type, bytes, registry)
-        when ScaleRb::SequenceType then decode_sequence(type, bytes, registry)
-        when ScaleRb::TupleType then decode_tuple(type, bytes, registry)
-        when ScaleRb::StructType then decode_struct(type, bytes, registry)
-        when ScaleRb::UnitType then [[], bytes]
-        when ScaleRb::VariantType then decode_variant(type, bytes, registry)
+        when Types::PrimitiveType then decode_primitive(type, bytes)
+        when Types::CompactType then decode_compact(bytes)
+        when Types::ArrayType then decode_array(type, bytes, registry)
+        when Types::SequenceType then decode_sequence(type, bytes, registry)
+        when Types::TupleType then decode_tuple(type, bytes, registry)
+        when Types::StructType then decode_struct(type, bytes, registry)
+        when Types::UnitType then [[], bytes]
+        when Types::VariantType then decode_variant(type, bytes, registry)
         else raise TypeNotImplemented, "id: #{id}, type: #{type}"
         end
       end
