@@ -23,21 +23,18 @@ module ScaleRb
 
     class Base < Dry::Struct
       attribute? :registry, Registry
+      attribute? :path, Types::Strict::Array.of(Types::Strict::String)
 
-      MAX_DEPTH = 3
-
-      def t(type_id, depth = 0)
+      def t(type_id)
         raise 'No registry' unless registry
 
         pt = registry.get_type(type_id)
         raise "Unknown type: #{type_id}" unless pt
 
-        return nil if depth >= MAX_DEPTH
-
         pt
       end
 
-      def to_s(depth = 0)
+      def to_s
         raise NotImplementedError, "#{self.class} must implement to_s"
       end
     end
@@ -45,7 +42,7 @@ module ScaleRb
     class PrimitiveType < Base
       attribute :primitive, Primitive
 
-      def to_s(_depth = 0)
+      def to_s
         primitive
       end
     end
@@ -53,11 +50,9 @@ module ScaleRb
     class CompactType < Base
       attribute? :type, Ti
 
-      def to_s(depth = 0)
+      def to_s
         if type
-          return 'Compact<...>' if depth >= MAX_DEPTH
-
-          "Compact<#{t(type, depth + 1)&.to_s(depth + 1)}>"
+          "Compact<#{t(type)}>"
         else
           'Compact'
         end
@@ -67,10 +62,8 @@ module ScaleRb
     class SequenceType < Base
       attribute :type, Ti
 
-      def to_s(depth = 0)
-        return '[...]' if depth >= MAX_DEPTH
-
-        "[#{t(type, depth + 1)&.to_s(depth + 1)}]"
+      def to_s
+        "[#{t(type)}]"
       end
     end
 
@@ -78,11 +71,8 @@ module ScaleRb
       attribute :bit_store_type, Ti
       attribute :bit_order_type, Ti
 
-      def to_s(depth = 0)
-        return 'BitSequence<...>' if depth >= MAX_DEPTH
-
-        "BitSequence<#{t(bit_store_type,
-                         depth + 1)&.to_s(depth + 1)}, #{t(bit_order_type, depth + 1)&.to_s(depth + 1)}>"
+      def to_s
+        "BitSequence<#{t(bit_store_type)}, #{t(bit_order_type)}>"
       end
     end
 
@@ -90,25 +80,21 @@ module ScaleRb
       attribute :len, Types::Strict::Integer
       attribute :type, Ti
 
-      def to_s(depth = 0)
-        return '[...; ...]' if depth >= MAX_DEPTH
-
-        "[#{t(type, depth + 1)&.to_s(depth + 1)}; #{len}]"
+      def to_s
+        "[#{t(type)}; #{len}]"
       end
     end
 
     class TupleType < Base
       attribute :tuple, Types::Strict::Array.of(Ti)
 
-      def to_s(depth = 0)
-        return '(...)' if depth >= MAX_DEPTH
-
-        tuple_str = tuple.map { |t| t(t, depth + 1)&.to_s(depth + 1) }.join(', ')
+      def to_s
+        tuple_str = tuple.map { |t| t(t) }.join(', ')
         "(#{tuple_str})"
       end
     end
 
-    class Field < Base
+    class Field < Dry::Struct
       attribute :name, Types::Strict::String
       attribute :type, Ti
     end
@@ -116,53 +102,46 @@ module ScaleRb
     class StructType < Base
       attribute :fields, Types::Strict::Array.of(Field)
 
-      def to_s(depth = 0)
-        return '{...}' if depth >= MAX_DEPTH
-
-        fields_str = fields.map do |field|
-          # field.to_s(depth + 1)
-          "#{field.name}: #{t(field.type, depth + 1)&.to_s(depth + 1)}"
-        end.join(', ')
+      def to_s
+        fields_str = fields.map { |field| "#{field.name}: #{t(field.type)}" }.join(', ')
         "{ #{fields_str} }"
       end
     end
 
     class UnitType < Base
-      def to_s(_depth = 0)
+      def to_s
         '()'
       end
     end
 
-    class SimpleVariant < Base
+    class SimpleVariant < Dry::Struct
       attribute :name, Types::Strict::Symbol
       attribute :index, Types::Strict::Integer
 
-      def to_s(_depth = 0)
+      def to_s
         name.to_s
       end
+
+      # def simple
     end
 
-    class TupleVariant < Base
+    class TupleVariant < Dry::Struct
       attribute :name, Types::Strict::Symbol
       attribute :index, Types::Strict::Integer
       attribute :tuple, TupleType
 
-      def to_s(depth = 0)
-        return "#{name}(...)" if depth >= MAX_DEPTH
-
-        "#{name}#{tuple.to_s(depth + 1)}"
+      def to_s
+        "#{name}#{tuple}"
       end
     end
 
-    class StructVariant < Base
+    class StructVariant < Dry::Struct
       attribute :name, Types::Strict::Symbol
       attribute :index, Types::Strict::Integer
       attribute :struct, StructType
 
-      def to_s(depth = 0)
-        return "#{name} {...}" if depth >= MAX_DEPTH
-
-        "#{name} #{struct.to_s(depth + 1)}"
+      def to_s
+        "#{name} #{struct}"
       end
     end
 
@@ -171,10 +150,15 @@ module ScaleRb
     class VariantType < Base
       attribute :variants, Types::Array.of(VariantKind)
 
-      def to_s(depth = 0)
-        return '...' if depth >= MAX_DEPTH
+      def to_s
+        body =
+          if path&.last == 'Call'
+            variants.sort_by(&:index).map { |v| v.name.to_s }
+          else
+            variants.sort_by(&:index).map(&:to_s)
+          end
 
-        variants.map { |v| v.to_s(depth + 1) }.join(' | ')
+        body.join(' | ')
       end
     end
 

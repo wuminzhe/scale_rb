@@ -32,24 +32,26 @@ module ScaleRb
         def_ = type._get(:type, :def)
         raise "No 'def' found: #{type}" if def_.nil?
 
+        path = type._get(:type, :path)
+
         type_name = def_.keys.first.to_sym
         type_def = def_._get(type_name)
-        @types[i] = _build_type(type_name, type_def)
+        @types[i] = _build_type(type_name, type_def, path)
       end
     end
 
-    sig :_build_type, { type_name: Types::Symbol, type_def: Types::Hash | Types::String | Types::Array }, Types::PortableType
-    def _build_type(type_name, type_def)
+    sig :_build_type, { type_name: Types::Symbol, type_def: Types::Hash | Types::String | Types::Array, path: Types::Strict::Array.of(Types::Strict::String) }, Types::PortableType
+    def _build_type(type_name, type_def, path)
       case type_name
       when :primitive
         # type_def: 'I32'
-        Types::PrimitiveType.new(primitive: type_def)
+        Types::PrimitiveType.new(primitive: type_def, path: path)
       when :compact
         # type_def: { type: 1 }
-        Types::CompactType.new(type: type_def._get(:type), registry: self)
+        Types::CompactType.new(type: type_def._get(:type), registry: self, path: path)
       when :sequence
         # type_def: { type: 9 }
-        Types::SequenceType.new(type: type_def._get(:type), registry: self)
+        Types::SequenceType.new(type: type_def._get(:type), registry: self, path: path)
       when :bitSequence
         raise NotImplementedError, 'bitSequence not implemented'
       when :array
@@ -57,33 +59,35 @@ module ScaleRb
         Types::ArrayType.new(
           len: type_def._get(:len),
           type: type_def._get(:type),
-          registry: self
+          registry: self,
+          path: path
         )
       when :tuple
         # type_def: [1, 2, 3]
-        Types::TupleType.new(tuple: type_def, registry: self)
+        Types::TupleType.new(tuple: type_def, registry: self, path: path)
       when :composite
         fields = type_def._get(:fields)
         first_field = fields.first
 
         # type_def: {"fields"=>[]}
-        return Types::UnitType.new unless first_field # no fields
+        return Types::UnitType.new(path: path) unless first_field # no fields
 
         # type_def: {"fields"=>[{"name"=>nil, "type"=>1}, {"name"=>nil, "type"=>2}]}
-        return Types::TupleType.new(tuple: fields.map { |f| f._get(:type) }, registry: self) unless first_field._get(:name)
+        return Types::TupleType.new(tuple: fields.map { |f| f._get(:type) }, registry: self, path: path) unless first_field._get(:name)
 
         # type_def: { fields: [{ name: 'name', type: 1 }, { name: 'age', type: 2 }] }
         Types::StructType.new(
           fields: fields.map do |field|
             Types::Field.new(name: field._get(:name), type: field._get(:type))
           end,
-          registry: self
+          registry: self,
+          path: path
         )
       when :variant
         variants = type_def._get(:variants)
 
         # type_def: {"variants"=>[]}
-        return Types::VariantType.new(variants: []) if variants.empty?
+        return Types::VariantType.new(variants: [], path: path) if variants.empty?
 
         variant_list = variants.map do |v|
           fields = v._get(:fields)
@@ -112,7 +116,7 @@ module ScaleRb
             )
           end
         end
-        Types::VariantType.new(variants: variant_list)
+        Types::VariantType.new(variants: variant_list, path: path)
       end
     end
   end
