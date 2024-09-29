@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+require_relative 'decode'
+require_relative 'encode'
+
 module ScaleRb
   module Codec
     class Error < StandardError; end
@@ -11,10 +14,9 @@ module ScaleRb
     class VariantIndexOutOfRange < Error; end
     class VariantInvalidValue < Error; end
     class VariantFieldsLengthNotMatch < Error; end
+    class LengthNotEqualErr < Error; end
+
+    extend Decode
+    extend Encode
   end
 end
-
-require_relative '../type_enforcer'
-require_relative 'types'
-require_relative 'codec/decode'
-require_relative 'codec/encode'

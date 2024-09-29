@@ -3,6 +3,14 @@
 require 'scale_rb'
 require 'json'
 
+# class Decoder
+#   extend ScaleRb::Codec::Decode
+# end
+
+# class Encoder
+#   extend ScaleRb::Codec::Encode
+# end
+
 # rubocop:disable all
 module ScaleRb
   RSpec.describe 'Decoding Tests' do

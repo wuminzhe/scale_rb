@@ -18,7 +18,7 @@ module ScaleRb
 
     Registry = Types.Interface(:[])
     DecodeResult = Types::Array.of(Any).constrained(size: 2).constructor do |arr|
-      [arr[0], Hex[arr[1]]]
+      [arr[0], U8Array[arr[1]]]
     end
 
     class Base < Dry::Struct

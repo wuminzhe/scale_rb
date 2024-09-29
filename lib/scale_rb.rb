@@ -1,8 +1,19 @@
 # frozen_string_literal: true
 
 require 'scale_rb/version'
-
 require 'console'
+
+module ScaleRb
+  class << self
+    attr_accessor :logger
+
+    def debug(key, value)
+      logger.debug "#{key.rjust(15)}: #{value}"
+    end
+  end
+end
+
+ScaleRb.logger = Console
 
 require 'utils'
 
@@ -15,9 +26,7 @@ require 'scale_rb/portable_registry'
 
 require 'codec'
 
-
 require 'scale_rb/codec'
-require 'scale_rb/codec/decode'
 
 # metadata types, decoding and helpers
 require 'metadata/metadata_v9'
@@ -39,15 +48,3 @@ require 'address'
 # clients
 require 'client/http_client'
 require 'client/ws_client'
-
-module ScaleRb
-  class << self
-    attr_accessor :logger
-
-    def debug(key, value)
-      logger.debug "#{key.rjust(15)}: #{value}"
-    end
-  end
-end
-
-ScaleRb.logger = Console

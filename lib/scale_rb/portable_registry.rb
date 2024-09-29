@@ -21,7 +21,7 @@ module ScaleRb
     end
 
     def inspect
-      "PortableRegistry"
+      "a_portable_registry"
     end
 
     private
