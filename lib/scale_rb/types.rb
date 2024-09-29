@@ -35,14 +35,19 @@ module ScaleRb
       end
 
       def to_s
-        raise NotImplementedError, "#{self.class} must implement to_s"
+        to_string
+      end
+
+      MAX_DEPTH = 2
+      def to_string(_depth = 0)
+        raise NotImplementedError, "#{self.class} must implement to_string"
       end
     end
 
     class PrimitiveType < Base
       attribute :primitive, Primitive
 
-      def to_s
+      def to_string(_depth = 0)
         primitive
       end
     end
@@ -50,9 +55,13 @@ module ScaleRb
     class CompactType < Base
       attribute? :type, Ti
 
-      def to_s
+      def to_string(depth = 0)
         if type
-          "Compact<#{t(type)}>"
+          if depth > MAX_DEPTH
+            'Compact<...>'
+          else
+            "Compact<#{t(type).to_string(depth + 1)}>"
+          end
         else
           'Compact'
         end
@@ -62,8 +71,12 @@ module ScaleRb
     class SequenceType < Base
       attribute :type, Ti
 
-      def to_s
-        "[#{t(type)}]"
+      def to_string(depth = 0)
+        if depth > MAX_DEPTH
+          '[...]'
+        else
+          "[#{t(type).to_string(depth + 1)}]"
+        end
       end
     end
 
@@ -71,8 +84,12 @@ module ScaleRb
       attribute :bit_store_type, Ti
       attribute :bit_order_type, Ti
 
-      def to_s
-        "BitSequence<#{t(bit_store_type)}, #{t(bit_order_type)}>"
+      def to_string(depth = 0)
+        if depth > MAX_DEPTH
+          'BitSequence<...>'
+        else
+          "BitSequence<#{t(bit_store_type).to_string(depth + 1)}, #{t(bit_order_type).to_string(depth + 1)}>"
+        end
       end
     end
 
@@ -80,17 +97,24 @@ module ScaleRb
       attribute :len, Types::Strict::Integer
       attribute :type, Ti
 
-      def to_s
-        "[#{t(type)}; #{len}]"
+      def to_string(depth = 0)
+        if depth > MAX_DEPTH
+          '[...]'
+        else
+          "[#{t(type).to_string(depth + 1)}; #{len}]"
+        end
       end
     end
 
     class TupleType < Base
       attribute :tuple, Types::Strict::Array.of(Ti)
 
-      def to_s
-        tuple_str = tuple.map { |t| t(t) }.join(', ')
-        "(#{tuple_str})"
+      def to_string(depth = 0)
+        if depth > MAX_DEPTH
+          '(...)'
+        else
+          "(#{tuple.map { |t| t(t).to_string(depth + 1) }.join(', ')})"
+        end
       end
     end
 
@@ -102,14 +126,17 @@ module ScaleRb
     class StructType < Base
       attribute :fields, Types::Strict::Array.of(Field)
 
-      def to_s
-        fields_str = fields.map { |field| "#{field.name}: #{t(field.type)}" }.join(', ')
-        "{ #{fields_str} }"
+      def to_string(depth = 0)
+        if depth > MAX_DEPTH
+          '{ ... }'
+        else
+          "{ #{fields.map { |field| "#{field.name}: #{t(field.type).to_string(depth + 1)}" }.join(', ')} }"
+        end
       end
     end
 
     class UnitType < Base
-      def to_s
+      def to_string(_depth = 0)
         '()'
       end
     end
@@ -117,32 +144,18 @@ module ScaleRb
     class SimpleVariant < Dry::Struct
       attribute :name, Types::Strict::Symbol
       attribute :index, Types::Strict::Integer
-
-      def to_s
-        name.to_s
-      end
-
-      # def simple
     end
 
     class TupleVariant < Dry::Struct
       attribute :name, Types::Strict::Symbol
       attribute :index, Types::Strict::Integer
       attribute :tuple, TupleType
-
-      def to_s
-        "#{name}#{tuple}"
-      end
     end
 
     class StructVariant < Dry::Struct
       attribute :name, Types::Strict::Symbol
       attribute :index, Types::Strict::Integer
       attribute :struct, StructType
-
-      def to_s
-        "#{name} #{struct}"
-      end
     end
 
     VariantKind = Instance(SimpleVariant) | Instance(TupleVariant) | Instance(StructVariant)
@@ -150,15 +163,21 @@ module ScaleRb
     class VariantType < Base
       attribute :variants, Types::Array.of(VariantKind)
 
-      def to_s
-        body =
-          if path&.last == 'Call'
-            variants.sort_by(&:index).map { |v| v.name.to_s }
-          else
-            variants.sort_by(&:index).map(&:to_s)
-          end
-
-        body.join(' | ')
+      def to_string(depth = 0)
+        if depth > MAX_DEPTH
+          variants.sort_by(&:index).map { |v| v.name.to_s }.join(' | ')
+        else
+          variants.sort_by(&:index).map do |v|
+            case v
+            when SimpleVariant
+              v.name.to_s
+            when TupleVariant
+              "#{v.name}(#{v.tuple.to_string(depth + 1)})"
+            when StructVariant
+              "#{v.name} { #{v.struct.to_string(depth + 1)} }"
+            end
+          end.join(' | ')
+        end
       end
     end
 
@@ -169,6 +188,7 @@ module ScaleRb
                    Instance(CompactType) |
                    Instance(PrimitiveType) |
                    Instance(UnitType) |
-                   Instance(SequenceType)
+                   Instance(SequenceType) |
+                   Instance(BitSequenceType)
   end
 end
