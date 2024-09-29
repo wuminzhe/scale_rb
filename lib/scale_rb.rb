@@ -8,13 +8,13 @@ require 'utils'
 
 # scale codec
 require 'scale_rb/types'
+require 'type_enforcer'
 # require 'types/old_registry/type_exp'
 # require 'types/build_types_from_registry'
 require 'scale_rb/portable_registry'
 
 require 'codec'
 
-require 'type_enforcer'
 
 require 'scale_rb/codec'
 require 'scale_rb/codec/decode'

@@ -4,27 +4,28 @@ module ScaleRb
   module Codec
     class << self
       extend TypeEnforcer
+      include Types
 
-      sig :decode, [Types::Ti, Types::Hex, Types::Registry], Types::DecodeResult
+      sig :decode, [Ti, Hex, Registry], DecodeResult
       def decode(id, bytes, registry)
         ScaleRb.logger.debug("Decoding #{id}, bytes: #{bytes}")
         type = registry[id]
         raise TypeNotFound, "id: #{id}" if type.nil?
 
         case type
-        when Types::PrimitiveType then decode_primitive(type, bytes)
-        when Types::CompactType then decode_compact(bytes)
-        when Types::ArrayType then decode_array(type, bytes, registry)
-        when Types::SequenceType then decode_sequence(type, bytes, registry)
-        when Types::TupleType then decode_tuple(type, bytes, registry)
-        when Types::StructType then decode_struct(type, bytes, registry)
-        when Types::UnitType then [[], bytes]
-        when Types::VariantType then decode_variant(type, bytes, registry)
+        when PrimitiveType then decode_primitive(type, bytes)
+        when CompactType then decode_compact(bytes)
+        when ArrayType then decode_array(type, bytes, registry)
+        when SequenceType then decode_sequence(type, bytes, registry)
+        when TupleType then decode_tuple(type, bytes, registry)
+        when StructType then decode_struct(type, bytes, registry)
+        when UnitType then [[], bytes]
+        when VariantType then decode_variant(type, bytes, registry)
         else raise TypeNotImplemented, "id: #{id}, type: #{type}"
         end
       end
 
-      sig :decode_primitive, [Types::PrimitiveType, Types::Hex], Types::DecodeResult
+      sig :decode_primitive, [PrimitiveType, Hex], DecodeResult
       def decode_primitive(type, bytes)
         primitive = type.primitive
         ScaleRb.logger.debug("Decoding primitive: #{primitive}, bytes: #{bytes}")
