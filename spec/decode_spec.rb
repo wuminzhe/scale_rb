@@ -24,12 +24,15 @@ module ScaleRb
       data = JSON.parse(File.open(File.join(__dir__, 'assets', 'substrate-types.json')).read)
       @registry = ScaleRb::PortableRegistry.new(data)
 
-      # data = JSON.parse(File.open(File.join(__dir__, 'assets', './kusama-types.json')).read)
-      # @kusama_registry = ScaleRb::PortableRegistry.new(data)
+      data = JSON.parse(File.open(File.join(__dir__, 'assets', './kusama-types.json')).read)
+      @kusama_registry = ScaleRb::PortableRegistry.new(data)
     end
 
     it 'can decode uint' do
       test(2, [0x45], 69, @registry)
+      # @registry.types.each_with_index do |type, index|
+      #   puts "#{index}: #{type}"
+      # end
     end
 
     it 'can decode array' do
@@ -93,109 +96,109 @@ module ScaleRb
       )
     end
 
-    # it 'can decode composite4' do
-    #   bytes = ScaleRb::Utils.hex_to_u8a(
-    #     '0x'\
-    #     '020406010700f2052a017d01260000400d030000000000000000000000000000'\
-    #     '00000000000000000000000000000001004617d470f847ce166019d19a794404'\
-    #     '9ebb017400000000000000000000000000000000000000000000000000000000'\
-    #     '00000000001019ff1d2100'
-    #   )
+    it 'can decode composite 3' do
+      bytes = ScaleRb::Utils.hex_to_u8a(
+        '0x'\
+        '020406010700f2052a017d01260000400d030000000000000000000000000000'\
+        '00000000000000000000000000000001004617d470f847ce166019d19a794404'\
+        '9ebb017400000000000000000000000000000000000000000000000000000000'\
+        '00000000001019ff1d2100'
+      )
 
-    #   value = {
-    #     V2: [
-    #       {
-    #         Transact: {
-    #           origin_type: :SovereignAccount,
-    #           require_weight_at_most: 5_000_000_000,
-    #           call: {
-    #             encoded: [
-    #               38, 0, 0, 64, 13, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-    #               0, 0, 0, 0, 0, 0, 1, 0, 70, 23, 212, 112, 248, 71, 206, 22, 96, 25, 209, 154, 121, 68, 4, 158, 187, 1, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 25, 255, 29, 33, 0
-    #             ]
-    #           }
-    #         }
-    #       }
-    #     ]
-    #   }
+      value = {
+        V2: [
+          {
+            Transact: {
+              origin_type: :SovereignAccount,
+              require_weight_at_most: 5_000_000_000,
+              call: {
+                encoded: [
+                  38, 0, 0, 64, 13, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 1, 0, 70, 23, 212, 112, 248, 71, 206, 22, 96, 25, 209, 154, 121, 68, 4, 158, 187, 1, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 25, 255, 29, 33, 0
+                ]
+              }
+            }
+          }
+        ]
+      }
 
-    #   test(
-    #     542,
-    #     bytes,
-    #     value,
-    #     @kusama_registry
-    #   )
-    # end
+      test(
+        542,
+        bytes,
+        value,
+        @kusama_registry
+      )
+    end
 
-    # it 'can decode unit' do
-    #   test 161, [], [], @types
-    # end
+    it 'can decode unit' do
+      test 161, [], [], @registry
+    end
 
-    # it 'can decode simple variant' do
-    #   test(87, [0x01], :NonTransfer, @types)
-    # end
+    it 'can decode simple variant' do
+      test(87, [0x01], :NonTransfer, @registry)
+    end
 
-    # it 'can decode tuple variant' do
-    #   bytes = ScaleRb::Utils.hex_to_u8a('0x0200300422')
-    #   value = { X2: [{ Parachain: 12 }, { PalletInstance: 34 }] }
-    #   test(125, bytes, value, @kusama_types)
-    # end
+    it 'can decode tuple variant' do
+      bytes = ScaleRb::Utils.hex_to_u8a('0x0200300422')
+      value = { X2: [{ Parachain: 12 }, { PalletInstance: 34 }] }
+      test(125, bytes, value, @kusama_registry)
+    end
 
-    # it 'can decode versioned xcm' do
-    #   bytes = ScaleRb::Utils.hex_to_u8a(
-    #     '0x020c000400010200e520040500170000d01309468e15011300010200e520040500170000d01309468e15010006010700f2052a01180a070c313233'
-    #   )
+    it 'can decode versioned xcm' do
+      bytes = ScaleRb::Utils.hex_to_u8a(
+        '0x020c000400010200e520040500170000d01309468e15011300010200e520040500170000d01309468e15010006010700f2052a01180a070c313233'
+      )
 
-    #   value = {
-    #     V2: [
-    #       {
-    #         WithdrawAsset: [{
-    #           id: {
-    #             Concrete: {
-    #               parents: 1,
-    #               interior: {
-    #                 X2: [
-    #                   { Parachain: 2105 },
-    #                   { PalletInstance: 5 }
-    #                 ]
-    #               }
-    #             }
-    #           },
-    #           fun: {
-    #             Fungible: 20_000_000_000_000_000_000
-    #           }
-    #         }]
-    #       },
-    #       {
-    #         BuyExecution: {
-    #           fees: {
-    #             id: {
-    #               Concrete: {
-    #                 parents: 1,
-    #                 interior: {
-    #                   X2: [
-    #                     { Parachain: 2105 },
-    #                     { PalletInstance: 5 }
-    #                   ]
-    #                 }
-    #               }
-    #             },
-    #             fun: { Fungible: 20_000_000_000_000_000_000 }
-    #           },
-    #           weight_limit: :Unlimited
-    #         }
-    #       },
-    #       {
-    #         Transact: {
-    #           origin_type: :SovereignAccount,
-    #           require_weight_at_most: 5_000_000_000,
-    #           call: { encoded: [10, 7, 12, 49, 50, 51] }
-    #         }
-    #       }
-    #     ]
-    #   }
+      value = {
+        V2: [
+          {
+            WithdrawAsset: [{
+              id: {
+                Concrete: {
+                  parents: 1,
+                  interior: {
+                    X2: [
+                      { Parachain: 2105 },
+                      { PalletInstance: 5 }
+                    ]
+                  }
+                }
+              },
+              fun: {
+                Fungible: 20_000_000_000_000_000_000
+              }
+            }]
+          },
+          {
+            BuyExecution: {
+              fees: {
+                id: {
+                  Concrete: {
+                    parents: 1,
+                    interior: {
+                      X2: [
+                        { Parachain: 2105 },
+                        { PalletInstance: 5 }
+                      ]
+                    }
+                  }
+                },
+                fun: { Fungible: 20_000_000_000_000_000_000 }
+              },
+              weight_limit: :Unlimited
+            }
+          },
+          {
+            Transact: {
+              origin_type: :SovereignAccount,
+              require_weight_at_most: 5_000_000_000,
+              call: { encoded: [10, 7, 12, 49, 50, 51] }
+            }
+          }
+        ]
+      }
 
-    #   test 542, bytes, value, @kusama_types
-    # end
+      test 542, bytes, value, @kusama_registry
+    end
   end
 end

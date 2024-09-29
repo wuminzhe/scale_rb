@@ -6,8 +6,3 @@ gemspec
 gem 'rake', '~> 12.0'
 gem 'rspec', '~> 3.0'
 gem 'rubocop', group: 'development', require: false
-
-# sorbet
-gem 'sorbet', group: :development
-gem 'sorbet-runtime'
-gem 'tapioca', require: false, group: %i[development test]

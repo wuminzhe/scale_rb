@@ -20,6 +20,10 @@ module ScaleRb
       @types[index]
     end
 
+    def inspect
+      "PortableRegistry"
+    end
+
     private
 
     sig :build_types, {}
@@ -52,7 +56,13 @@ module ScaleRb
         # type_def: { type: 9 }
         SequenceType.new(type: type_def._get(:type), registry: self, path: path)
       when :bitSequence
-        raise NotImplementedError, 'bitSequence not implemented'
+        # type_def: {"bitStoreType"=>2, "bitOrderType"=>502}
+        BitSequenceType.new(
+          bit_store_type: type_def._get(:bitStoreType),
+          bit_order_type: type_def._get(:bitOrderType),
+          registry: self,
+          path: path
+        )
       when :array
         # type_def: { len: 3, type: 1 }
         ArrayType.new(

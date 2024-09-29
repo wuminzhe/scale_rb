@@ -105,18 +105,18 @@ module ScaleRb
 
         # decode the variant
         case variant
-        when ScaleRb::SimpleVariant
+        when SimpleVariant
           [
             variant.name,
             bytes[1..]
           ]
-        when ScaleRb::TupleVariant
+        when TupleVariant
           value, remainning_bytes = decode_tuple(variant.tuple, bytes[1..], registry)
           [
             { variant.name => value },
             remainning_bytes
           ]
-        when ScaleRb::StructVariant
+        when StructVariant
           value, remainning_bytes = decode_struct(variant.struct, bytes[1..], registry)
           [
             { variant.name => value },
