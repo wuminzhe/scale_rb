@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# rubocop:disable all
 module ScaleRb
   module Codec
     class << self
@@ -38,14 +39,14 @@ module ScaleRb
         raise TypeNotImplemented, "decoding primitive: #{primitive}"
       end
 
-      # % decode_compact :: U8Array -> (Any, U8Array)
+      sig :decode_compact, [Hex], DecodeResult
       def decode_compact(bytes)
         ScaleRb.logger.debug("Decoding compact: bytes: #{bytes}")
 
         ScaleRb.decode_compact(bytes)
       end
 
-      # % decode_array :: ArrayType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
+      sig :decode_array, [ArrayType, Hex, Registry], DecodeResult
       def decode_array(type, bytes, registry)
         ScaleRb.logger.debug("Decoding array: #{type}, bytes: #{bytes}")
 
@@ -55,7 +56,7 @@ module ScaleRb
         _decode_types([inner_type_id] * len, bytes, registry)
       end
 
-      # % decode_sequence :: SequenceType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
+      sig :decode_sequence, [SequenceType, Hex, Registry], DecodeResult
       def decode_sequence(sequence_type, bytes, registry)
         ScaleRb.logger.debug("Decoding sequence: #{sequence_type}, bytes: #{bytes}")
 
@@ -63,7 +64,7 @@ module ScaleRb
         _decode_types([sequence_type.type] * len, remaining_bytes, registry)
       end
 
-      # % decode_tuple :: TupleType -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
+      sig :decode_tuple, [TupleType, Hex, Registry], DecodeResult
       def decode_tuple(tuple_type, bytes, registry)
         ScaleRb.logger.debug("Decoding tuple: #{tuple_type}, bytes: #{bytes}")
 
@@ -78,7 +79,7 @@ module ScaleRb
         end
       end
 
-      # % decode_struct :: StructType -> U8Array -> Array<PortableType> -> (Hash<Symbol, Any>, U8Array)
+      sig :decode_struct, [StructType, Hex, Registry], DecodeResult
       def decode_struct(struct_type, bytes, registry)
         ScaleRb.logger.debug("Decoding struct: #{struct_type}, bytes: #{bytes}")
 
@@ -94,7 +95,7 @@ module ScaleRb
         ]
       end
 
-      # % decode_variant :: VariantType -> U8Array -> Array<PortableType> -> (Symbol | Hash<Symbol, Any>, U8Array)
+      sig :decode_variant, [VariantType, Hex, Registry], DecodeResult
       def decode_variant(variant_type, bytes, registry)
         ScaleRb.logger.debug("Decoding variant: #{variant_type}, bytes: #{bytes}")
 

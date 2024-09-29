@@ -3,6 +3,7 @@
 require 'scale_rb'
 require 'json'
 
+# rubocop:disable all
 module ScaleRb
   RSpec.describe 'Decoding Tests' do
     # test :: Ti -> U8Array -> Any -> U8Array -> Types::Registry -> void
@@ -13,11 +14,11 @@ module ScaleRb
         [value, []]
       )
 
-      # expect(
-      #   ScaleRb::Codec.encode(ti, value, registry)
-      # ).to eql(
-      #   bytes
-      # )
+      expect(
+        ScaleRb::Codec.encode(ti, value, registry)
+      ).to eql(
+        bytes
+      )
     end
 
     before(:all) do
