@@ -1,12 +1,14 @@
 # frozen_string_literal: true
 
+require_relative 'codec_utils'
+
 # rubocop:disable all
 module ScaleRb
   module Decode
     extend TypeEnforcer
     include Types
 
-    sig :decode, { id: Ti, bytes: U8Array, registry: Registry }, DecodeResult
+    sig :decode, { id: Ti, bytes: U8Array, registry: Registry }, DecodeResult[Any]
     def decode(id, bytes, registry)
       ScaleRb.logger.debug("Decoding #{id}, bytes: #{bytes}")
       type = registry[id]
@@ -25,27 +27,27 @@ module ScaleRb
       end
     end
 
-    sig :decode_primitive, { type: PrimitiveType, bytes: U8Array }, DecodeResult
+    sig :decode_primitive, { type: PrimitiveType, bytes: U8Array }, DecodeResult[Any]
     def decode_primitive(type, bytes)
       primitive = type.primitive
       ScaleRb.logger.debug("Decoding primitive: #{primitive}, bytes: #{bytes}")
 
-      return ScaleRb.decode_uint(primitive, bytes) if primitive.start_with?('U')
-      return ScaleRb.decode_int(primitive, bytes) if primitive.start_with?('I')
-      return ScaleRb.decode_string(bytes) if primitive == 'Str'
-      return ScaleRb.decode_boolean(bytes) if primitive == 'Bool'
+      return CodecUtils.decode_uint(primitive, bytes) if primitive.start_with?('U')
+      return CodecUtils.decode_int(primitive, bytes) if primitive.start_with?('I')
+      return CodecUtils.decode_string(bytes) if primitive == 'Str'
+      return CodecUtils.decode_boolean(bytes) if primitive == 'Bool'
 
       raise Codec::TypeNotImplemented, "decoding primitive: #{primitive}"
     end
 
-    sig :decode_compact, { bytes: U8Array }, DecodeResult
+    sig :decode_compact, { bytes: U8Array }, DecodeResult[UnsignedInteger]
     def decode_compact(bytes)
       ScaleRb.logger.debug("Decoding compact: bytes: #{bytes}")
 
-      ScaleRb.decode_compact(bytes)
+      CodecUtils.decode_compact(bytes)
     end
 
-    sig :decode_array, { type: ArrayType, bytes: U8Array, registry: Registry }, DecodeResult
+    sig :decode_array, { type: ArrayType, bytes: U8Array, registry: Registry }, DecodeResult[TypedArray[Any]]
     def decode_array(type, bytes, registry)
       ScaleRb.logger.debug("Decoding array: #{type}, bytes: #{bytes}")
 
@@ -55,7 +57,7 @@ module ScaleRb
       _decode_types([inner_type_id] * len, bytes, registry)
     end
 
-    sig :decode_sequence, { sequence_type: SequenceType, bytes: U8Array, registry: Registry }, DecodeResult
+    sig :decode_sequence, { sequence_type: SequenceType, bytes: U8Array, registry: Registry }, DecodeResult[TypedArray[Any]]
     def decode_sequence(sequence_type, bytes, registry)
       ScaleRb.logger.debug("Decoding sequence: #{sequence_type}, bytes: #{bytes}")
 
@@ -63,7 +65,7 @@ module ScaleRb
       _decode_types([sequence_type.type] * len, remaining_bytes, registry)
     end
 
-    sig :decode_tuple, { tuple_type: TupleType, bytes: U8Array, registry: Registry }, DecodeResult
+    sig :decode_tuple, { tuple_type: TupleType, bytes: U8Array, registry: Registry }, DecodeResult[TypedArray[Any] | Any]
     def decode_tuple(tuple_type, bytes, registry)
       ScaleRb.logger.debug("Decoding tuple: #{tuple_type}, bytes: #{bytes}")
 
@@ -78,7 +80,7 @@ module ScaleRb
       end
     end
 
-    sig :decode_struct, { struct_type: StructType, bytes: U8Array, registry: Registry }, DecodeResult
+    sig :decode_struct, { struct_type: StructType, bytes: U8Array, registry: Registry }, DecodeResult[HashMap[Symbol, Any]]
     def decode_struct(struct_type, bytes, registry)
       ScaleRb.logger.debug("Decoding struct: #{struct_type}, bytes: #{bytes}")
 
@@ -94,7 +96,7 @@ module ScaleRb
       ]
     end
 
-    sig :decode_variant, { variant_type: VariantType, bytes: U8Array, registry: Registry }, DecodeResult
+    sig :decode_variant, { variant_type: VariantType, bytes: U8Array, registry: Registry }, DecodeResult[Symbol | HashMap[Symbol, Any]]
     def decode_variant(variant_type, bytes, registry)
       ScaleRb.logger.debug("Decoding variant: #{variant_type}, bytes: #{bytes}")
 

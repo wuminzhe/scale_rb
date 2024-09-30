@@ -15,6 +15,9 @@ module ScaleRb
     class VariantInvalidValue < Error; end
     class VariantFieldsLengthNotMatch < Error; end
     class LengthNotEqualErr < Error; end
+    class NotEnoughBytesError < Error; end
+    class Unreachable < Error; end
+    class InvalidBytesError < Error; end
 
     extend Decode
     extend Encode
