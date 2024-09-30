@@ -17,9 +17,16 @@ module ScaleRb
     Hex = Types::Strict::String.constrained(format: /\A0x[0-9a-fA-F]+\z/)
 
     Registry = Types.Interface(:[])
-    DecodeResult = Types::Array.of(Any).constrained(size: 2).constructor do |arr|
-      [arr[0], U8Array[arr[1]]]
+    DecodeResult = lambda { |type = Types::Any|
+      Types::Array.of(type | U8Array).constrained(size: 2).constructor do |arr|
+        [type[arr[0]], U8Array[arr[1]]]
+      end
+    }
+    HashMap = lambda do |key_type, value_type|
+      Types::Hash.map(key_type, value_type)
     end
+    UnsignedInteger = Types::Strict::Integer.constrained(gteq: 0)
+    TypedArray = ->(type) { Types::Array.of(type) }
 
     class Base < Dry::Struct
       attribute? :registry, Registry
@@ -192,3 +199,8 @@ module ScaleRb
                    Instance(BitSequenceType)
   end
 end
+
+# type = ScaleRb::Types::TypedArray[ScaleRb::Types::UnsignedInteger]
+# p type
+# p type[[1, 2]] # => [1, 2]
+# # p type[[-1, -2]] # => -1 violates constraints (gteq?(0, -1) failed)
