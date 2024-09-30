@@ -8,7 +8,7 @@ module ScaleRb
 
     attr_reader :data, :types
 
-    sig :initialize, { data: Array.of(Hash) }
+    sig :initialize, { data: TypedArray[HashMap[String, Any]] }
     def initialize(data)
       @data = data
       @types = ::Array.new(@data.size)
@@ -43,7 +43,8 @@ module ScaleRb
       end
     end
 
-    sig :_build_type, { id: Ti, type_name: Symbol, type_def: Hash | String | Array, path: Strict::Array.of(Strict::String) }, PortableType
+    # TODO: type_def better type definition
+    sig :_build_type, { id: Ti, type_name: Symbol, type_def: Hash | String | Array, path: TypedArray[String] }, PortableType
     def _build_type(id, type_name, type_def, path)
       case type_name
       when :primitive
