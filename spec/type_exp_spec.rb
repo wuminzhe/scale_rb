@@ -2,7 +2,7 @@
 
 require 'scale_rb'
 
-RSpec.describe ScaleRb::TypeExp do
+RSpec.describe ScaleRb::OldRegistry::TypeExp do
   def self.ast(exp, type)
     it "AST: #{exp}" do
       parsed = described_class.parse(exp)
@@ -19,24 +19,24 @@ RSpec.describe ScaleRb::TypeExp do
   end
 
   describe 'AST parsing' do
-    ast('A', ScaleRb::TypeExp::NamedType.new('A', []))
+    ast('A', ScaleRb::OldRegistry::TypeExp::NamedType.new('A', []))
 
-    ast('Vec<u8>', ScaleRb::TypeExp::NamedType.new('Vec', [ScaleRb::TypeExp::NamedType.new('u8', [])]))
+    ast('Vec<u8>', ScaleRb::OldRegistry::TypeExp::NamedType.new('Vec', [ScaleRb::OldRegistry::TypeExp::NamedType.new('u8', [])]))
 
-    ast('[A; 10]', ScaleRb::TypeExp::ArrayType.new(ScaleRb::TypeExp::NamedType.new('A', []), 10))
+    ast('[A; 10]', ScaleRb::OldRegistry::TypeExp::ArrayType.new(ScaleRb::OldRegistry::TypeExp::NamedType.new('A', []), 10))
 
-    ast('[u8; 16; H128]', ScaleRb::TypeExp::ArrayType.new(ScaleRb::TypeExp::NamedType.new('u8', []), 16))
+    ast('[u8; 16; H128]', ScaleRb::OldRegistry::TypeExp::ArrayType.new(ScaleRb::OldRegistry::TypeExp::NamedType.new('u8', []), 16))
 
     ast(
       '(A, B, [u8; 5])',
-      ScaleRb::TypeExp::TupleType.new(
+      ScaleRb::OldRegistry::TypeExp::TupleType.new(
         [
-          ScaleRb::TypeExp::NamedType.new('A', []),
-          ScaleRb::TypeExp::NamedType.new(
+          ScaleRb::OldRegistry::TypeExp::NamedType.new('A', []),
+          ScaleRb::OldRegistry::TypeExp::NamedType.new(
             'B', []
           ),
-          ScaleRb::TypeExp::ArrayType.new(
-            ScaleRb::TypeExp::NamedType.new(
+          ScaleRb::OldRegistry::TypeExp::ArrayType.new(
+            ScaleRb::OldRegistry::TypeExp::NamedType.new(
               'u8', []
             ), 5
           )
