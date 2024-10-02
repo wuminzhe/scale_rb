@@ -4,7 +4,7 @@ require_relative '../codec_utils'
 
 # rubocop:disable all
 module ScaleRb
-  module OldRegistry
+  module Metadata
     module Decode
       extend TypeEnforcer
       include Types
@@ -12,7 +12,7 @@ module ScaleRb
       def decode(type, bytes, registry = {})
         bytes = ScaleRb::Utils.hex_to_u8a(bytes) if bytes.is_a?(::String)
 
-        if type.is_a?(String)
+        if type.is_a?(::String)
           return decode_bytes(bytes) if bytes?(type) # Bytes
           return decode_boolean(bytes) if boolean?(type) # Boolean
           return decode_string(bytes) if string?(type) # String

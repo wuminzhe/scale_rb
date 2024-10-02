@@ -1,5 +1,12 @@
 # frozen_string_literal: true
 
+require_relative './metadata_v9'
+require_relative './metadata_v10'
+require_relative './metadata_v11'
+require_relative './metadata_v12'
+require_relative './metadata_v13'
+require_relative './metadata_v14'
+
 module ScaleRb
   module Metadata
     class << self

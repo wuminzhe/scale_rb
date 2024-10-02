@@ -20,13 +20,12 @@ require 'utils'
 # scale codec
 require 'scale_rb/types'
 require 'type_enforcer'
-require 'scale_rb/old_registry/type_exp'
-# require 'types/build_types_from_registry'
+
 require 'scale_rb/portable_registry'
-
-require 'codec'
-
 require 'scale_rb/codec'
+
+require 'scale_rb/metadata/type_exp'
+require 'scale_rb/metadata/codec'
 
 # metadata types, decoding and helpers
 require 'metadata/metadata_v9'
@@ -39,9 +38,6 @@ require 'metadata/metadata'
 
 require 'hasher'
 require 'storage_helper'
-
-# get registry from config
-require 'registry'
 
 require 'address'
 

@@ -4,7 +4,7 @@ require_relative '../codec_utils'
 
 # rubocop:disable all
 module ScaleRb
-  module OldRegistry
+  module Metadata
     module Encode
       extend TypeEnforcer
       include Types
