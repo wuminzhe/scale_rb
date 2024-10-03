@@ -115,21 +115,14 @@ module ScaleRb
     end
 
     TYPES = {
+      Type: 'Str',
+      Bytes: 'Vec<u8>',
       MetadataTop: {
         magicNumber: 'U32',
         metadata: 'Metadata'
       },
       Metadata: {
         _enum: {
-          v0: 'MetadataV0',
-          v1: 'MetadataV1',
-          v2: 'MetadataV2',
-          v3: 'MetadataV3',
-          v4: 'MetadataV4',
-          v5: 'MetadataV5',
-          v6: 'MetadataV6',
-          v7: 'MetadataV7',
-          v8: 'MetadataV8',
           v9: 'MetadataV9',
           v10: 'MetadataV10',
           v11: 'MetadataV11',

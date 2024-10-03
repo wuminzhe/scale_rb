@@ -21,6 +21,12 @@ RSpec.describe ScaleRb::Metadata::TypeExp do
   describe 'AST parsing' do
     ast('A', ScaleRb::Metadata::TypeExp::NamedType.new('A', []))
 
+    ast('Compact',
+        ScaleRb::Metadata::TypeExp::NamedType.new('Compact', []))
+
+    ast('Compact<u8>',
+        ScaleRb::Metadata::TypeExp::NamedType.new('Compact', [ScaleRb::Metadata::TypeExp::NamedType.new('u8', [])]))
+
     ast('Vec<u8>',
         ScaleRb::Metadata::TypeExp::NamedType.new('Vec', [ScaleRb::Metadata::TypeExp::NamedType.new('u8', [])]))
 

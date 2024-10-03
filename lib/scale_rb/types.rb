@@ -186,6 +186,26 @@ module ScaleRb
           end.join(' | ')
         end
       end
+
+      def self.option(type, registry)
+        VariantType.new(
+          variants: [
+            SimpleVariant.new(name: :None, index: 0),
+            TupleVariant.new(name: :Some, index: 1, tuple: TupleType.new(tuple: [type], registry: registry))
+          ],
+          registry: registry
+        )
+      end
+
+      def self.result(ok_type, err_type, registry)
+        VariantType.new(
+          variants: [
+            TupleVariant.new(name: :Ok, index: 0, tuple: TupleType.new(tuple: [ok_type], registry: registry)),
+            TupleVariant.new(name: :Err, index: 1, tuple: TupleType.new(tuple: [err_type], registry: registry))
+          ],
+          registry: registry
+        )
+      end
     end
 
     PortableType = Instance(VariantType) |

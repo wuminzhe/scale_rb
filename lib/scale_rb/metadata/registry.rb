@@ -3,6 +3,7 @@
 require_relative './type_exp'
 require_relative '../types'
 
+# rubocop:disable all
 module ScaleRb
   module Metadata
     class TypeAlias
@@ -20,6 +21,10 @@ module ScaleRb
 
       def to_s
         @alias
+      end
+
+      def to_string(depth = 0)
+        "Alias{#{@name} => #{@alias}}"
       end
     end
 
@@ -52,7 +57,11 @@ module ScaleRb
 
       # % use :: String -> Integer
       def use(old_type_exp)
+        raise "Empty old_type_exp: #{old_type_exp}" if old_type_exp.nil? || old_type_exp.strip == ''
+
         ast_type = TypeExp.parse(old_type_exp)
+        raise "No AST type for #{old_type_exp}" if ast_type.nil?
+
         key = ast_type.to_s
         ti = lookup[key]
         return ti if ti
@@ -63,13 +72,8 @@ module ScaleRb
         ti
       end
 
-      def build_types
-        @old_types.each_pair do |key, value|
-          use(key)
-        end
-      end
-
       # % build_portable_type :: NamedType | ArrayType | TupleType -> PortableType
+      # sig :build_portable_type, { ast_type: TypedArray[TypeExp::ArrayType | TypeExp::TupleType | TypeExp::NamedType] } => PortableType
       def build_portable_type(ast_type)
         case ast_type
         when TypeExp::ArrayType
@@ -78,6 +82,8 @@ module ScaleRb
           TupleType.new(ast_type.params.map { |param| use(param) })
         when TypeExp::NamedType
           build_portable_type_from_named_type(ast_type)
+        else
+          raise "Unknown type: #{ast_type.class}"
         end
       end
 
@@ -95,17 +101,18 @@ module ScaleRb
         case name
         when 'Vec'
           item_index = use(params[0].to_s)
-          SequenceType.new(item_index)
+          SequenceType.new(type: item_index, registry: self)
         when 'Option'
           item_index = use(params[0].to_s)
-          VariantType.option(item_index)
+          VariantType.option(item_index, self)
         when 'Result'
           ok_index = use(params[0].to_s)
           err_index = use(params[1].to_s)
-          VariantType.result(ok_index, err_index)
+          VariantType.result(ok_index, err_index, self)
         when 'Compact'
-          item_index = use(params[0].to_s)
-          CompactType.new(item_index)
+          # item_index = use(params[0].to_s)
+          # CompactType.new(type: item_index, registry: self)
+          CompactType.new
         else
           raise "Unknown type: #{name}"
         end
@@ -122,6 +129,8 @@ module ScaleRb
           PrimitiveType.new(primitive: 'Bool')
         when /^str$/, /^text$/
           PrimitiveType.new(primitive: 'Str')
+        else
+          nil
         end
       end
 
@@ -156,7 +165,7 @@ module ScaleRb
       end
 
       # % _build_portable_type_from_enum_definition :: Hash<Symbol, Any> -> VariantType
-      def _build_portable_type_from_enum_definition(definition) # rubocop:disable Metrics/MethodLength,Metrics/PerceivedComplexity,Metrics/AbcSize,Metrics/CyclomaticComplexity
+      def _build_portable_type_from_enum_definition(definition)
         variants =
           if definition[:_enum].is_a?(::Array)
             # Simple array enum:
@@ -164,7 +173,7 @@ module ScaleRb
             #   _enum: ['A', 'B', 'C']
             # }
             definition[:_enum].map.with_index do |variant_name, index|
-              ScaleRb::Types::SimpleVariant.new(name: variant_name, index:)
+              SimpleVariant.new(name: variant_name.to_sym, index:)
             end
           elsif definition[:_enum].is_a?(::Hash)
             if _indexed_enum?(definition)
@@ -177,24 +186,29 @@ module ScaleRb
               #   }
               # }
               definition[:_enum].map do |variant_name, index|
-                ScaleRb::Types::SimpleVariant.new(name: variant_name, index:)
+                SimpleVariant.new(name: variant_name, index:)
               end
             else
               # Mixed enum:
               # {
               #   _enum: {
-              #     Variant1: 'Null',
-              #     Variant2: {
-              #       name: 'Text',
-              #       value: 'u32'
-              #     },
-              #     Variant3: ['u8', 'bool', 'Vec<u32>']
+              #     A: 'u32',
+              #     B: {a: 'u32', b: 'u32'},
+              #     C: null,
+              #     D: ['u32', 'u32']
               #   }
               # }
               definition[:_enum].map.with_index do |(variant_name, variant_def), index|
                 case variant_def
                 when ::String
-                  SimpleVariant.new(name: variant_name, index:)
+                  TupleVariant.new(
+                    name: variant_name,
+                    index:,
+                    tuple: TupleType.new(
+                      tuple: [use(variant_def)],
+                      registry: self
+                    ),
+                  )
                 when ::Array
                   TupleVariant.new(
                     name: variant_name,
@@ -243,9 +257,11 @@ begin
   to_types = ScaleRb::Metadata::Registry.new ScaleRb::Metadata::TYPES
   p to_types.old_types.length
   p to_types.use('MetadataTop')
-  to_types.types.each_with_index do |type|
-    p type
+  to_types.types.each_with_index do |type, i|
+    puts "\n---------------------"
+    puts "#{i}: #{type.to_s}"
   end
+
 rescue StandardError => e
   puts e.message
   puts e.backtrace.join("\n")
