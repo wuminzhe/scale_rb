@@ -6,34 +6,15 @@ require_relative '../types'
 # rubocop:disable all
 module ScaleRb
   module Metadata
-    class TypeAlias
-      # % alias :: Ti
-      attr_reader :alias
-
-      # % name :: String
-      attr_reader :name
-
-      # % initialize :: String -> Ti -> void
-      def initialize(name, the_alias)
-        @name = name
-        @alias = the_alias
-      end
-
-      def to_s
-        @alias
-      end
-
-      def to_string(depth = 0)
-        "Alias{#{@name} => #{@alias}}"
-      end
-    end
-
     class Registry
       include Types
 
       # Map name to index of type in `types` array
       # % lookup :: String -> Integer
       attr_reader :lookup
+
+      # % keys :: Integer -> String
+      attr_reader :keys
 
       # % types :: Array<PortableType>
       attr_reader :types
@@ -44,7 +25,16 @@ module ScaleRb
       def initialize(old_types)
         @old_types = old_types
         @lookup = {}
+        @keys = {}
         @types = []
+
+        build()
+      end
+
+      def build()
+        @old_types.keys.each do |name|
+          use(name.to_s)
+        end
       end
 
       def [](index)
@@ -52,7 +42,13 @@ module ScaleRb
       end
 
       def inspect
-        "a_registry"
+        "registry(#{@types.length} types)"
+      end
+
+      def to_s
+        @types.map.with_index do |type, index|
+          "#{@keys[index]} => #{type.to_s}"
+        end.join("\n")
       end
 
       # % use :: String -> Integer
@@ -67,8 +63,10 @@ module ScaleRb
         return ti if ti
 
         ti = @types.length
-        lookup[key] = ti
-        @types << build_portable_type(ast_type)
+        @types[ti] = "Placeholder"
+        @lookup[key] = ti
+        @keys[ti] = key
+        @types[ti] = build_portable_type(ast_type)
         ti
       end
 
@@ -146,7 +144,10 @@ module ScaleRb
       def build_from_definition(name, definition) # rubocop:disable Metrics/MethodLength
         case definition
         when String
-          TypeAlias.new(name, use(definition))
+          # TypeAlias.new(name, use(definition))
+          alias_type_id = use(definition)
+          # p "alias_type_id: #{alias_type_id}"
+          types[alias_type_id]
         when Hash
           if definition[:_enum]
             _build_portable_type_from_enum_definition(definition)
@@ -249,60 +250,12 @@ module ScaleRb
   end
 end
 
-# Example usage of ToTypes
+# require_relative '../../metadata/metadata'
 
-require_relative '../../metadata/metadata'
-
-begin
-  to_types = ScaleRb::Metadata::Registry.new ScaleRb::Metadata::TYPES
-  p to_types.old_types.length
-  p to_types.use('MetadataTop')
-  to_types.types.each_with_index do |type, i|
-    puts "\n---------------------"
-    puts "#{i}: #{type.to_s}"
-  end
-
-rescue StandardError => e
-  puts e.message
-  puts e.backtrace.join("\n")
-end
-
-# # Example of a complex enum definition
-# complex_enum = {
-#   _enum: {
-#     Variant1: 'Null',
-#     Variant2: {
-#       name: 'Text',
-#       value: 'u32'
-#     },
-#     Variant3: ['u8', 'bool', 'Vec<u32>']
-#   }
-# }
-# complex_enum_type = to_types.build(complex_enum)
-# puts "Complex Enum Type: #{complex_enum_type.inspect}"
-
-# # Example of a struct definition
-# struct_def = {
-#   _struct: {
-#     id: 'u32',
-#     name: 'String',
-#     is_active: 'bool'
-#   }
-# }
-# struct_type = to_types.build(struct_def)
-# puts "Struct Type: #{struct_type.inspect}"
-
-# # Example of a nested type
-# nested_type = {
-#   _struct: {
-#     outer_field: 'u64',
-#     inner_struct: {
-#       _struct: {
-#         inner_field1: 'String',
-#         inner_field2: 'bool'
-#       }
-#     }
-#   }
-# }
-# nested_type_result = to_types.build(nested_type)
-# puts "Nested Type: #{nested_type_result.inspect}"
+# begin
+#   registry = ScaleRb::Metadata::Registry.new ScaleRb::Metadata::TYPES
+#   puts registry
+# rescue StandardError => e
+#   puts e.message
+#   puts e.backtrace.join("\n")
+# end

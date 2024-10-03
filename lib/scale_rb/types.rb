@@ -179,9 +179,9 @@ module ScaleRb
             when SimpleVariant
               v.name.to_s
             when TupleVariant
-              "#{v.name}(#{v.tuple.to_string(depth + 1)})"
+              "#{v.name}#{v.tuple.to_string(depth + 1)}"
             when StructVariant
-              "#{v.name} { #{v.struct.to_string(depth + 1)} }"
+              "#{v.name} #{v.struct.to_string(depth + 1)}"
             end
           end.join(' | ')
         end
