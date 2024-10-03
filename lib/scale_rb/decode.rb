@@ -108,19 +108,24 @@ module ScaleRb
       # decode the variant
       case variant
       when SimpleVariant
-        [
-          variant.name,
-          bytes[1..]
-        ]
+        if variant.name == :None
+          [nil, bytes[1..]]
+        else
+          [
+            variant.name,
+            bytes[1..]
+          ]
+        end
       when TupleVariant
         value, remainning_bytes = decode_tuple(variant.tuple, bytes[1..], registry)
         if variant.name == :Some
-          puts "variant.name: #{variant.name}, value: #{value}"
+          [value, remainning_bytes]
+        else
+          [
+            { variant.name => value },
+            remainning_bytes
+          ]
         end
-        [
-          { variant.name => value },
-          remainning_bytes
-        ]
       when StructVariant
         value, remainning_bytes = decode_struct(variant.struct, bytes[1..], registry)
         [
