@@ -8,6 +8,8 @@ module TypeEnforcer
   end
 
   def sig(method_name, param_types, return_type = nil)
+    return unless type_enforcement_enabled?
+
     @type_enforcements[method_name] = {
       params: param_types,
       return: return_type
@@ -27,6 +29,7 @@ module TypeEnforcer
   private
 
   def apply_enforcement(method_name, singleton: false)
+    return unless type_enforcement_enabled?
     return if @applying_enforcement
     return unless @type_enforcements.key?(method_name)
 
@@ -37,6 +40,10 @@ module TypeEnforcer
     ensure
       @applying_enforcement = false
     end
+  end
+
+  def type_enforcement_enabled?
+    ENV['ENABLE_TYPE_ENFORCEMENT'] != 'false'
   end
 
   def decorate(method_name, param_types, return_type, singleton: false)
