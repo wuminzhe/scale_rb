@@ -10,7 +10,7 @@ module ScaleRb
 
     sig :decode, { id: Ti, bytes: U8Array, registry: Registry }, DecodeResult[Any]
     def decode(id, bytes, registry)
-      ScaleRb.logger.debug("Decoding #{id}, bytes: #{bytes}")
+      ScaleRb.logger.debug("Decoding #{id}, bytes: #{bytes.length} bytes")
       type = registry[id]
       raise Codec::TypeNotFound, "id: #{id}" if type.nil?
 
@@ -30,11 +30,11 @@ module ScaleRb
     sig :decode_primitive, { type: PrimitiveType, bytes: U8Array }, DecodeResult[Any]
     def decode_primitive(type, bytes)
       primitive = type.primitive
-      ScaleRb.logger.debug("Decoding primitive: #{primitive}, bytes: #{bytes}")
+      ScaleRb.logger.debug("Decoding primitive: #{primitive}, bytes: #{bytes.length} bytes")
 
       return CodecUtils.decode_uint(primitive, bytes) if primitive.start_with?('U')
       return CodecUtils.decode_int(primitive, bytes) if primitive.start_with?('I')
-      return CodecUtils.decode_string(bytes) if primitive == 'Str'
+      return CodecUtils.decode_str(bytes) if primitive == 'Str'
       return CodecUtils.decode_boolean(bytes) if primitive == 'Bool'
 
       raise Codec::TypeNotImplemented, "decoding primitive: #{primitive}"
@@ -42,14 +42,14 @@ module ScaleRb
 
     sig :decode_compact, { bytes: U8Array }, DecodeResult[UnsignedInteger]
     def decode_compact(bytes)
-      ScaleRb.logger.debug("Decoding compact: bytes: #{bytes}")
+      ScaleRb.logger.debug("Decoding compact: bytes: #{bytes.length} bytes")
 
       CodecUtils.decode_compact(bytes)
     end
 
     sig :decode_array, { type: ArrayType, bytes: U8Array, registry: Registry }, DecodeResult[TypedArray[Any]]
     def decode_array(type, bytes, registry)
-      ScaleRb.logger.debug("Decoding array: #{type}, bytes: #{bytes}")
+      ScaleRb.logger.debug("Decoding array: #{type}, bytes: #{bytes.length} bytes")
 
       len = type.len
       inner_type_id = type.type
@@ -59,7 +59,7 @@ module ScaleRb
 
     sig :decode_sequence, { sequence_type: SequenceType, bytes: U8Array, registry: Registry }, DecodeResult[TypedArray[Any]]
     def decode_sequence(sequence_type, bytes, registry)
-      ScaleRb.logger.debug("Decoding sequence: #{sequence_type}, bytes: #{bytes}")
+      ScaleRb.logger.debug("Decoding sequence: #{sequence_type}, bytes: #{bytes.length} bytes")
 
       len, remaining_bytes = decode_compact(bytes)
       _decode_types([sequence_type.type] * len, remaining_bytes, registry)
@@ -67,7 +67,7 @@ module ScaleRb
 
     sig :decode_tuple, { tuple_type: TupleType, bytes: U8Array, registry: Registry }, DecodeResult[TypedArray[Any] | Any]
     def decode_tuple(tuple_type, bytes, registry)
-      ScaleRb.logger.debug("Decoding tuple: #{tuple_type}, bytes: #{bytes}")
+      ScaleRb.logger.debug("Decoding tuple: #{tuple_type}, bytes: #{bytes.length} bytes")
 
       type_ids = tuple_type.tuple
 
@@ -82,7 +82,7 @@ module ScaleRb
 
     sig :decode_struct, { struct_type: StructType, bytes: U8Array, registry: Registry }, DecodeResult[HashMap[Symbol, Any]]
     def decode_struct(struct_type, bytes, registry)
-      ScaleRb.logger.debug("Decoding struct: #{struct_type}, bytes: #{bytes}")
+      ScaleRb.logger.debug("Decoding struct: #{struct_type}, bytes: #{bytes.length} bytes")
 
       fields = struct_type.fields
 
@@ -98,7 +98,7 @@ module ScaleRb
 
     sig :decode_variant, { variant_type: VariantType, bytes: U8Array, registry: Registry }, DecodeResult[Symbol | HashMap[Symbol, Any]]
     def decode_variant(variant_type, bytes, registry)
-      ScaleRb.logger.debug("Decoding variant: #{variant_type}, bytes: #{bytes}")
+      ScaleRb.logger.debug("Decoding variant: #{variant_type}, bytes: #{bytes.length} bytes")
 
       # find the variant by the index
       index = bytes[0].to_i
@@ -114,6 +114,9 @@ module ScaleRb
         ]
       when TupleVariant
         value, remainning_bytes = decode_tuple(variant.tuple, bytes[1..], registry)
+        if variant.name == :Some
+          puts "variant.name: #{variant.name}, value: #{value}"
+        end
         [
           { variant.name => value },
           remainning_bytes

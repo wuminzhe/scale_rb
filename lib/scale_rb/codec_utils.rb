@@ -58,6 +58,47 @@ module ScaleRb
         _do_decode_compact(bytes)
       end
 
+
+      # % encode_uint :: `U${Integer}` -> Any -> U8Array
+      def encode_uint(type, value)
+        raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(::Integer)
+
+        bit_length = type[1..].to_i
+        Utils.int_to_u8a(value, bit_length).reverse
+      end
+
+      # % encode_int :: `I${Integer}` -> Any -> U8Array
+      def encode_int(type, value)
+        raise NotImplemented, 'encode_int'
+        # raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(Integer)
+        #
+        # bit_length = type[1..].to_i
+        # Utils.int_to_u8a(value, bit_length).reverse
+      end
+
+      # % encode_str :: String -> U8Array
+      def encode_str(string)
+        body = string.unpack('C*')
+        encode_compact(body.length) + body
+      end
+
+      # % encode_boolean :: Boolean -> U8Array
+      def encode_boolean(value)
+        return [0x00] if value == false
+        return [0x01] if value == true
+
+        raise InvalidValueError, "type: Bool, value: #{value.inspect}"
+      end
+
+      def encode_compact(value)
+        return [value << 2] if value.between?(0, 63)
+        return Utils.int_to_u8a(((value << 2) + 1)).reverse if value < 2**14
+        return Utils.int_to_u8a(((value << 2) + 2)).reverse if value < 2**30
+
+        bytes = Utils.int_to_u8a(value).reverse
+        [(((bytes.length - 4) << 2) + 3)] + bytes
+      end
+
       private
 
       def _do_decode_compact(bytes)

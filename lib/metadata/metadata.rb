@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../scale_rb/metadata/registry'
+
 require_relative './metadata_v9'
 require_relative './metadata_v10'
 require_relative './metadata_v11'
@@ -10,8 +12,12 @@ require_relative './metadata_v14'
 module ScaleRb
   module Metadata
     class << self
-      def decode_metadata(bytes)
-        metadata, = ScaleRb.decode('MetadataTop', bytes, TYPES)
+      def decode_metadata(hex)
+        bytes = ScaleRb::Utils.hex_to_u8a(hex)
+
+        registry = ScaleRb::Metadata::Registry.new TYPES
+        ti = registry.use('MetadataTop')
+        metadata, = ScaleRb::Codec.decode(ti, bytes, registry)
         metadata
       end
 
@@ -121,14 +127,24 @@ module ScaleRb
         magicNumber: 'U32',
         metadata: 'Metadata'
       },
+      Placeholder: 'Null',
       Metadata: {
         _enum: {
-          v9: 'MetadataV9',
-          v10: 'MetadataV10',
-          v11: 'MetadataV11',
-          v12: 'MetadataV12',
-          v13: 'MetadataV13',
-          v14: 'MetadataV14'
+          V0: 'Placeholder',
+          V1: 'Placeholder',
+          V2: 'Placeholder',
+          V3: 'Placeholder',
+          V4: 'Placeholder',
+          V5: 'Placeholder',
+          V6: 'Placeholder',
+          V7: 'Placeholder',
+          V8: 'Placeholder',
+          V9: 'MetadataV9',
+          V10: 'MetadataV10',
+          V11: 'MetadataV11',
+          V12: 'MetadataV12',
+          V13: 'MetadataV13',
+          V14: 'MetadataV14'
         }
       }
     }.merge(MetadataV14::TYPES)

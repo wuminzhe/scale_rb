@@ -30,10 +30,10 @@ module ScaleRb
       primitive = type.primitive
       ScaleRb.logger.debug("Encoding primitive: #{primitive}, value: #{value}")
 
-      return ScaleRb.encode_uint(primitive, value) if primitive.start_with?('U')
-      return ScaleRb.encode_int(primitive, value) if primitive.start_with?('I')
-      return ScaleRb.encode_string(value) if primitive == 'Str'
-      return ScaleRb.encode_boolean(value) if primitive == 'Bool'
+      return ScaleRb::CodecUtils.encode_uint(primitive, value) if primitive.start_with?('U')
+      return ScaleRb::CodecUtils.encode_int(primitive, value) if primitive.start_with?('I')
+      return ScaleRb::CodecUtils.encode_string(value) if primitive == 'Str'
+      return ScaleRb::CodecUtils.encode_boolean(value) if primitive == 'Bool'
 
       raise Codec::TypeNotImplemented, "encoding primitive: #{primitive}"
     end
@@ -42,7 +42,7 @@ module ScaleRb
     def encode_compact(value)
       ScaleRb.logger.debug("Encoding compact: #{value}")
 
-      ScaleRb.encode_compact(value)
+      ScaleRb::CodecUtils.encode_compact(value)
     end
 
     sig :encode_array, { array_type: ArrayType, value: Array.of(Any), registry: Registry }, U8Array
@@ -98,14 +98,14 @@ module ScaleRb
 
       case variant
       when SimpleVariant
-        ScaleRb.encode_uint('U8', variant.index)
+        ScaleRb::CodecUtils.encode_uint('U8', variant.index)
       when TupleVariant
         # value example1: {:X2=>[{:Parachain=>12}, {:PalletInstance=>34}]}
         # value.values.first: [[{:Parachain=>12}, {:PalletInstance=>34}]]
         #
         # value example2: {:Parachain=>12}
         # value.values.first: 12
-        ScaleRb.encode_uint('U8', variant.index) + encode_tuple(variant.tuple, value.values.first, registry)
+        ScaleRb::CodecUtils.encode_uint('U8', variant.index) + encode_tuple(variant.tuple, value.values.first, registry)
       when StructVariant
         # value example: {
         #   :Transact=>{
@@ -119,7 +119,7 @@ module ScaleRb
         #   :require_weight_at_most=>5000000000,
         #   :call=>...
         # }
-        ScaleRb.encode_uint('U8', variant.index) + encode_struct(variant.struct, value.values.first, registry)
+        ScaleRb::CodecUtils.encode_uint('U8', variant.index) + encode_struct(variant.struct, value.values.first, registry)
       end
     end
 

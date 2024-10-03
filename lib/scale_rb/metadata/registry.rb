@@ -111,6 +111,8 @@ module ScaleRb
           # item_index = use(params[0].to_s)
           # CompactType.new(type: item_index, registry: self)
           CompactType.new
+        when 'Null'
+          UnitType.new
         else
           raise "Unknown type: #{name}"
         end
