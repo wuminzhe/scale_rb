@@ -43,7 +43,9 @@ module TypeEnforcer
   end
 
   def type_enforcement_enabled?
-    ENV['ENABLE_TYPE_ENFORCEMENT'] != 'false'
+    return true if ENV['ENABLE_TYPE_ENFORCEMENT'] && ENV['ENABLE_TYPE_ENFORCEMENT'] == 'true'
+
+    false
   end
 
   def decorate(method_name, param_types, return_type, singleton: false)

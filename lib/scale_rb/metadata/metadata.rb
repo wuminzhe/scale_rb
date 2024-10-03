@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../scale_rb/metadata/registry'
+require_relative './registry'
 
 require_relative './metadata_v9'
 require_relative './metadata_v10'
