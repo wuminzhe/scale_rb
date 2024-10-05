@@ -7,9 +7,8 @@ module ScaleRb
   module Types
     include Dry.Types()
 
-    Primitive = Types::Strict::String.enum(
-      'I8', 'U8', 'I16', 'U16', 'I32', 'U32', 'I64', 'U64', 'I128', 'U128', 'I256', 'U256',
-      'Bool', 'Str', 'Char'
+    Primitive = Types::Strict::Symbol.enum(
+      :I8, :U8, :I16, :U16, :I32, :U32, :I64, :U64, :I128, :U128, :I256, :U256, :Bool, :Str, :Char
     )
     Ti = Types::Strict::Integer.constrained(gteq: 0)
     U8 = Types::Strict::Integer.constrained(gteq: 0, lt: 256)
@@ -55,7 +54,7 @@ module ScaleRb
       attribute :primitive, Primitive
 
       def to_string(_depth = 0)
-        primitive
+        primitive.to_s
       end
     end
 
@@ -191,19 +190,19 @@ module ScaleRb
         VariantType.new(
           variants: [
             SimpleVariant.new(name: :None, index: 0),
-            TupleVariant.new(name: :Some, index: 1, tuple: TupleType.new(tuple: [type], registry: registry))
+            TupleVariant.new(name: :Some, index: 1, tuple: TupleType.new(tuple: [type], registry:))
           ],
-          registry: registry
+          registry:
         )
       end
 
       def self.result(ok_type, err_type, registry)
         VariantType.new(
           variants: [
-            TupleVariant.new(name: :Ok, index: 0, tuple: TupleType.new(tuple: [ok_type], registry: registry)),
-            TupleVariant.new(name: :Err, index: 1, tuple: TupleType.new(tuple: [err_type], registry: registry))
+            TupleVariant.new(name: :Ok, index: 0, tuple: TupleType.new(tuple: [ok_type], registry:)),
+            TupleVariant.new(name: :Err, index: 1, tuple: TupleType.new(tuple: [err_type], registry:))
           ],
-          registry: registry
+          registry:
         )
       end
     end

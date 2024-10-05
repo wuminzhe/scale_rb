@@ -18,9 +18,9 @@ end
 
 RSpec.describe ScaleRb::Types do
   it 'can create a primitive type' do
-    p0 = ScaleRb::Types::PrimitiveType.new(primitive: 'U8')
+    p0 = ScaleRb::Types::PrimitiveType.new(primitive: :U8)
     expect(p0).to be_a(ScaleRb::Types::PrimitiveType)
-    expect(p0.primitive).to eq('U8')
+    expect(p0.primitive).to eq(:U8)
     expect(p0.to_s).to eq('U8')
   end
 
@@ -31,7 +31,7 @@ RSpec.describe ScaleRb::Types do
   end
 
   it 'can create a compact type with a inner type' do
-    p0 = ScaleRb::Types::PrimitiveType.new(primitive: 'U8')
+    p0 = ScaleRb::Types::PrimitiveType.new(primitive: :U8)
     registry = TestRegistry.new([p0])
 
     p2 = ScaleRb::Types::CompactType.new(type: 0, registry:)
@@ -40,7 +40,7 @@ RSpec.describe ScaleRb::Types do
   end
 
   it 'can create a sequence type' do
-    p0 = ScaleRb::Types::PrimitiveType.new(primitive: 'U8')
+    p0 = ScaleRb::Types::PrimitiveType.new(primitive: :U8)
     registry = TestRegistry.new([p0])
 
     p3 = ScaleRb::Types::SequenceType.new(type: 0, registry:)
@@ -49,7 +49,7 @@ RSpec.describe ScaleRb::Types do
   end
 
   it 'can create a array type' do
-    p0 = ScaleRb::Types::PrimitiveType.new(primitive: 'U8')
+    p0 = ScaleRb::Types::PrimitiveType.new(primitive: :U8)
     registry = TestRegistry.new([p0])
 
     p4 = ScaleRb::Types::ArrayType.new(type: 0, len: 3, registry:)
@@ -59,7 +59,7 @@ RSpec.describe ScaleRb::Types do
 
   it 'can create a tuple type' do
     registry = TestRegistry.new
-    p0 = ScaleRb::Types::PrimitiveType.new(primitive: 'U8')
+    p0 = ScaleRb::Types::PrimitiveType.new(primitive: :U8)
     registry.add_type(p0)
 
     p1 = ScaleRb::Types::CompactType.new
@@ -75,7 +75,7 @@ RSpec.describe ScaleRb::Types do
 
   it 'can create a struct type' do
     registry = TestRegistry.new
-    p0 = ScaleRb::Types::PrimitiveType.new(primitive: 'U8')
+    p0 = ScaleRb::Types::PrimitiveType.new(primitive: :U8)
     registry.add_type(p0)
 
     p1 = ScaleRb::Types::CompactType.new
@@ -98,7 +98,7 @@ RSpec.describe ScaleRb::Types do
 
   it 'can create a variant type' do
     registry = TestRegistry.new
-    p0 = ScaleRb::Types::PrimitiveType.new(primitive: 'U8')
+    p0 = ScaleRb::Types::PrimitiveType.new(primitive: :U8)
     registry.add_type(p0)
 
     p1 = ScaleRb::Types::CompactType.new

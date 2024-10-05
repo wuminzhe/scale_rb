@@ -49,7 +49,7 @@ module ScaleRb
       case type_name
       when :primitive
         # type_def: 'I32'
-        PrimitiveType.new(primitive: type_def, path: path)
+        PrimitiveType.new(primitive: type_def.to_sym, path: path)
       when :compact
         # type_def: { type: 1 }
         CompactType.new(type: type_def._get(:type), registry: self, path: path)

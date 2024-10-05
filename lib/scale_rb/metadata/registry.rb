@@ -122,13 +122,13 @@ module ScaleRb
       def as_primitive(name)
         case name.downcase
         when /^i\d+$/
-          PrimitiveType.new(primitive: "I#{name[1..]}")
+          PrimitiveType.new(primitive: "I#{name[1..]}".to_sym)
         when /^u\d+$/
-          PrimitiveType.new(primitive: "U#{name[1..]}")
+          PrimitiveType.new(primitive: "U#{name[1..]}".to_sym)
         when /^bool$/
-          PrimitiveType.new(primitive: 'Bool')
+          PrimitiveType.new(primitive: :Bool)
         when /^str$/, /^text$/
-          PrimitiveType.new(primitive: 'Str')
+          PrimitiveType.new(primitive: :Str)
         else
           nil
         end

@@ -29,7 +29,7 @@ module ScaleRb
 
     sig :decode_primitive, { type: PrimitiveType, bytes: U8Array }, DecodeResult[Any]
     def decode_primitive(type, bytes)
-      primitive = type.primitive
+      primitive = type.primitive.to_s
       ScaleRb.logger.debug("Decoding primitive: #{primitive}, bytes: #{bytes.length} bytes")
 
       return CodecUtils.decode_uint(primitive, bytes) if primitive.start_with?('U')

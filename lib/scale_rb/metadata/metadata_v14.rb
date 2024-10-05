@@ -9,20 +9,20 @@ module ScaleRb
           ScaleRb.build_types(types)
         end
 
-        def get_module(pallet_name, metadata)
-          metadata._get(:metadata, :v14, :pallets).find do |p|
+        def get_module(pallet_name, metadata_top)
+          metadata_top._get(:metadata, :V14, :pallets).find do |p|
             p._get(:name) == pallet_name
           end
         end
 
-        def get_module_by_index(pallet_index, metadata)
-          metadata._get(:metadata, :v14, :pallets).find do |p|
+        def get_module_by_index(pallet_index, metadata_top)
+          metadata_top._get(:metadata, :V14, :pallets).find do |p|
             p._get(:index) == pallet_index
           end
         end
 
-        def get_storage_item(pallet_name, item_name, metadata)
-          pallet = get_module(pallet_name, metadata)
+        def get_storage_item(pallet_name, item_name, metadata_top)
+          pallet = get_module(pallet_name, metadata_top)
           raise "Pallet `#{pallet_name}` not found" if pallet.nil?
 
           pallet._get(:storage, :items).find do |item|
@@ -30,22 +30,22 @@ module ScaleRb
           end
         end
 
-        def get_calls_type_id(pallet_name, metadata)
-          pallet = get_module(pallet_name, metadata)
+        def get_calls_type_id(pallet_name, metadata_top)
+          pallet = get_module(pallet_name, metadata_top)
           raise "Pallet `#{pallet_name}` not found" if pallet.nil?
 
           pallet._get(:calls, :type)
         end
 
-        def get_calls_type(pallet_name, metadata)
-          type_id = get_calls_type_id(pallet_name, metadata)
-          metadata._get(:metadata, :v14, :lookup, :types).find do |type|
+        def get_calls_type(pallet_name, metadata_top)
+          type_id = get_calls_type_id(pallet_name, metadata_top)
+          metadata_top._get(:metadata, :V14, :lookup, :types).find do |type|
             type._get(:id) == type_id
           end
         end
 
-        def get_call_type(pallet_name, call_name, metadata)
-          calls_type = get_calls_type(pallet_name, metadata)
+        def get_call_type(pallet_name, call_name, metadata_top)
+          calls_type = get_calls_type(pallet_name, metadata_top)
           calls_type._get(:type, :def, :variant, :variants).find do |variant|
             variant._get(:name).downcase == call_name.downcase
           end
