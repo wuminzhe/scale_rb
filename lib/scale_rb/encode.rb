@@ -27,7 +27,7 @@ module ScaleRb
 
     __ :encode_primitive, { type: PrimitiveType, value: Any }, U8Array
     def encode_primitive(type, value)
-      primitive = type.primitive
+      primitive = type.primitive.to_s
       ScaleRb.logger.debug("Encoding primitive: #{primitive}, value: #{value}")
 
       return ScaleRb::CodecUtils.encode_uint(primitive, value) if primitive.start_with?('U')
