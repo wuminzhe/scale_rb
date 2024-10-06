@@ -6,7 +6,7 @@ module ScaleRb
       extend TypeEnforcer
       include Types
 
-      sig :decode_uint, { type: String.constrained(format: /\AU\d+\z/), bytes: U8Array }, DecodeResult[UnsignedInteger]
+      __ :decode_uint, { type: String.constrained(format: /\AU\d+\z/), bytes: U8Array }, DecodeResult[UnsignedInteger]
       def decode_uint(type, bytes)
         bit_length = type[1..].to_i
         byte_length = bit_length / 8
@@ -20,7 +20,7 @@ module ScaleRb
         ]
       end
 
-      sig :decode_int, { type: String.constrained(format: /\AI\d+\z/), bytes: U8Array }, DecodeResult[Integer]
+      __ :decode_int, { type: String.constrained(format: /\AI\d+\z/), bytes: U8Array }, DecodeResult[Integer]
       def decode_int(type, bytes)
         bit_length = type[1..].to_i
         byte_length = bit_length / 8
@@ -34,7 +34,7 @@ module ScaleRb
         ]
       end
 
-      sig :decode_str, { bytes: U8Array }, DecodeResult[String]
+      __ :decode_str, { bytes: U8Array }, DecodeResult[String]
       def decode_str(bytes)
         length, remaining_bytes = _do_decode_compact(bytes)
         raise Codec::NotEnoughBytesError, 'type: String' if remaining_bytes.length < length
@@ -42,7 +42,7 @@ module ScaleRb
         [Utils.u8a_to_utf8(remaining_bytes[0...length]), remaining_bytes[length..]]
       end
 
-      sig :decode_boolean, { bytes: U8Array }, DecodeResult[Bool]
+      __ :decode_boolean, { bytes: U8Array }, DecodeResult[Bool]
       def decode_boolean(bytes)
         value = case bytes[0]
                 when 0x00 then false
@@ -53,11 +53,10 @@ module ScaleRb
       end
 
       # TODO: inner type decoding
-      sig :decode_compact, { bytes: U8Array }, DecodeResult[UnsignedInteger]
+      __ :decode_compact, { bytes: U8Array }, DecodeResult[UnsignedInteger]
       def decode_compact(bytes)
         _do_decode_compact(bytes)
       end
-
 
       # % encode_uint :: `U${Integer}` -> Any -> U8Array
       def encode_uint(type, value)
@@ -68,7 +67,7 @@ module ScaleRb
       end
 
       # % encode_int :: `I${Integer}` -> Any -> U8Array
-      def encode_int(type, value)
+      def encode_int(_type, _value)
         raise NotImplemented, 'encode_int'
         # raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(Integer)
         #

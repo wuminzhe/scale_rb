@@ -7,7 +7,7 @@ module TypeEnforcer
     base.instance_variable_set(:@applying_enforcement, false)
   end
 
-  def sig(method_name, param_types, return_type = nil)
+  def __(method_name, param_types, return_type = nil)
     return unless type_enforcement_enabled?
 
     @type_enforcements[method_name] = {
@@ -105,17 +105,17 @@ end
 # class Example
 #   extend TypeEnforcer
 
-#   sig :add, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
+#   __ :add, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
 #   def self.add(a, b)
 #     a + b
 #   end
 
-#   sig :subtract, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
+#   __ :subtract, { a: Types::Strict::Integer, b: Types::Strict::Integer }, Types::Strict::Integer
 #   def subtract(a, b)
 #     a - b
 #   end
 
-#   sig :my_method, {
+#   __ :my_method, {
 #     a: Types::Strict::Integer,
 #     b: Types::Strict::Integer.default(2),
 #     c: Types::Strict::Integer,

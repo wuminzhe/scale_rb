@@ -8,14 +8,14 @@ module ScaleRb
 
     attr_reader :data, :types
 
-    sig :initialize, { data: TypedArray[HashMap[String, Any]] }
+    __ :initialize, { data: TypedArray[HashMap[String, Any]] }
     def initialize(data)
       @data = data
       @types = ::Array.new(@data.size)
       build_types
     end
 
-    sig :[], { index: Ti }, PortableType
+    __ :[], { index: Ti }, PortableType
     def [](index)
       @types[index]
     end
@@ -26,7 +26,7 @@ module ScaleRb
 
     private
 
-    sig :build_types, {}
+    __ :build_types, {}
     def build_types
       @data.each.with_index do |type, i|
         id = type._get(:id)
@@ -44,7 +44,7 @@ module ScaleRb
     end
 
     # TODO: type_def better type definition
-    sig :_build_type, { id: Ti, type_name: Symbol, type_def: Hash | String | Array, path: TypedArray[String] }, PortableType
+    __ :_build_type, { id: Ti, type_name: Symbol, type_def: Hash | String | Array, path: TypedArray[String] }, PortableType
     def _build_type(id, type_name, type_def, path)
       case type_name
       when :primitive

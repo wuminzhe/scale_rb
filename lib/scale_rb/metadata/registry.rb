@@ -71,7 +71,7 @@ module ScaleRb
       end
 
       # % build_portable_type :: NamedType | ArrayType | TupleType -> PortableType
-      # sig :build_portable_type, { ast_type: TypedArray[TypeExp::ArrayType | TypeExp::TupleType | TypeExp::NamedType] } => PortableType
+      # __ :build_portable_type, { ast_type: TypedArray[TypeExp::ArrayType | TypeExp::TupleType | TypeExp::NamedType] } => PortableType
       def build_portable_type(ast_type)
         case ast_type
         when TypeExp::ArrayType

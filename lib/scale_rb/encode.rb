@@ -6,7 +6,7 @@ module ScaleRb
     extend TypeEnforcer
     include Types
 
-    sig :encode, { id: Ti, value: Any, registry: Registry }, U8Array
+    __ :encode, { id: Ti, value: Any, registry: Registry }, U8Array
     def encode(id, value, registry)
       ScaleRb.logger.debug("Encoding #{id}, value: #{value}")
       type = registry[id]
@@ -25,7 +25,7 @@ module ScaleRb
       end
     end
 
-    sig :encode_primitive, { type: PrimitiveType, value: Any }, U8Array
+    __ :encode_primitive, { type: PrimitiveType, value: Any }, U8Array
     def encode_primitive(type, value)
       primitive = type.primitive
       ScaleRb.logger.debug("Encoding primitive: #{primitive}, value: #{value}")
@@ -38,14 +38,14 @@ module ScaleRb
       raise Codec::TypeNotImplemented, "encoding primitive: #{primitive}"
     end
 
-    sig :encode_compact, { value: Ti }, U8Array
+    __ :encode_compact, { value: Ti }, U8Array
     def encode_compact(value)
       ScaleRb.logger.debug("Encoding compact: #{value}")
 
       ScaleRb::CodecUtils.encode_compact(value)
     end
 
-    sig :encode_array, { array_type: ArrayType, value: Array.of(Any), registry: Registry }, U8Array
+    __ :encode_array, { array_type: ArrayType, value: Array.of(Any), registry: Registry }, U8Array
     def encode_array(array_type, value, registry)
       ScaleRb.logger.debug("Encoding array: #{array_type}, value: #{value}")
 
@@ -55,7 +55,7 @@ module ScaleRb
       _encode_types([inner_type_id] * len, value, registry)
     end
 
-    sig :encode_sequence, { sequence_type: SequenceType, value: Array.of(Any), registry: Registry }, U8Array
+    __ :encode_sequence, { sequence_type: SequenceType, value: Array.of(Any), registry: Registry }, U8Array
     def encode_sequence(sequence_type, value, registry)
       ScaleRb.logger.debug("Encoding sequence: #{sequence_type}, value: #{value}")
 
@@ -65,7 +65,7 @@ module ScaleRb
       encode_compact(len) + _encode_types([inner_type_id] * len, value, registry)
     end
 
-    sig :encode_tuple, { tuple_type: TupleType, value: Array.of(Any) | Any, registry: Registry }, U8Array
+    __ :encode_tuple, { tuple_type: TupleType, value: Array.of(Any) | Any, registry: Registry }, U8Array
     def encode_tuple(tuple_type, value, registry)
       ScaleRb.logger.debug("Encoding tuple: #{tuple_type}, value: #{value}")
 
@@ -78,7 +78,7 @@ module ScaleRb
       _encode_types(type_ids, value, registry)
     end
 
-    sig :encode_struct, { struct_type: StructType, value: Hash.map(Symbol, Any), registry: Registry }, U8Array
+    __ :encode_struct, { struct_type: StructType, value: Hash.map(Symbol, Any), registry: Registry }, U8Array
     def encode_struct(struct_type, value, registry)
       ScaleRb.logger.debug("Encoding struct: #{struct_type}, value: #{value}")
 
@@ -88,7 +88,7 @@ module ScaleRb
       _encode_types(type_ids, value.values, registry)
     end
 
-    sig :encode_variant, { variant_type: VariantType, value: Symbol | Hash.map(Symbol, Any), registry: Registry }, U8Array
+    __ :encode_variant, { variant_type: VariantType, value: Symbol | Hash.map(Symbol, Any), registry: Registry }, U8Array
     def encode_variant(variant_type, value, registry)
       ScaleRb.logger.debug("Encoding variant: #{variant_type}, value: #{value}")
 
