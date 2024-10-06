@@ -88,11 +88,20 @@ module ScaleRb
       _encode_types(type_ids, value.values, registry)
     end
 
-    __ :encode_variant, { variant_type: VariantType, value: Symbol | Hash.map(Symbol, Any), registry: Registry }, U8Array
+    __ :encode_variant, { variant_type: VariantType, value: Nil | String | Integer | Symbol | HashMap[Symbol, Any], registry: Registry }, U8Array
     def encode_variant(variant_type, value, registry)
       ScaleRb.logger.debug("Encoding variant: #{variant_type}, value: #{value}")
 
-      name = value.is_a?(::Symbol) ? value : value.keys.first
+      if variant_type.option?
+        if value.nil?
+          name = :None
+        else
+          name = :Some
+        end
+      else
+        name = value.is_a?(::Symbol) ? value : value.keys.first
+      end
+
       variant = variant_type.variants.find { |v| v.name == name }
       raise Codec::VariantItemNotFound, "type: #{variant_type}, name: #{value}" if variant.nil?
 

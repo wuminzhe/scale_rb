@@ -196,6 +196,12 @@ module ScaleRb
         )
       end
 
+      def option?
+        variants.length == 2 &&
+          variants.any? { |v| v.is_a?(SimpleVariant) && v.name == :None && v.index == 0 } &&
+          variants.any? { |v| v.is_a?(TupleVariant) && v.name == :Some && v.index == 1 }
+      end
+
       def self.result(ok_type, err_type, registry)
         VariantType.new(
           variants: [
