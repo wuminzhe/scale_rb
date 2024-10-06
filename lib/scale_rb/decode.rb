@@ -96,7 +96,7 @@ module ScaleRb
       ]
     end
 
-    sig :decode_variant, { variant_type: VariantType, bytes: U8Array, registry: Registry }, DecodeResult[Symbol | HashMap[Symbol, Any]]
+    sig :decode_variant, { variant_type: VariantType, bytes: U8Array, registry: Registry }, DecodeResult[Nil | String | Integer | Symbol | HashMap[Symbol, Any]]
     def decode_variant(variant_type, bytes, registry)
       ScaleRb.logger.debug("Decoding variant: #{variant_type}, bytes: #{bytes.length} bytes")
 
