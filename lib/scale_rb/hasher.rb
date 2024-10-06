@@ -13,7 +13,7 @@ module ScaleRb
       def apply_hasher(hasher, bytes)
         bytes = Utils.hex_to_u8a(bytes) if bytes.is_a?(::String)
 
-        function_name = Utils.underscore(hasher.gsub('_', ''))
+        function_name = Utils.underscore(hasher.to_s.gsub('_', ''))
         Hasher.send(function_name, bytes)
       end
     end

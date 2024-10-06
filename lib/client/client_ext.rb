@@ -5,7 +5,7 @@ module ScaleRb
     def get_metadata(block_hash = nil)
       block_hash ||= chain_getHead
       metadata_hex = state_getMetadata(block_hash)
-      ScaleRb::Metadata.decode_metadata(Utils.hex_to_u8a(metadata_hex.strip))
+      Metadata.decode_metadata(metadata_hex)
     end
 
     # Get decoded storage at block_hash
@@ -38,7 +38,7 @@ module ScaleRb
         item[:changes].map do |change|
           storage_key = change[0]
           data = change[1] || default
-          storage = data.nil? ? nil : PortableCodec.decode(type_id, Utils.hex_to_u8a(data), registry)[0]
+          storage = data.nil? ? nil : Codec.decode(type_id, Utils.hex_to_u8a(data), registry)[0]
           { storage_key:, storage: }
         end
       end.flatten
