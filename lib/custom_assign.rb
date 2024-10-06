@@ -7,6 +7,8 @@ def custom_assign(positional_params, keyword_params, args, kwargs = {}, defaults
   positional_params.each_with_index do |param, index|
     if args[index]
       assigned[param] = args[index] # Assign from args if available
+    elsif args.length == positional_params.length
+      assigned[param] = nil
     elsif defaults.key?(param)
       assigned[param] = defaults[param] # Assign default if no argument is provided
     else

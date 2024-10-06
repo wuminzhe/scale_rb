@@ -6,7 +6,7 @@ module ScaleRb
     extend TypeEnforcer
     include Types
 
-    __ :encode, { id: Ti, value: Any, registry: Registry }, U8Array
+    __ :encode, { id: Ti, value: Any, registry: Registry }, U8Array, level: 3
     def encode(id, value, registry)
       ScaleRb.logger.debug("Encoding #{id}, value: #{value}")
       type = registry[id]

@@ -2,17 +2,19 @@ require_relative 'custom_assign'
 
 # rubocop:disable all
 module TypeEnforcer
+
   def self.extended(base)
     base.instance_variable_set(:@type_enforcements, {})
     base.instance_variable_set(:@applying_enforcement, false)
   end
 
-  def __(method_name, param_types, return_type = nil)
+  def __(method_name, param_types, return_type = nil, level: 1)
     return unless type_enforcement_enabled?
 
     @type_enforcements[method_name] = {
       params: param_types,
-      return: return_type
+      return: return_type,
+      level: level
     }
   end
 
@@ -36,7 +38,9 @@ module TypeEnforcer
     @applying_enforcement = true
     begin
       result = @type_enforcements[method_name]
-      decorate(method_name, result[:params], result[:return], singleton:)
+      if result[:level] > type_enforcement_level
+        decorate(method_name, result[:params], result[:return], singleton:)
+      end
     ensure
       @applying_enforcement = false
     end
@@ -48,6 +52,10 @@ module TypeEnforcer
     false
   end
 
+  def type_enforcement_level
+    ENV['TYPE_ENFORCEMENT_LEVEL'].to_i || 2
+  end
+
   def decorate(method_name, param_types, return_type, singleton: false)
     target = singleton ? (class << self; self; end) : self
     original_method = target.instance_method(method_name)
@@ -56,6 +64,12 @@ module TypeEnforcer
     # only support positional args and keyword args for now
     # TODO: support splat(rest), double splat(keyrest) args, and block
     target.define_method(method_name) do |*args, **kwargs|
+      # Initialize or increment the method call counter
+      @method_call_counters ||= {}
+      @method_call_counters[method_name] ||= 0
+      @method_call_counters[method_name] += 1
+
+      puts "Call count for #{method_name}: #{@method_call_counters[method_name]}"
       ScaleRb.logger.debug("----------------------------------------------------------")
       ScaleRb.logger.debug("method:          #{method_name}")
       ScaleRb.logger.debug("params:          args: #{args}, kwargs: #{kwargs}")
