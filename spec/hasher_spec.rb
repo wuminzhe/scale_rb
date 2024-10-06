@@ -24,16 +24,16 @@ module ScaleRb
     end
 
     it 'can hash with Twox64Concat' do
-      result = Hasher.apply_hasher('Twox64Concat', ScaleRb.encode('u32', 123))
+      result = Hasher.apply_hasher('Twox64Concat', ScaleRb::CodecUtils.encode_uint('u32', 123))
       expect(result).to eql(Utils.hex_to_u8a('2a9a1a82315e68fd7b000000'))
 
-      result = Hasher.apply_hasher('Twox64Concat', ScaleRb.encode('u32', 235_890_454))
+      result = Hasher.apply_hasher('Twox64Concat', ScaleRb::CodecUtils.encode_uint('u32', 235_890_454))
       expect(result).to eql(Utils.hex_to_u8a('01231bfbf9d42fd916670f0e'))
     end
 
     it 'can hash with Identity' do
-      result = Hasher.apply_hasher('Identity', ScaleRb.encode('u32', 123))
-      expect(result).to eql(ScaleRb.encode('u32', 123))
+      result = Hasher.apply_hasher('Identity', ScaleRb::CodecUtils.encode_uint('u32', 123))
+      expect(result).to eql(ScaleRb::CodecUtils.encode_uint('u32', 123))
     end
   end
 end

@@ -6,7 +6,9 @@ module ScaleRb
       extend TypeEnforcer
       include Types
 
-      __ :decode_uint, { type: String.constrained(format: /\AU\d+\z/), bytes: U8Array }, DecodeResult[UnsignedInteger]
+      __ :decode_uint,
+         { type: String.constrained(format: /\A[Uu]\d+\z/), bytes: U8Array },
+         DecodeResult[UnsignedInteger]
       def decode_uint(type, bytes)
         bit_length = type[1..].to_i
         byte_length = bit_length / 8
@@ -20,7 +22,7 @@ module ScaleRb
         ]
       end
 
-      __ :decode_int, { type: String.constrained(format: /\AI\d+\z/), bytes: U8Array }, DecodeResult[Integer]
+      __ :decode_int, { type: String.constrained(format: /\A[Ii]\d+\z/), bytes: U8Array }, DecodeResult[Integer]
       def decode_int(type, bytes)
         bit_length = type[1..].to_i
         byte_length = bit_length / 8
@@ -58,46 +60,6 @@ module ScaleRb
         _do_decode_compact(bytes)
       end
 
-      # % encode_uint :: `U${Integer}` -> Any -> U8Array
-      def encode_uint(type, value)
-        raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(::Integer)
-
-        bit_length = type[1..].to_i
-        Utils.int_to_u8a(value, bit_length).reverse
-      end
-
-      # % encode_int :: `I${Integer}` -> Any -> U8Array
-      def encode_int(_type, _value)
-        raise NotImplemented, 'encode_int'
-        # raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(Integer)
-        #
-        # bit_length = type[1..].to_i
-        # Utils.int_to_u8a(value, bit_length).reverse
-      end
-
-      # % encode_str :: String -> U8Array
-      def encode_str(string)
-        body = string.unpack('C*')
-        encode_compact(body.length) + body
-      end
-
-      # % encode_boolean :: Boolean -> U8Array
-      def encode_boolean(value)
-        return [0x00] if value == false
-        return [0x01] if value == true
-
-        raise InvalidValueError, "type: Bool, value: #{value.inspect}"
-      end
-
-      def encode_compact(value)
-        return [value << 2] if value.between?(0, 63)
-        return Utils.int_to_u8a(((value << 2) + 1)).reverse if value < 2**14
-        return Utils.int_to_u8a(((value << 2) + 2)).reverse if value < 2**30
-
-        bytes = Utils.int_to_u8a(value).reverse
-        [(((bytes.length - 4) << 2) + 3)] + bytes
-      end
-
       private
 
       def _do_decode_compact(bytes)
@@ -114,6 +76,53 @@ module ScaleRb
       end
     end
 
+    module InternalEncodeUtils
+      extend TypeEnforcer
+      include Types
+
+      __ :encode_uint, { type: String.constrained(format: /\A[Uu]\d+\z/), value: Integer }, U8Array
+      def encode_uint(type, value)
+        raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(::Integer)
+
+        bit_length = type[1..].to_i
+        Utils.int_to_u8a(value, bit_length).reverse
+      end
+
+      __ :encode_int, { type: String.constrained(format: /\A[Ii]\d+\z/), value: Integer }, U8Array
+      def encode_int(_type, _value)
+        raise NotImplemented, 'encode_int'
+        # raise InvalidValueError, "type: #{type}, value: #{value.inspect}" unless value.is_a?(Integer)
+        #
+        # bit_length = type[1..].to_i
+        # Utils.int_to_u8a(value, bit_length).reverse
+      end
+
+      __ :encode_str, { string: String }, U8Array
+      def encode_str(string)
+        body = string.unpack('C*')
+        encode_compact(body.length) + body
+      end
+
+      __ :encode_boolean, { value: Bool }, U8Array
+      def encode_boolean(value)
+        return [0x00] if value == false
+        return [0x01] if value == true
+
+        raise InvalidValueError, "type: Bool, value: #{value.inspect}"
+      end
+
+      __ :encode_compact, { value: Integer }, U8Array
+      def encode_compact(value)
+        return [value << 2] if value.between?(0, 63)
+        return Utils.int_to_u8a(((value << 2) + 1)).reverse if value < 2**14
+        return Utils.int_to_u8a(((value << 2) + 2)).reverse if value < 2**30
+
+        bytes = Utils.int_to_u8a(value).reverse
+        [(((bytes.length - 4) << 2) + 3)] + bytes
+      end
+    end
+
     extend InternalDecodeUtils
+    extend InternalEncodeUtils
   end
 end

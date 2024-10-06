@@ -34,14 +34,14 @@ module ScaleRb
 
       def twox64(str)
         result = XXhash.xxh64 str, 0
-        Utils.hex_to_u8a(result).reverse
+        Utils.hex_to_u8a(result.to_s(16)).reverse
       end
 
       def twox128(str)
         bytes = []
         2.times do |i|
           result = XXhash.xxh64 str, i
-          bytes += Utils.hex_to_u8a(result).reverse
+          bytes += Utils.hex_to_u8a(result.to_s(16)).reverse
         end
         bytes
       end
