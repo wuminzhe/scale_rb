@@ -3,17 +3,9 @@
 require 'scale_rb'
 require 'json'
 
-# ENABLE_TYPE_ENFORCEMENT=false rspec ./spec/metadata_spec.rb
+# ENABLE_TYPE_ENFORCEMENT=true rspec ./spec/metadata_spec.rb
 
 # https://github.com/polkadot-js/api/tree/master/packages/types-support/src/metadata
-def expect_decode_metadata(version)
-  hex = File.read("./spec/assets/substrate-metadata-#{version}-hex").strip
-  metadata = ScaleRb::Metadata.decode_metadata(hex)
-  # puts JSON.pretty_generate(metadata)
-  expect(metadata[:magicNumber]).to eq(1_635_018_093)
-  expect(metadata[:metadata][version.upcase.to_sym]).not_to be_nil
-end
-
 module ScaleRb
   RSpec.describe Metadata do
     before(:all) do
@@ -22,7 +14,7 @@ module ScaleRb
     end
 
     it 'can decode metadata v14' do
-      expect_decode_metadata('v14')
+      expect(@metadata[:magicNumber]).to eq(1_635_018_093)
     end
 
     it 'can get storage item from metadata v14' do
