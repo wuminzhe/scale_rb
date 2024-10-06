@@ -15,7 +15,7 @@ end
 
 ScaleRb.logger = Console
 
-require 'utils'
+require 'scale_rb/utils'
 
 require 'type_enforcer'
 
@@ -25,8 +25,8 @@ require 'scale_rb/codec'
 
 require 'scale_rb/metadata/metadata'
 
-require 'hasher'
-require 'storage_helper'
+require 'scale_rb/hasher'
+require 'scale_rb/storage_helper'
 
 require 'address'
 
