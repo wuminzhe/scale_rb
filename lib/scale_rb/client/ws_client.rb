@@ -6,7 +6,6 @@ require_relative 'client_ext'
 
 module ScaleRb
   class WsClient
-
     class << self
       # @param [string] url
       def start(url)
@@ -29,7 +28,7 @@ module ScaleRb
               end
             end
 
-            client.supported_methods = client.rpc_methods()[:methods]
+            client.supported_methods = client.rpc_methods[:methods]
             yield client
 
             recv_task.wait
@@ -37,7 +36,6 @@ module ScaleRb
             recv_task&.stop
           end
         end
-
       end
 
       private
@@ -45,11 +43,10 @@ module ScaleRb
       def parse_message(message)
         message.parse
       rescue StandardError => e
-        Console::Event::Failure.for(e).emit(self, "Parse message failed!")
+        Console::Event::Failure.for(e).emit(self, 'Parse message failed!')
         nil
       end
     end
-
   end
 end
 
@@ -102,9 +99,9 @@ module ScaleRb
     def unsubscribe(method, subscription_id)
       return unless method.include?('unsubscribe')
 
-      if @subscription_handler.unsubscribe(subscription_id)
-        request(method, [subscription_id])
-      end
+      return unless @subscription_handler.unsubscribe(subscription_id)
+
+      request(method, [subscription_id])
     end
 
     def handle_response(response)
@@ -116,14 +113,14 @@ module ScaleRb
         ScaleRb.logger.info "Received an unknown response: #{response}"
       end
     rescue StandardError => e
-      Console::Event::Failure.for(e).emit(self, "Handle response failed!")
+      Console::Event::Failure.for(e).emit(self, 'Handle response failed!')
     end
 
     def read_message
       loop do
         return @connection.read
       rescue StandardError => e
-        Console::Event::Failure.for(e).emit(self, "Read message from connection failed!")
+        Console::Event::Failure.for(e).emit(self, 'Read message from connection failed!')
         sleep 1
         retry
       end
@@ -138,7 +135,7 @@ module ScaleRb
         response_future.resolve(response[:result])
       })
 
-      request = { jsonrpc: '2.0', id: @request_id, method: method, params: params }
+      request = { jsonrpc: '2.0', id: @request_id, method:, params: }
       ScaleRb.logger.debug "—→ #{request}"
       @connection.write(request.to_json)
 
@@ -186,10 +183,9 @@ module ScaleRb
       subscription_id = notification.dig(:params, :subscription)
       return if subscription_id.nil?
 
-      if @callbacks.key?(subscription_id)
-        @callbacks[subscription_id].call(notification)
-      end
+      return unless @callbacks.key?(subscription_id)
+
+      @callbacks[subscription_id].call(notification)
     end
   end
-
 end

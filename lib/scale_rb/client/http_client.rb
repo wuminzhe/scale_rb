@@ -30,7 +30,7 @@ module ScaleRb
       http.use_ssl = @uri.scheme == 'https'
 
       request = Net::HTTP::Post.new(@uri, 'Content-Type' => 'application/json')
-      request.body = { jsonrpc: '2.0', method: method, params: params, id: Time.now.to_i }.to_json
+      request.body = { jsonrpc: '2.0', method:, params:, id: Time.now.to_i }.to_json
       ScaleRb.logger.debug "—→ #{request.body}"
 
       # https://docs.ruby-lang.org/en/master/Net/HTTPResponse.html

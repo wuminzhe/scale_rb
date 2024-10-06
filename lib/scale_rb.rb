@@ -32,5 +32,5 @@ require 'scale_rb/call_helper'
 require 'address'
 
 # clients
-require 'client/http_client'
-require 'client/ws_client'
+require 'scale_rb/client/http_client'
+require 'scale_rb/client/ws_client'
