@@ -6,7 +6,8 @@ require 'json'
 module ScaleRb
   RSpec.describe StorageHelper do
     before(:all) do
-      @portable_types_registry = JSON.parse(File.open(File.join(__dir__, 'assets', 'darwinia-types.json')).read)
+      data = JSON.parse(File.open(File.join(__dir__, 'assets', 'darwinia-types.json')).read)
+      @registry = ScaleRb::PortableRegistry.new(data)
     end
 
     it 'can encode storage key without param' do
@@ -27,7 +28,7 @@ module ScaleRb
         'System',
         'Account',
         key,
-        @portable_types_registry
+        @registry
       )
       expect = Utils.hex_to_u8a('0x26aa394eea5630e07c48ae0c9558cef7b99d880ec681799c0cf30e8886371da94bab0fcfc536fa263f3b241cd32f76a8724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641')
       expect(storage_key).to eql(expect)
@@ -42,7 +43,7 @@ module ScaleRb
           type: 291, # 291 => [4, 0]
           hashers: %w[Twox64Concat Twox64Concat]
         },
-        @portable_types_registry
+        @registry
       )
       expect = Utils.hex_to_u8a('0x2b06af9719ac64d755623cda8ddd9b94b1c371ded9e9c565e89ba783c4d5f5f92a9a1a82315e68fd7b000000a2c377ff1d6261f6724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641')
       expect(storage_key).to eql(expect)
@@ -60,7 +61,7 @@ module ScaleRb
           type: 582, # 582 => [0, 1]
           hashers: %w[Twox64Concat Blake2_128Concat]
         },
-        @portable_types_registry
+        @registry
       )
       expect = Utils.hex_to_u8a('0x7474449cca95dc5d0c00e71735a6d17d3cd15a3fd6e04e47bee3922dbfa92c8da2c377ff1d6261f6724d50824542b56f422588421643c4a162b90b5416ef063f2266a1eae6651641c035f853fcd0f0589e30c9e2dc1a0f570101010101010101010101010101010101010101010101010101010101010101')
       expect(storage_key).to eql(expect)
@@ -78,8 +79,8 @@ module ScaleRb
               System: {
                 ExtrinsicSuccess: {
                   weight: 160_391_000,
-                  class: 'Mandatory',
-                  pays_fee: 'Yes'
+                  class: :Mandatory,
+                  pays_fee: :Yes
                 }
               }
             },
@@ -90,7 +91,7 @@ module ScaleRb
             event: {
               Balances: {
                 Slashed: {
-                  who: '0x64766d3a000000000000002eabe5c6818731e282b80de1a03f8190426e0dd996',
+                  who: ScaleRb::Utils.hex_to_u8a('0x64766d3a000000000000002eabe5c6818731e282b80de1a03f8190426e0dd996'),
                   amount: 5_000_000
                 }
               }
@@ -102,7 +103,7 @@ module ScaleRb
             event: {
               Balances: {
                 Deposit: {
-                  who: '0x64766d3a000000000000002eabe5c6818731e282b80de1a03f8190426e0dd996',
+                  who: ScaleRb::Utils.hex_to_u8a('0x64766d3a000000000000002eabe5c6818731e282b80de1a03f8190426e0dd996'),
                   amount: 1_454_434
                 }
               }
@@ -115,8 +116,8 @@ module ScaleRb
               EVM: {
                 Log: {
                   log: {
-                    address: '0x9c266c48f07121181d8424768f0ded0170cc63a6',
-                    topics: ['0x4c6030db06afe5c2251138fd7b0c3aef3876f9f60cecfae80a2e3b9cdd3b6d5d'],
+                    address: ScaleRb::Utils.hex_to_u8a('0x9c266c48f07121181d8424768f0ded0170cc63a6'),
+                    topics: [ScaleRb::Utils.hex_to_u8a('0x4c6030db06afe5c2251138fd7b0c3aef3876f9f60cecfae80a2e3b9cdd3b6d5d')],
                     data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 75,
                            50, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 18, 16, 219, 13, 220, 206, 12, 90, 53, 20, 228, 57, 107, 105, 237, 172, 16, 11, 17, 45, 235, 150, 109, 122, 110, 228, 171, 132, 35, 237, 252, 119, 155, 88, 249, 237, 159, 150, 208, 199, 186, 145, 209, 25, 112, 234, 98, 247, 100, 138, 123, 164, 64, 235, 172, 220, 193, 2, 60, 59, 163, 16, 40, 12, 199, 35, 158, 221, 37, 15, 242, 61, 3, 109, 125, 159, 252, 3, 55, 115, 70, 129, 68, 99, 210, 47, 62, 80, 250, 195, 23, 159, 73, 169, 195, 14, 100, 44]
                   }
@@ -130,11 +131,11 @@ module ScaleRb
             event: {
               Ethereum: {
                 Executed: {
-                  from: '0x2eabe5c6818731e282b80de1a03f8190426e0dd9',
-                  to: '0x9c266c48f07121181d8424768f0ded0170cc63a6',
-                  transaction_hash: '0x757a2695ae238d39120f2897d6e555b144c90f62ef457009bd83afc1dafc2e6b',
+                  from: ScaleRb::Utils.hex_to_u8a('0x2eabe5c6818731e282b80de1a03f8190426e0dd9'),
+                  to: ScaleRb::Utils.hex_to_u8a('0x9c266c48f07121181d8424768f0ded0170cc63a6'),
+                  transaction_hash: ScaleRb::Utils.hex_to_u8a('0x757a2695ae238d39120f2897d6e555b144c90f62ef457009bd83afc1dafc2e6b'),
                   exit_reason: {
-                    Succeed: 'Stopped'
+                    Succeed: :Stopped
                   }
                 }
               }
@@ -143,7 +144,7 @@ module ScaleRb
           },
           {
             phase: { ApplyExtrinsic: 1 },
-            event: { System: { ExtrinsicSuccess: { weight: 141_822_640_000, class: 'Normal', pays_fee: 'Yes' } } },
+            event: { System: { ExtrinsicSuccess: { weight: 141_822_640_000, class: :Normal, pays_fee: :Yes } } },
             topics: []
           }
         ]

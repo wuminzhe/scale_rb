@@ -23,7 +23,7 @@ module ScaleRb
       end
 
       def build_registry(metadata_top)
-        types = metadata_top[:metadata][:V14][:lookup][:types]
+        types = ScaleRb::Utils.get(metadata_top, :metadata, :V14, :lookup, :types)
         ScaleRb::PortableRegistry.new(types)
       end
 
@@ -37,7 +37,7 @@ module ScaleRb
 
       def get_module_by_index(pallet_index, metadata_top)
         metadata = Utils.get(metadata_top, :metadata)
-        version = metadata.keys.first
+        version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
         Metadata.const_get("Metadata#{version.upcase}").get_module_by_index(pallet_index, metadata_top)
@@ -45,7 +45,7 @@ module ScaleRb
 
       def get_storage_item(pallet_name, item_name, metadata_top)
         metadata = Utils.get(metadata_top, :metadata)
-        version = metadata.keys.first
+        version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
         Metadata.const_get("Metadata#{version.upcase}").get_storage_item(pallet_name, item_name, metadata_top)
@@ -53,7 +53,7 @@ module ScaleRb
 
       def get_calls_type(pallet_name, metadata_top)
         metadata = Utils.get(metadata_top, :metadata)
-        version = metadata.keys.first
+        version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
         Metadata.const_get("Metadata#{version.upcase}").get_calls_type(pallet_name, metadata_top)
@@ -61,7 +61,7 @@ module ScaleRb
 
       def get_calls_type_id(pallet_name, metadata_top)
         metadata = Utils.get(metadata_top, :metadata)
-        version = metadata.keys.first
+        version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
         Metadata.const_get("Metadata#{version.upcase}").get_calls_type_id(pallet_name, metadata_top)
@@ -69,7 +69,7 @@ module ScaleRb
 
       def get_call_type(pallet_name, call_name, metadata_top)
         metadata = Utils.get(metadata_top, :metadata)
-        version = metadata.keys.first
+        version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
         Metadata.const_get("Metadata#{version.upcase}").get_call_type(pallet_name, call_name, metadata_top)

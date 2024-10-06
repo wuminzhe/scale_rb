@@ -20,7 +20,7 @@ module ScaleRb
               ]
             else
               [
-                registry[key[:type]]._get(:type, :def, :tuple).first(key[:value].length),
+                registry[key[:type]].tuple.first(key[:value].length),
                 key[:value],
                 key[:hashers].first(key[:value].length)
               ]
@@ -32,10 +32,22 @@ module ScaleRb
             raise "Key's value doesn't match key's type, key's value: #{key_values.inspect}, but key's type: #{key_types.inspect}. Please check your key's value."
           end
 
-          storage_key + PortableCodec._encode_types_with_hashers(key_types, key_values, registry, key_hashers)
+          storage_key + _encode_types_with_hashers(key_types, key_values, registry, key_hashers)
         else
           storage_key
         end
+      end
+
+      def _encode_types_with_hashers(type_ids, values, registry, hashers)
+        if !hashers.nil? && hashers.length != type_ids.length
+          raise "type_ids length: #{type_ids.length}, hashers length: #{hashers.length}"
+        end
+
+        type_ids
+          .map.with_index { |type_id, i| ScaleRb::Codec.encode(type_id, values[i], registry) }
+          .each_with_index.reduce([]) do |memo, (bytes, i)|
+            memo + Hasher.apply_hasher(hashers[i], bytes)
+          end
       end
 
       # data: hex string
@@ -45,7 +57,7 @@ module ScaleRb
       # returns nil or data
       def decode_storage(data, type, optional, fallback, registry)
         data ||= (optional ? nil : fallback)
-        PortableCodec.decode(type, Utils.hex_to_u8a(data), registry)[0] if data
+        ScaleRb::Codec.decode(type, Utils.hex_to_u8a(data), registry)[0] if data
       end
 
       # storage_item: the storage item from metadata

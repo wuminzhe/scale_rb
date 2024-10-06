@@ -134,16 +134,5 @@ module ScaleRb
       end
     end
 
-    def _encode_types_with_hashers(ids, values, registry, hashers)
-      if !hashers.nil? && hashers.length != ids.length
-        raise Codec::LengthNotEqualErr, "ids length: #{ids.length}, hashers length: #{hashers.length}"
-      end
-
-      ids
-        .map.with_index { |id, i| encode(id, values[i], registry) }
-        .each_with_index.reduce([]) do |memo, (bytes, i)|
-          memo + Hasher.apply_hasher(hashers[i], bytes)
-        end
-    end
   end
 end
