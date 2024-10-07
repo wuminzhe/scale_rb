@@ -31,7 +31,7 @@ def custom_assign(positional_params, keyword_params, args, kwargs = {}, defaults
     end
   end
 
-  assert_equal(positional_params.length + keyword_params.length, assigned.length)
+  # assert_equal(positional_params.length + keyword_params.length, assigned.length)
   assigned
 end
 

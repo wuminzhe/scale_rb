@@ -3,7 +3,7 @@
 require 'scale_rb'
 require 'json'
 
-# ENABLE_TYPE_ENFORCEMENT=true rspec ./spec/metadata_spec.rb
+# CONSOLE_LEVEL=info ENABLE_TYPE_ENFORCEMENT=true TYPE_ENFORCEMENT_LEVEL=2 rspec ./spec/metadata_spec.rb
 
 # https://github.com/polkadot-js/api/tree/master/packages/types-support/src/metadata
 module ScaleRb

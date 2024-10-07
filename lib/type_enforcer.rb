@@ -8,13 +8,14 @@ module TypeEnforcer
     base.instance_variable_set(:@applying_enforcement, false)
   end
 
-  def __(method_name, param_types, return_type = nil, level: 1)
+  def __(method_name, param_types, return_type = nil, level: 1, skip: [])
     return unless type_enforcement_enabled?
 
     @type_enforcements[method_name] = {
       params: param_types,
       return: return_type,
-      level: level
+      level: level,
+      skip: skip
     }
   end
 
@@ -39,7 +40,7 @@ module TypeEnforcer
     begin
       result = @type_enforcements[method_name]
       if result[:level] > type_enforcement_level
-        decorate(method_name, result[:params], result[:return], singleton:)
+        decorate(method_name, result[:params], result[:return], result[:skip], singleton:)
       end
     ensure
       @applying_enforcement = false
@@ -56,7 +57,7 @@ module TypeEnforcer
     ENV['TYPE_ENFORCEMENT_LEVEL'].to_i || 2
   end
 
-  def decorate(method_name, param_types, return_type, singleton: false)
+  def decorate(method_name, param_types, return_type, skip, singleton: false)
     target = singleton ? (class << self; self; end) : self
     original_method = target.instance_method(method_name)
     method_parameters = original_method.parameters
@@ -64,12 +65,6 @@ module TypeEnforcer
     # only support positional args and keyword args for now
     # TODO: support splat(rest), double splat(keyrest) args, and block
     target.define_method(method_name) do |*args, **kwargs|
-      # Initialize or increment the method call counter
-      @method_call_counters ||= {}
-      @method_call_counters[method_name] ||= 0
-      @method_call_counters[method_name] += 1
-
-      puts "Call count for #{method_name}: #{@method_call_counters[method_name]}"
       ScaleRb.logger.debug("----------------------------------------------------------")
       ScaleRb.logger.debug("method:          #{method_name}")
       ScaleRb.logger.debug("params:          args: #{args}, kwargs: #{kwargs}")
@@ -92,18 +87,33 @@ module TypeEnforcer
         case param_kind
         when :req, :opt
           value = assigned_params[param_name]
-          type = param_types[param_name]
-          validated_args << type[value]
+          if skip.include?(param_name)
+            validated_args << value
+          else
+            type = param_types[param_name]
+            validated_args << type[value]
+          end
         when :keyreq, :key
           value = assigned_params[param_name]
-          type = param_types[param_name]
-          validated_kwargs[param_name] = type[value]
+          if skip.include?(param_name)
+            validated_kwargs[param_name] = value
+          else
+            type = param_types[param_name]
+            validated_kwargs[param_name] = type[value]
+          end
         when :rest, :keyrest
           raise NotImplementedError, 'rest and keyrest args not supported'
         end
       end
 
+      start_time = Time.now
       result = original_method.bind(self).call(*validated_args, **validated_kwargs)
+      end_time = Time.now
+      used = ((end_time - start_time) * 1000).round(2)
+      puts "used #{used} ms"
+      if used > 2000
+        puts validated_args.first
+      end
 
       return_type ? return_type[result] : result
     end
