@@ -3,14 +3,18 @@
 require 'scale_rb'
 require 'json'
 
-# CONSOLE_LEVEL=info ENABLE_TYPE_ENFORCEMENT=true TYPE_ENFORCEMENT_LEVEL=2 rspec ./spec/metadata_spec.rb
+# ENABLE_TYPE_ENFORCEMENT=true TYPE_ENFORCEMENT_LEVEL=0 rspec ./spec/metadata_spec.rb
+# Note: enable type checking will cause performance issue.
 
 # https://github.com/polkadot-js/api/tree/master/packages/types-support/src/metadata
 module ScaleRb
   RSpec.describe Metadata do
     before(:all) do
       hex = File.read('./spec/assets/substrate-metadata-v14-hex').strip
-      @metadata = ScaleRb::Metadata.decode_metadata(hex)
+      time = Benchmark.measure do
+        @metadata = ScaleRb::Metadata.decode_metadata(hex)
+      end
+      puts "Decoding metadata v14: #{time.real / 60} minutes"
     end
 
     it 'can decode metadata v14' do

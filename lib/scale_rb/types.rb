@@ -16,11 +16,7 @@ module ScaleRb
     Hex = Types::Strict::String.constrained(format: /\A0x[0-9a-fA-F]+\z/)
 
     Registry = Types.Interface(:[])
-    DecodeResult = lambda { |type = Types::Any|
-      Types::Array.of(type | U8Array).constrained(size: 2).constructor do |arr|
-        [type[arr[0]], U8Array[arr[1]]]
-      end
-    }
+
     HashMap = lambda do |key_type, value_type|
       Types::Hash.map(key_type, value_type)
     end
@@ -222,6 +218,12 @@ module ScaleRb
                    Instance(UnitType) |
                    Instance(SequenceType) |
                    Instance(BitSequenceType)
+
+    DecodeResult = lambda do |type|
+      Types::Array.of(Types::Any).constrained(size: 2).constructor do |arr|
+        [type[arr[0]], arr[1]] # U8Array[arr[1]], but performance is not good.
+      end
+    end
   end
 end
 

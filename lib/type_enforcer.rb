@@ -1,4 +1,5 @@
 require_relative 'custom_assign'
+require 'benchmark'
 
 # rubocop:disable all
 module TypeEnforcer
@@ -24,14 +25,9 @@ module TypeEnforcer
     apply_enforcement(method_name)
   end
 
-  def singleton_method_added(method_name)
-    super
-    apply_enforcement(method_name, singleton: true)
-  end
-
   private
 
-  def apply_enforcement(method_name, singleton: false)
+  def apply_enforcement(method_name)
     return unless type_enforcement_enabled?
     return if @applying_enforcement
     return unless @type_enforcements.key?(method_name)
@@ -40,7 +36,7 @@ module TypeEnforcer
     begin
       result = @type_enforcements[method_name]
       if result[:level] > type_enforcement_level
-        decorate(method_name, result[:params], result[:return], result[:skip], singleton:)
+        decorate(method_name, result[:params], result[:return], result[:skip])
       end
     ensure
       @applying_enforcement = false
@@ -57,8 +53,8 @@ module TypeEnforcer
     ENV['TYPE_ENFORCEMENT_LEVEL'].to_i || 2
   end
 
-  def decorate(method_name, param_types, return_type, skip, singleton: false)
-    target = singleton ? (class << self; self; end) : self
+  def decorate(method_name, param_types, return_type, skip)
+    target = self
     original_method = target.instance_method(method_name)
     method_parameters = original_method.parameters
 
@@ -106,16 +102,13 @@ module TypeEnforcer
         end
       end
 
-      start_time = Time.now
       result = original_method.bind(self).call(*validated_args, **validated_kwargs)
-      end_time = Time.now
-      used = ((end_time - start_time) * 1000).round(2)
-      puts "used #{used} ms"
-      if used > 2000
-        puts validated_args.first
-      end
 
-      return_type ? return_type[result] : result
+      if skip.include?(:returns) && return_type
+        return_type[result]
+      else
+        result
+      end
     end
   end
 end

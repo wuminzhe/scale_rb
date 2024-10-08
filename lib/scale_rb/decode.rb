@@ -8,7 +8,7 @@ module ScaleRb
     extend TypeEnforcer
     include Types
 
-    __ :decode, { id: Ti, bytes: U8Array, registry: Registry }, DecodeResult[Any], level: 3, skip: [:bytes]
+    __ :decode, { id: Ti, bytes: U8Array, registry: Registry }, DecodeResult[Any], level: 3, skip: [:bytes, :returns]
     def decode(id, bytes, registry)
       ScaleRb.logger.debug("Decoding #{id}, bytes: #{bytes.length} bytes")
       type = registry[id]
