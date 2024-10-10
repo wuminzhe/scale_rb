@@ -8,7 +8,7 @@ module ScaleRb
     extend TypeEnforcer
     include Types
 
-    __ :decode, { id: Ti, bytes: U8Array, registry: Registry }, DecodeResult[Any], level: 3, skip: [:bytes, :returns]
+    __ :decode, { id: Ti, bytes: U8Array, registry: Registry }, DecodeResult[Any]
     def decode(id, bytes, registry)
       ScaleRb.logger.debug("Decoding #{id}, bytes: #{bytes.length} bytes")
       type = registry[id]
@@ -27,7 +27,7 @@ module ScaleRb
       end
     end
 
-    __ :decode_primitive, { type: PrimitiveType, bytes: U8Array }, DecodeResult[Any]
+    __ :decode_primitive, { type: PrimitiveType, bytes: U8Array }, DecodeResult[UnsignedInteger | Integer | String | Bool]
     def decode_primitive(type, bytes)
       primitive = type.primitive.to_s
       ScaleRb.logger.debug("Decoding primitive: #{primitive}, bytes: #{bytes.length} bytes")
