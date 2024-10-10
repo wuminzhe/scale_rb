@@ -1,0 +1,14 @@
+module ScaleRb
+  module Types
+    module Registry
+      def []: (Integer) -> untyped
+    end
+
+    class PrimitiveType
+      attr_reader primitive: Symbol
+
+      def initialize: (Symbol primitive) -> void
+      def to_string: (depth: Integer) -> String
+    end
+  end
+end

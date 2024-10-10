@@ -15,8 +15,6 @@ module ScaleRb
     U8Array = Types::Strict::Array.of(U8)
     Hex = Types::Strict::String.constrained(format: /\A0x[0-9a-fA-F]+\z/)
 
-    Registry = Types.Interface(:[])
-
     HashMap = lambda do |key_type, value_type|
       Types::Hash.map(key_type, value_type)
     end

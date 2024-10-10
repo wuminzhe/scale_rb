@@ -1,0 +1,23 @@
+use ScaleRb::Types::Registry
+
+# rubocop:disable all
+module ScaleRb
+  module Decode
+
+    def decode: (Integer id, Array[Integer] bytes, Registry registry) -> untyped
+
+    def decode_primitive: (untyped `type`, untyped bytes) -> untyped
+
+    def decode_compact: (untyped bytes) -> untyped
+
+    def decode_array: (untyped `type`, untyped bytes, untyped registry) -> untyped
+
+    def decode_sequence: (untyped sequence_type, untyped bytes, untyped registry) -> untyped
+
+    def decode_tuple: (untyped tuple_type, untyped bytes, untyped registry) -> untyped
+
+    def decode_struct: (untyped struct_type, untyped bytes, untyped registry) -> ::Array[untyped]
+
+    def decode_variant: (untyped variant_type, untyped bytes, untyped registry) -> untyped
+  end
+end
