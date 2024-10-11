@@ -138,7 +138,9 @@ module ScaleRb
 
     private
 
-    # _u8? :: Ti -> Array<PortableType> -> Bool
+    # @param type_id [Ti] Type identifier
+    # @param registry [Hash] Registry of types
+    # @return [Bool] True if the type is a U8, false otherwise
     def _u8?(type_id, registry)
       type = registry[type_id]
       raise Codec::TypeNotFound, "id: #{type_id}" if type.nil?
@@ -146,11 +148,14 @@ module ScaleRb
       type.is_a?(ScaleRb::PrimitiveType) && type.primitive == 'U8'
     end
 
-    # _decode_types :: Array<Ti> -> U8Array -> Array<PortableType> -> (Array<Any>, U8Array)
-    def _decode_types(ids, bytes, registry = {})
+    # @param type_ids [Array<Ti>] Array of type identifiers
+    # @param bytes [U8Array] Byte array to decode
+    # @param registry [Hash] Registry of types
+    # @return [Array<(Array<Any>, U8Array)>] Decoded values and remaining bytes
+    def _decode_types(type_ids, bytes, registry = {})
       remaining_bytes = bytes
-      values = ids.map do |id|
-        value, remaining_bytes = decode(id, remaining_bytes, registry)
+      values = type_ids.map do |type_id|
+        value, remaining_bytes = decode(type_id, remaining_bytes, registry)
         value
       end
       [values, remaining_bytes]

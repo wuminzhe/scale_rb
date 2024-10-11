@@ -1,12 +1,16 @@
 # frozen_string_literal: true
 
 class Hash
-  # :: String | Symbol -> Boolean
+  # Check if the key exists in the hash
+  # @param key [String | Symbol] Key to check
+  # @return [Boolean] True if the key exists, false otherwise
   def _key?(key)
     ScaleRb::Utils.key?(self, key)
   end
 
-  # :: *(String | Symbol) -> Object | NilClass
+  # Get the value from the hash
+  # @param keys [Array<String | Symbol>] Keys to get the value from
+  # @return [Object | NilClass] Value if the key exists, nil otherwise
   def _get(*keys)
     ScaleRb::Utils.get(self, *keys)
   end

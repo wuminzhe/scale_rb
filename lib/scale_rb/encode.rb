@@ -134,12 +134,15 @@ module ScaleRb
 
     private
 
-    # _encode_types :: Array<Ti> -> Array<Any> -> Array<PortableType> -> U8Array
-    def _encode_types(ids, values, registry)
-      raise Codec::LengthNotEqualErr, "ids: #{ids}, values: #{values.inspect}" if ids.length != values.length
+    # @param type_ids [Array<Ti>] Array of type identifiers
+    # @param values [Array<Any>] Array of values to encode
+    # @param registry [Registry] Registry of types
+    # @return [U8Array] Encoded bytes
+    def _encode_types(type_ids, values, registry)
+      raise Codec::LengthNotEqualErr, "type_ids: #{type_ids}, values: #{values.inspect}" if type_ids.length != values.length
 
-      ids.each_with_index.reduce([]) do |memo, (id, i)|
-        memo + encode(id, values[i], registry)
+      type_ids.each_with_index.reduce([]) do |memo, (type_id, i)|
+        memo + encode(type_id, values[i], registry)
       end
     end
 
