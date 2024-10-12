@@ -10,6 +10,7 @@ require_relative './metadata_v13'
 require_relative './metadata_v14'
 
 # NOTE: Only v14 and later are supported.
+# https://github.com/paritytech/frame-metadata/blob/main/frame-metadata/src/lib.rs#L85
 module ScaleRb
   module Metadata
     class << self
@@ -17,69 +18,69 @@ module ScaleRb
         bytes = ScaleRb::Utils.hex_to_u8a(hex)
 
         registry = ScaleRb::Metadata::Registry.new TYPES
-        ti = registry.use('MetadataTop')
+        ti = registry.use('MetadataPrefixed')
         metadata, = ScaleRb::Codec.decode(ti, bytes, registry)
         metadata
       end
 
-      def build_registry(metadata_top)
-        types = ScaleRb::Utils.get(metadata_top, :metadata, :V14, :lookup, :types)
+      def build_registry(metadata_prefixed)
+        types = ScaleRb::Utils.get(metadata_prefixed, :metadata, :V14, :lookup, :types)
         ScaleRb::PortableRegistry.new(types)
       end
 
-      def get_module(pallet_name, metadata_top)
-        metadata = Utils.get(metadata_top, :metadata)
+      def get_module(pallet_name, metadata_prefixed)
+        metadata = Utils.get(metadata_prefixed, :metadata)
         version = metadata.keys.first
         raise NotImplementedError, version unless %i[V14].include?(version)
 
-        Metadata.const_get("Metadata#{version.upcase}").get_module(pallet_name, metadata_top)
+        Metadata.const_get("Metadata#{version.upcase}").get_module(pallet_name, metadata_prefixed)
       end
 
-      def get_module_by_index(pallet_index, metadata_top)
-        metadata = Utils.get(metadata_top, :metadata)
+      def get_module_by_index(pallet_index, metadata_prefixed)
+        metadata = Utils.get(metadata_prefixed, :metadata)
         version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
-        Metadata.const_get("Metadata#{version.upcase}").get_module_by_index(pallet_index, metadata_top)
+        Metadata.const_get("Metadata#{version.upcase}").get_module_by_index(pallet_index, metadata_prefixed)
       end
 
-      def get_storage_item(pallet_name, item_name, metadata_top)
-        metadata = Utils.get(metadata_top, :metadata)
+      def get_storage_item(pallet_name, item_name, metadata_prefixed)
+        metadata = Utils.get(metadata_prefixed, :metadata)
         version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
-        Metadata.const_get("Metadata#{version.upcase}").get_storage_item(pallet_name, item_name, metadata_top)
+        Metadata.const_get("Metadata#{version.upcase}").get_storage_item(pallet_name, item_name, metadata_prefixed)
       end
 
-      def get_calls_type(pallet_name, metadata_top)
-        metadata = Utils.get(metadata_top, :metadata)
+      def get_calls_type(pallet_name, metadata_prefixed)
+        metadata = Utils.get(metadata_prefixed, :metadata)
         version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
-        Metadata.const_get("Metadata#{version.upcase}").get_calls_type(pallet_name, metadata_top)
+        Metadata.const_get("Metadata#{version.upcase}").get_calls_type(pallet_name, metadata_prefixed)
       end
 
-      def get_calls_type_id(pallet_name, metadata_top)
-        metadata = Utils.get(metadata_top, :metadata)
+      def get_calls_type_id(pallet_name, metadata_prefixed)
+        metadata = Utils.get(metadata_prefixed, :metadata)
         version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
-        Metadata.const_get("Metadata#{version.upcase}").get_calls_type_id(pallet_name, metadata_top)
+        Metadata.const_get("Metadata#{version.upcase}").get_calls_type_id(pallet_name, metadata_prefixed)
       end
 
-      def get_call_type(pallet_name, call_name, metadata_top)
-        metadata = Utils.get(metadata_top, :metadata)
+      def get_call_type(pallet_name, call_name, metadata_prefixed)
+        metadata = Utils.get(metadata_prefixed, :metadata)
         version = metadata.keys.first.to_sym
         raise NotImplementedError, version unless %i[V14].include?(version)
 
-        Metadata.const_get("Metadata#{version.upcase}").get_call_type(pallet_name, call_name, metadata_top)
+        Metadata.const_get("Metadata#{version.upcase}").get_call_type(pallet_name, call_name, metadata_prefixed)
       end
     end
 
     TYPES = {
       Type: 'Str',
       Bytes: 'Vec<u8>',
-      MetadataTop: {
+      MetadataPrefixed: {
         magicNumber: 'U32',
         metadata: 'Metadata'
       },
