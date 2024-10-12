@@ -3,23 +3,6 @@
 module ScaleRb
   module Metadata
     module MetadataV12
-      class << self
-        def get_module(module_name, metadata)
-          metadata._get(:metadata, :v12, :modules).find do |m|
-            m._get(:name) == module_name
-          end
-        end
-
-        def get_storage_item(module_name, item_name, metadata)
-          modula = get_module(module_name, metadata)
-          raise "Module `#{module_name}` not found" if modula.nil?
-
-          modula._get(:storage, :items).find do |item|
-            item._get(:name) == item_name
-          end
-        end
-      end
-
       TYPES = {
         ErrorMetadataV12: 'ErrorMetadataV11',
         EventMetadataV12: 'EventMetadataV11',

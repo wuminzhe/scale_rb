@@ -3,32 +3,6 @@
 require 'scale_rb/version'
 require 'console'
 
-# scale codec
-require 'monkey_patching'
-require 'codec'
-require 'portable_codec'
-
-# metadata types, decoding and helpers
-require 'metadata/metadata_v9'
-require 'metadata/metadata_v10'
-require 'metadata/metadata_v11'
-require 'metadata/metadata_v12'
-require 'metadata/metadata_v13'
-require 'metadata/metadata_v14'
-require 'metadata/metadata'
-
-require 'hasher'
-require 'storage_helper'
-
-# get registry from config
-require 'registry'
-
-require 'address'
-
-# clients
-require 'client/http_client'
-require 'client/ws_client'
-
 module ScaleRb
   class << self
     attr_accessor :logger
@@ -40,3 +14,23 @@ module ScaleRb
 end
 
 ScaleRb.logger = Console
+
+require 'scale_rb/utils'
+
+require 'type_enforcer'
+
+require 'scale_rb/types'
+require 'scale_rb/portable_registry'
+require 'scale_rb/codec'
+
+require 'scale_rb/metadata/metadata'
+
+require 'scale_rb/hasher'
+require 'scale_rb/storage_helper'
+require 'scale_rb/call_helper'
+
+require 'address'
+
+# clients
+require 'scale_rb/client/http_client'
+require 'scale_rb/client/ws_client'

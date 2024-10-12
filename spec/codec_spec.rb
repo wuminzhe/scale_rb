@@ -1,321 +1,205 @@
 # frozen_string_literal: true
 
 require 'scale_rb'
-
-RSpec.describe ScaleRb do
-  it 'can decode fixed int' do
-    value, remaining_bytes = ScaleRb.decode('i16', [0x2e, 0xfb])
-    expect(value).to eql(-1234)
-    expect(remaining_bytes).to eql([])
-  end
-
-  it 'can decode fixed uint' do
-    value, remaining_bytes = ScaleRb.decode('u8', [0x45])
-    expect(value).to eql(69)
-    expect(remaining_bytes).to eql([])
-
-    value, remaining_bytes = ScaleRb.decode('u8', [0x45, 0x12])
-    expect(value).to eql(69)
-    expect(remaining_bytes).to eql([0x12])
-
-    value, remaining_bytes = ScaleRb.decode('u16', [0x45, 0x00])
-    expect(value).to eql(69)
-    expect(remaining_bytes).to eql([])
-
-    expect { ScaleRb.decode('u16', [0x2e]) }.to raise_error(ScaleRb::NotEnoughBytesError)
-
-    value, remaining_bytes = ScaleRb.decode('u16', [0x2e, 0xfb])
-    expect(value).to eql(64_302)
-    expect(remaining_bytes).to eql([])
-
-    value, remaining_bytes = ScaleRb.decode('u16', [0x2e, 0xfb, 0xff])
-    expect(value).to eql(64_302)
-    expect(remaining_bytes).to eql([0xff])
-
-    value, remaining_bytes = ScaleRb.decode('u32', [0xff, 0xff, 0xff, 0x00])
-    expect(value).to eql(16_777_215)
-    expect(remaining_bytes).to eql([])
-
-    value, remaining_bytes = ScaleRb.decode('u64', [0x00, 0xe4, 0x0b, 0x54, 0x03, 0x00, 0x00, 0x00])
-    expect(value).to eql(14_294_967_296)
-    expect(remaining_bytes).to eql([])
-
-    value, remaining_bytes = ScaleRb.decode('u128', '0x0bfeffffffffffff0000000000000000'._to_bytes)
-    expect(value).to eql(18_446_744_073_709_551_115)
-    expect(remaining_bytes).to eql([])
-  end
-
-  it 'can encode fixed uint' do
-    bytes = ScaleRb.encode('u8', 69)
-    expect(bytes).to eql([0x45])
-
-    bytes = ScaleRb.encode('u16', 69)
-    expect(bytes).to eql([0x45, 0x00])
-
-    bytes = ScaleRb.encode('u16', 64_302)
-    expect(bytes).to eql([0x2e, 0xfb])
-
-    bytes = ScaleRb.encode('u32', 16_777_215)
-    expect(bytes).to eql([0xff, 0xff, 0xff, 0x00])
-
-    bytes = ScaleRb.encode('u64', 14_294_967_296)
-    expect(bytes).to eql('0x00e40b5403000000'._to_bytes)
-
-    bytes = ScaleRb.encode('u128', 18_446_744_073_709_551_115)
-    expect(bytes).to eql('0x0bfeffffffffffff0000000000000000'._to_bytes)
-  end
-
-  it 'can decode fixed array' do
-    arr, remaining_bytes = ScaleRb.decode('[u8; 3]', [0x12, 0x34, 0x56, 0x78])
-    expect(arr).to eql([0x12, 0x34, 0x56])
-    expect(remaining_bytes).to eql([0x78])
-
-    arr, remaining_bytes = ScaleRb.decode('[u16; 2]', [0x2e, 0xfb, 0x2e, 0xfb])
-    expect(arr).to eql([64_302, 64_302])
-    expect(remaining_bytes).to eql([])
-
-    arr, remaining_bytes = ScaleRb.decode('[[u8; 3]; 2]', [0x12, 0x34, 0x56, 0x12, 0x34, 0x56])
-    expect(arr).to eql([[0x12, 0x34, 0x56], [0x12, 0x34, 0x56]])
-    expect(remaining_bytes).to eql([])
-
-    arr, remaining_bytes = ScaleRb.decode('[[u16; 2]; 2]', [0x2e, 0xfb, 0x2e, 0xfb, 0x2e, 0xfb, 0x2e, 0xfb])
-    expect(arr).to eql([[64_302, 64_302], [64_302, 64_302]])
-    expect(remaining_bytes).to eql([])
-  end
-
-  it 'can encode fixed array' do
-    bytes = ScaleRb.encode('[u8; 3]', [0x12, 0x34, 0x56])
-    expect(bytes).to eql([0x12, 0x34, 0x56])
-  end
-
-  it 'can decode compact' do
-    value, = ScaleRb.decode('Compact', [254, 255, 3, 0])
-    expect(value).to eql(0xffff)
-  end
-
-  it 'can decode single-byte compact uint' do
-    value, = ScaleRb.decode('Compact', [0x00])
-    expect(value).to eql(0)
-
-    value, = ScaleRb.decode('Compact', [0x04])
-    expect(value).to eql(1)
-
-    value, = ScaleRb.decode('Compact', [0xa8])
-    expect(value).to eql(42)
-
-    value, = ScaleRb.decode('Compact', [0xfc])
-    expect(value).to eql(63)
-  end
-
-  it 'can decode two-byte compact uint' do
-    value, = ScaleRb.decode('Compact', '0x1501'._to_bytes)
-    expect(value).to eql(69)
-  end
-
-  it 'can decode four-byte compact uint' do
-    value, = ScaleRb.decode('Compact', '0xfeffffff'._to_bytes)
-    expect(value).to eql(1_073_741_823)
-  end
-
-  it 'can decode big-integer compact uint' do
-    value, = ScaleRb.decode('Compact', '0x0300000040'._to_bytes)
-    expect(value).to eql(1_073_741_824)
-  end
-
-  it 'can decode struct' do
-    struct = {
-      item3: 'Compact',
-      item1: '[u16; 2]',
-      item2: 'Compact'
-    }
-    bytes = [0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01]
-    value, = ScaleRb.decode(struct, bytes)
-    expect(value).to eql({
-                           item3: 63,
-                           item1: [64_302, 64_302],
-                           item2: 69
-                         })
-  end
-
-  it 'can encode single-byte compact' do
-    bytes = ScaleRb.encode('Compact', 0)
-    expect(bytes).to eql([0x00])
-
-    bytes = ScaleRb.encode('Compact', 1)
-    expect(bytes).to eql([0x04])
-
-    bytes = ScaleRb.encode('Compact', 42)
-    expect(bytes).to eql([0xa8])
-
-    bytes = ScaleRb.encode('Compact', 63)
-    expect(bytes).to eql([0xfc])
-  end
-
-  it 'can encode two-byte compact' do
-    bytes = ScaleRb.encode('Compact', 69)
-    expect(bytes).to eql([0x15, 0x01])
-  end
-
-  it 'can encode four-byte compact' do
-    bytes = ScaleRb.encode('Compact', 1_073_741_823)
-    expect(bytes).to eql('0xfeffffff'._to_bytes)
-  end
-
-  it 'can encode big-integer compact' do
-    bytes = ScaleRb.encode('Compact', 1_073_741_824)
-    expect(bytes).to eql('0x0300000040'._to_bytes)
-  end
-
-  it 'can encode struct' do
-    struct = {
-      item3: 'Compact',
-      item1: '[u16; 2]',
-      item2: 'Compact'
-    }
-    bytes = ScaleRb.encode(struct, {
-                             item3: 63,
-                             item1: [64_302, 64_302],
-                             item2: 69
-                           })
-    expect(bytes).to eql([0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
-  end
-
-  it 'can decode enum' do
-    enum = {
-      _enum: {
-        Int: 'u16',
-        Compact: 'Compact'
-      }
-    }
-
-    bytes = [0x00, 0x2e, 0xfb]
-    value, = ScaleRb.decode(enum, bytes)
-    expect(value).to eql({
-                           Int: 64_302
-                         })
-
-    bytes = [0x01, 0x15, 0x01]
-    value, = ScaleRb.decode(enum, bytes)
-    expect(value).to eql({
-                           Compact: 69
-                         })
-
-    expect { ScaleRb.decode(enum, [0x02, 0x15, 0x01]) }.to raise_error(ScaleRb::IndexOutOfRangeError)
-  end
-
-  it 'can encode enum' do
-    enum = {
-      _enum: {
-        Int: 'u16',
-        Compact: 'Compact'
-      }
-    }
-    bytes = ScaleRb.encode(enum, { Int: 64_302 })
-    expect(bytes).to eql([0x00, 0x2e, 0xfb])
-  end
-
-  it 'can decode vec' do
-    arr, remaining_bytes = ScaleRb.decode('vec<u8>', '0x0c003afe'._to_bytes)
-    expect(arr).to eql([0, 58, 254])
-    expect(remaining_bytes).to eql([])
-  end
-
-  it 'can encode vec' do
-    bytes = ScaleRb.encode('Vec<u8>', [0, 58, 254])
-    expect(bytes).to eql('0x0c003afe'._to_bytes)
-  end
-
-  it 'can decode tuple' do
-    value, = ScaleRb.decode('(Compact, [u16; 2], Compact)', [0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
-    expect(value).to eql([63, [64_302, 64_302], 69])
-  end
-
-  it 'can encode tuple' do
-    bytes = ScaleRb.encode('(Compact, [u16; 2], Compact)', [63, [64_302, 64_302], 69])
-    expect(bytes).to eql([0xfc, 0x2e, 0xfb, 0x2e, 0xfb, 0x15, 0x01])
-  end
-
-  it 'can decode string' do
-    value, = ScaleRb.decode_string([20, 104, 101, 108, 108, 111])
-    expect(value).to eql('hello')
-
-    value, = ScaleRb.decode_string([24, 228, 189, 160, 229, 165, 189])
-    expect(value).to eql('你好')
-  end
-
-  it 'can encode string' do
-    bytes = ScaleRb.encode_string('hello')
-    expect(bytes).to eql([20, 104, 101, 108, 108, 111])
-
-    bytes = ScaleRb.encode_string('你好')
-    expect(bytes).to eql([24, 228, 189, 160, 229, 165, 189])
-  end
-
-  it 'can decode boolean' do
-    value, = ScaleRb.decode('Boolean', [0x00])
-    expect(value).to eql(false)
-
-    value, = ScaleRb.decode('Boolean', [0x01])
-    expect(value).to eql(true)
-
-    expect { ScaleRb.decode('Boolean', [0x02]) }.to raise_error(ScaleRb::InvalidBytesError)
-  end
-
-  it 'can encode boolean' do
-    bytes = ScaleRb.encode('Boolean', false)
-    expect(bytes).to eql([0x00])
-
-    bytes = ScaleRb.encode('Boolean', true)
-    expect(bytes).to eql([0x01])
-
-    expect { ScaleRb.encode('Boolean', nil) }.to raise_error(ScaleRb::InvalidValueError)
-  end
-
-  it 'can decode bytes' do
-    value, = ScaleRb.decode('Bytes', '0x14436166c3a9'._to_bytes)
-    expect(value).to eql('0x436166c3a9')
-  end
-
-  it 'can encode bytes' do
-    bytes = ScaleRb.encode('Bytes', '0x436166c3a9'._to_bytes)
-    expect(bytes).to eql('0x14436166c3a9'._to_bytes)
-  end
-
-  it 'can decode option' do
-    value, = ScaleRb.decode('Option<Compact>', '0x00'._to_bytes)
-    expect(value).to eql(nil)
-
-    value, = ScaleRb.decode('Option<Compact>', '0x011501'._to_bytes)
-    expect(value).to eql(69)
-
-    expect { ScaleRb.decode('Option<Compact>', '0x02') }.to raise_error(ScaleRb::InvalidBytesError)
-  end
-
-  it 'can encode option' do
-    bytes = ScaleRb.encode('Option<Compact>', nil)
-    expect(bytes).to eql([0x00])
-
-    bytes = ScaleRb.encode('Option<Compact>', 69)
-    expect(bytes).to eql([0x01, 0x15, 0x01])
-  end
-
-  it 'can encode uint' do
-    # 2**64 - 1
-    bytes = ScaleRb.encode('u256', 18_446_744_073_709_551_615)
-    expect(bytes._to_hex).to eql('0xffffffffffffffff000000000000000000000000000000000000000000000000')
-
-    # 2**64 - 1
-    bytes = ScaleRb.encode('u64', 18_446_744_073_709_551_615)
-    expect(bytes._to_hex).to eql('0xffffffffffffffff')
-
-    # 2**64
-    bytes = ScaleRb.encode('u256', 18_446_744_073_709_551_616)
-    expect(bytes._to_hex).to eql('0x0000000000000000010000000000000000000000000000000000000000000000')
-
-    bytes = ScaleRb.encode('u256', 18_446_744_073_709_551_616)
-    o = bytes.each_slice(8).map do |slice|
-      ScaleRb.decode('u64', slice).first
+require 'json'
+
+# rubocop:disable all
+module ScaleRb
+  RSpec.describe 'Decoding Tests' do
+    # test :: Ti -> U8Array -> Any -> U8Array -> Types::Registry -> void
+    def test(ti, bytes, value, registry)
+      expect(
+        ScaleRb::Codec.decode(ti, bytes, registry)
+      ).to eql(
+        [value, []]
+      )
+
+      expect(
+        ScaleRb::Codec.encode(ti, value, registry)
+      ).to eql(
+        bytes
+      )
     end
-    expect(o).to eql([0, 1, 0, 0])
+
+    before(:all) do
+      data = JSON.parse(File.open(File.join(__dir__, 'assets', 'substrate-types.json')).read)
+      @registry = ScaleRb::PortableRegistry.new(data)
+
+      data = JSON.parse(File.open(File.join(__dir__, 'assets', './kusama-types.json')).read)
+      @kusama_registry = ScaleRb::PortableRegistry.new(data)
+    end
+
+    it 'can decode uint' do
+      test(2, [0x45], 69, @registry)
+      # @registry.types.each_with_index do |type, index|
+      #   puts "#{index}: #{type}"
+      # end
+    end
+
+    it 'can decode array' do
+      test(
+        1,
+        [0x12, 0x34, 0x56, 0x78] * 8,
+        ScaleRb::Utils.hex_to_u8a('0x1234567812345678123456781234567812345678123456781234567812345678'),
+        @registry
+      )
+    end
+
+    it 'can decode sequence' do
+      test(11, ScaleRb::Utils.hex_to_u8a('0x0c003afe'), [0, 58, 254], @registry)
+    end
+
+    # A single element tuple can be treated as the element.
+    it 'can decode a single element tuple' do
+      test(
+        0,
+        [0x12, 0x34, 0x56, 0x78] * 8,
+        ScaleRb::Utils.hex_to_u8a('0x1234567812345678123456781234567812345678123456781234567812345678'),
+        @registry
+      )
+    end
+
+    it 'can decode composite 1' do
+      test(
+        8,
+        [0x00, 0xe4, 0x0b, 0x54, 0x03, 0x00, 0x00, 0x00],
+        { ref_time: 14_294_967_296 },
+        @registry
+      )
+    end
+
+    it 'can decode composite 2' do
+      bytes = ScaleRb::Utils.hex_to_u8a(
+        '0x'\
+        '05000000000000000100000000000000142ba3d4e80000000000000000000000'\
+        '0000000000000000000000000000000000000000000000000000000000000000'\
+        '00000000000000000000000000000000'
+      )
+
+      value = {
+        nonce: 5,
+        consumers: 0,
+        providers: 1,
+        sufficients: 0,
+        data: {
+          free: 999_999_875_860,
+          reserved: 0,
+          misc_frozen: 0,
+          fee_frozen: 0
+        }
+      }
+
+      test(
+        3,
+        bytes,
+        value,
+        @registry
+      )
+    end
+
+    it 'can decode composite 3' do
+      bytes = ScaleRb::Utils.hex_to_u8a(
+        '0x'\
+        '020406010700f2052a017d01260000400d030000000000000000000000000000'\
+        '00000000000000000000000000000001004617d470f847ce166019d19a794404'\
+        '9ebb017400000000000000000000000000000000000000000000000000000000'\
+        '00000000001019ff1d2100'
+      )
+
+      value = {
+        V2: [
+          {
+            Transact: {
+              origin_type: :SovereignAccount,
+              require_weight_at_most: 5_000_000_000,
+              call: {
+                encoded: [
+                  38, 0, 0, 64, 13, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                  0, 0, 0, 0, 0, 0, 1, 0, 70, 23, 212, 112, 248, 71, 206, 22, 96, 25, 209, 154, 121, 68, 4, 158, 187, 1, 116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 25, 255, 29, 33, 0
+                ]
+              }
+            }
+          }
+        ]
+      }
+
+      test(
+        542,
+        bytes,
+        value,
+        @kusama_registry
+      )
+    end
+
+    it 'can decode unit' do
+      test 161, [], [], @registry
+    end
+
+    it 'can decode simple variant' do
+      test(87, [0x01], :NonTransfer, @registry)
+    end
+
+    it 'can decode tuple variant' do
+      bytes = ScaleRb::Utils.hex_to_u8a('0x0200300422')
+      value = { X2: [{ Parachain: 12 }, { PalletInstance: 34 }] }
+      test(125, bytes, value, @kusama_registry)
+    end
+
+    it 'can decode versioned xcm' do
+      bytes = ScaleRb::Utils.hex_to_u8a(
+        '0x020c000400010200e520040500170000d01309468e15011300010200e520040500170000d01309468e15010006010700f2052a01180a070c313233'
+      )
+
+      value = {
+        V2: [
+          {
+            WithdrawAsset: [{
+              id: {
+                Concrete: {
+                  parents: 1,
+                  interior: {
+                    X2: [
+                      { Parachain: 2105 },
+                      { PalletInstance: 5 }
+                    ]
+                  }
+                }
+              },
+              fun: {
+                Fungible: 20_000_000_000_000_000_000
+              }
+            }]
+          },
+          {
+            BuyExecution: {
+              fees: {
+                id: {
+                  Concrete: {
+                    parents: 1,
+                    interior: {
+                      X2: [
+                        { Parachain: 2105 },
+                        { PalletInstance: 5 }
+                      ]
+                    }
+                  }
+                },
+                fun: { Fungible: 20_000_000_000_000_000_000 }
+              },
+              weight_limit: :Unlimited
+            }
+          },
+          {
+            Transact: {
+              origin_type: :SovereignAccount,
+              require_weight_at_most: 5_000_000_000,
+              call: { encoded: [10, 7, 12, 49, 50, 51] }
+            }
+          }
+        ]
+      }
+
+      test 542, bytes, value, @kusama_registry
+    end
   end
 end

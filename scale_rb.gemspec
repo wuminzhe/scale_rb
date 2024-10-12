@@ -40,4 +40,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'async-websocket', '~> 0.26.2'
   # for logger
   spec.add_dependency 'console'
+  # for types restriction
+  spec.add_dependency 'dry-struct'
+  spec.add_dependency 'dry-types'
 end
