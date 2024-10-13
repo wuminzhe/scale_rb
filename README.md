@@ -1,13 +1,11 @@
 # ScaleRb
 
-It is still under heavy development. Use the latest version.
-
 ## Installation
 
 Add this line to your application's Gemfile:
 
 ```ruby
-gem "scale_rb", "~> 0.4.2"
+gem "scale_rb"
 ```
 
 And then execute:
@@ -24,7 +22,7 @@ Or install it yourself as:
 git clone https://github.com/wuminzhe/scale_rb.git
 cd scale_rb
 bundle install
-CONSOLE_LEVEL=debug bundle exec ruby examples/http_client_1.rb
+bundle exec ruby examples/http_client_1.rb
 ```
 
 ## Development
