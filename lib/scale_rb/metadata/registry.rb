@@ -37,8 +37,14 @@ module ScaleRb
         end
       end
 
-      def [](index)
-        @types[index]
+      def [](identifier)
+        if identifier.is_a?(::Integer)
+          @types[identifier]
+        elsif identifier.is_a?(::String)
+          @types[use(identifier)]
+        else
+          raise "Unknown identifier type: #{identifier.class}"
+        end
       end
 
       def inspect

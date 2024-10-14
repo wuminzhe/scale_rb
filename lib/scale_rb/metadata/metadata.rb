@@ -18,8 +18,7 @@ module ScaleRb
         bytes = ScaleRb::Utils.hex_to_u8a(hex)
 
         registry = ScaleRb::Metadata::Registry.new TYPES
-        ti = registry.use('MetadataPrefixed')
-        metadata, = ScaleRb::Codec.decode(ti, bytes, registry)
+        metadata, = ScaleRb::Codec.decode('MetadataPrefixed', bytes, registry)
         metadata
       end
 

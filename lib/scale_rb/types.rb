@@ -10,8 +10,9 @@ module ScaleRb
     Primitive = Types::Strict::Symbol.enum(
       :I8, :U8, :I16, :U16, :I32, :U32, :I64, :U64, :I128, :U128, :I256, :U256, :Bool, :Str, :Char
     )
-    Ti = Types::Strict::Integer.constrained(gteq: 0)
-    U8 = Types::Strict::Integer.constrained(gteq: 0, lt: 256)
+    Ti = Types::Strict::Integer | Types::Strict::String
+    # U8 = Types::Strict::Integer.constrained(gteq: 0, lt: 256)
+    U8 = Types::Strict::Integer
     U8Array = Types::Strict::Array.of(U8)
     Hex = Types::Strict::String.constrained(format: /\A0x[0-9a-fA-F]+\z/)
 
