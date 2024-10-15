@@ -24,6 +24,10 @@ module ScaleRb
       "a_portable_registry"
     end
 
+    def add_type(type)
+      @types << type
+    end
+
     private
 
     __ :build_types, {}
