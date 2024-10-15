@@ -21,6 +21,7 @@ require 'type_enforcer'
 
 require 'scale_rb/types'
 require 'scale_rb/portable_registry'
+require 'scale_rb/old_registry'
 require 'scale_rb/codec'
 
 require 'scale_rb/metadata/metadata'

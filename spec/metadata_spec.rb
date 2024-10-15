@@ -156,5 +156,19 @@ module ScaleRb
       registry = ScaleRb::Metadata.build_registry(@metadata)
       expect(registry.types.length).to eq(696)
     end
+
+    # it 'can get signature type' do
+    #   expect = [
+    #     { identifier: 'CheckNonZeroSender', type: 686, additionalSigned: 31 },
+    #     { identifier: 'CheckSpecVersion', type: 687, additionalSigned: 4 },
+    #     { identifier: 'CheckTxVersion', type: 688, additionalSigned: 4 },
+    #     { identifier: 'CheckGenesis', type: 689, additionalSigned: 11 },
+    #     { identifier: 'CheckMortality', type: 690, additionalSigned: 11 },
+    #     { identifier: 'CheckNonce', type: 692, additionalSigned: 31 },
+    #     { identifier: 'CheckWeight', type: 693, additionalSigned: 31 },
+    #     { identifier: 'ChargeAssetTxPayment', type: 694, additionalSigned: 31 }
+    #   ]
+    #   expect(ScaleRb::Metadata.signed_extensions_type(@metadata)).to eq(expect)
+    # end
   end
 end

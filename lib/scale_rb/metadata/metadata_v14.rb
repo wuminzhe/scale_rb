@@ -4,9 +4,9 @@ module ScaleRb
   module Metadata
     module MetadataV14
       class << self
-        def build_registry(metadata)
-          types = metadata._get(:lookup, :types)
-          ScaleRb.build_types(types)
+        def build_registry(metadata_prefixed)
+          types = ScaleRb::Utils.get(metadata_prefixed, :metadata, :V14, :lookup, :types)
+          ScaleRb::PortableRegistry.new(types)
         end
 
         def get_module(pallet_name, metadata_prefixed)
@@ -49,6 +49,12 @@ module ScaleRb
           calls_type._get(:type, :def, :variant, :variants).find do |variant|
             variant._get(:name).downcase == call_name.downcase
           end
+        end
+
+        def signature_type(metadata_prefixed); end
+
+        def signed_extensions(metadata_prefixed)
+          ScaleRb::Utils.get(metadata_prefixed, :metadata, :V14, :extrinsic, :signedExtensions)
         end
       end
 

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative './registry'
-
 require_relative './metadata_v9'
 require_relative './metadata_v10'
 require_relative './metadata_v11'
@@ -17,14 +15,13 @@ module ScaleRb
       def decode_metadata(hex)
         bytes = ScaleRb::Utils.hex_to_u8a(hex)
 
-        registry = ScaleRb::Metadata::Registry.new TYPES
+        registry = ScaleRb::OldRegistry.new TYPES
         metadata, = ScaleRb::Codec.decode('MetadataPrefixed', bytes, registry)
         metadata
       end
 
       def build_registry(metadata_prefixed)
-        types = ScaleRb::Utils.get(metadata_prefixed, :metadata, :V14, :lookup, :types)
-        ScaleRb::PortableRegistry.new(types)
+        MetadataV14.build_registry(metadata_prefixed)
       end
 
       def get_module(pallet_name, metadata_prefixed)
@@ -73,6 +70,14 @@ module ScaleRb
         raise NotImplementedError, version unless %i[V14].include?(version)
 
         Metadata.const_get("Metadata#{version.upcase}").get_call_type(pallet_name, call_name, metadata_prefixed)
+      end
+
+      def signature_type(metadata_prefixed)
+        MetadataV14.signature_type(metadata_prefixed)
+      end
+
+      def signed_extensions(metadata_prefixed)
+        MetadataV14.signed_extensions(metadata_prefixed)
       end
     end
 
