@@ -25,7 +25,7 @@ require 'scale_rb/old_registry'
 require 'scale_rb/codec'
 
 require 'scale_rb/metadata/metadata'
-require 'scale_rb/runtime_spec'
+require 'scale_rb/runtime_types'
 
 require 'scale_rb/hasher'
 require 'scale_rb/storage_helper'

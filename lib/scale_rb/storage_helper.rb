@@ -69,8 +69,8 @@ module ScaleRb
       end
 
       def decode_storage3(data, pallet_name, item_name, metadata)
-        registry = Metadata.build_registry(metadata)
-        storage_item = Metadata.get_storage_item(pallet_name, item_name, metadata)
+        registry = metadata.build_registry
+        storage_item = metadata.storage(pallet_name, item_name)
         decode_storage2(data, storage_item, registry)
       end
     end
