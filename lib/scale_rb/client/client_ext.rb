@@ -5,7 +5,7 @@ module ScaleRb
     def get_metadata(block_hash = nil)
       block_hash ||= chain_getHead
       metadata_hex = state_getMetadata(block_hash)
-      Metadata::Metadata.new(metadata_hex)
+      Metadata::Metadata.from_hex(metadata_hex)
     end
 
     # Get decoded storage at block_hash
