@@ -6,7 +6,7 @@ module ScaleRb
   class RuntimeTypes
     attr_reader :metadata, :version
 
-    def initialize(hex)
+    def initialize(hex, types = nil)
       @metadata_prefixed, = ScaleRb::Codec.decode(
         'MetadataPrefixed',
         ScaleRb::Utils.hex_to_u8a(hex),

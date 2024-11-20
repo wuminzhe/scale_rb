@@ -1,6 +1,6 @@
 module ScaleRb
   # This module is used to add extra methods to both the ScaleRb::WsClient ScaleRb::HttpClient
-  module ClientExt
+  module ClientShare
     # get decoded metadata at block_hash
     def get_metadata(block_hash = nil)
       block_hash ||= chain_getHead

@@ -12,17 +12,21 @@ require_relative './metadata_v14'
 module ScaleRb
   module Metadata
     class Metadata
-      attr_reader :magic_number, :version, :metadata, :types
+      attr_reader :magic_number, :version, :metadata, :registry
 
-      def initialize(metadata_prefixed)
+      def initialize(metadata_prefixed, types = nil)
         @metadata_prefixed = metadata_prefixed
         @magic_number = @metadata_prefixed[:magicNumber]
         metadata = @metadata_prefixed[:metadata]
         @version = metadata.keys.first
-        raise "Unsupported metadata version: #{@version}" unless @version == :V14
+        raise "Unsupported metadata version: #{@version}" unless [:V14, :V13, :V12, :V11, :V10, :V9].include?(@version)
 
         @metadata = metadata[@version]
-        @types = @metadata.dig(:lookup, :types)
+        if @version == :V14
+          @registry = ScaleRb::PortableRegistry.new(@metadata.dig(:lookup, :types))
+        else
+          @registry = ScaleRb::OldRegistry.new(types)
+        end
       end
 
       def self.from_hex(hex)
@@ -37,10 +41,6 @@ module ScaleRb
 
       def to_json(*_args)
         JSON.pretty_generate(@metadata_prefixed)
-      end
-
-      def build_registry
-        ScaleRb::PortableRegistry.new(@metadata.dig(:lookup, :types))
       end
 
       def pallet(pallet_name)
