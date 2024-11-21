@@ -13,20 +13,22 @@ module ScaleRb
   module Metadata
     class Metadata
       attr_reader :magic_number, :version, :metadata, :registry
+      attr_reader :unchecked_extrinsic_type_id, :address_type_id, :call_type_id, :extrinsic_signature_type_id
 
-      def initialize(metadata_prefixed, types = nil)
+      def initialize(metadata_prefixed, unchecked_extrinsic_type_id = nil)
         @metadata_prefixed = metadata_prefixed
         @magic_number = @metadata_prefixed[:magicNumber]
         metadata = @metadata_prefixed[:metadata]
         @version = metadata.keys.first
-        raise "Unsupported metadata version: #{@version}" unless [:V14, :V13, :V12, :V11, :V10, :V9].include?(@version)
+        raise "Unsupported metadata version: #{@version}" unless :V14 == @version
 
         @metadata = metadata[@version]
-        if @version == :V14
-          @registry = ScaleRb::PortableRegistry.new(@metadata.dig(:lookup, :types))
-        else
-          @registry = ScaleRb::OldRegistry.new(types)
-        end
+        @registry = ScaleRb::PortableRegistry.new(@metadata.dig(:lookup, :types))
+
+        @unchecked_extrinsic_type_id = unchecked_extrinsic_type_id || find_unchecked_extrinsic_type_id
+        @address_type_id = find_address_type_id
+        @call_type_id = find_call_type_id
+        @extrinsic_signature_type_id = find_extrinsic_signature_type_id
       end
 
       def self.from_hex(hex)
@@ -64,6 +66,8 @@ module ScaleRb
         end
       end
 
+      #########################################################################
+
       def calls_type_id(pallet_name)
         pallet = pallet(pallet_name)
         raise "Pallet `#{pallet_name}` not found" if pallet.nil?
@@ -71,16 +75,52 @@ module ScaleRb
         pallet.dig(:calls, :type)
       end
 
-      def call(pallet_name, call_name)
+      # % call_type :: String -> String -> ScaleRb::Types::StructType
+      def call_type(pallet_name, call_name)
         calls_type_id = calls_type_id(pallet_name)
-        calls_type = @types[calls_type_id]
+
+        calls_type = @registry[calls_type_id] # #<ScaleRb::Types::VariantType ...>
         raise 'Calls type is not correct' if calls_type.nil?
 
-        calls_type.dig(:type, :def, :variant, :variants).find do |variant|
-          variant[:name].downcase == call_name.downcase
+        v = calls_type.variants.find do |variant|
+          variant.name.to_s.downcase == call_name.downcase
+        end
+
+        raise "Call `#{call_name}` not found" if v.nil?
+
+        v.struct
+      end
+
+      private
+
+      def find_unchecked_extrinsic_type_id
+        @registry.types.each_with_index do |type, index|
+          if type.path.first == 'sp_runtime' && type.path.last == 'UncheckedExtrinsic'
+            return index
+          end
         end
       end
+
+      def find_address_type_id
+        @registry[@unchecked_extrinsic_type_id].params.find do |param|
+          param.name.downcase == 'address'
+        end.type
+      end
+
+      def find_call_type_id
+        @registry[@unchecked_extrinsic_type_id].params.find do |param|
+          param.name.downcase == 'call'
+        end.type
+      end
+
+      def find_extrinsic_signature_type_id
+        @registry[@unchecked_extrinsic_type_id].params.find do |param|
+          param.name.downcase == 'signature'
+        end.type
+      end
     end
+
+    #########################################################################
 
     TYPES = {
       'Type' => 'Str',

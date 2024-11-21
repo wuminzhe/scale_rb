@@ -24,9 +24,15 @@ module ScaleRb
     UnsignedInteger = Types::Strict::Integer.constrained(gteq: 0)
     TypedArray = ->(type) { Types::Array.of(type) }
 
+    class Param < Dry::Struct
+      attribute :name, Types::Strict::String
+      attribute? :type, Ti
+    end
+
     class Base < Dry::Struct
       attribute? :registry, Registry
       attribute? :path, Types::Strict::Array.of(Types::Strict::String)
+      attribute? :params, Types::Strict::Array.of(Param)
 
       def t(type_id)
         raise 'No registry' unless registry

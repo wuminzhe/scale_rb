@@ -49,21 +49,18 @@ module ScaleRb
     end
 
     it 'can get call type' do
-      call_type = @metadata.call('System', 'remark')
-      expect(call_type).to eql(
-        {
-          name: 'remark',
-          fields: [{ name: 'remark', type: 12, typeName: 'Vec<u8>', docs: [] }],
-          index: 1,
-          docs: [
-            'Make some on-chain remark.',
-            '',
-            '# <weight>',
-            '- `O(1)`',
-            '# </weight>'
-          ]
-        }
-      )
+      call_type = @metadata.call_type('System', 'remark')
+      expect(call_type).to be_a(ScaleRb::Types::StructType)
+      expect(call_type.fields.size).to eql(1)
+      expect(call_type.fields[0].name).to eql('remark')
+      expect(call_type.fields[0].type).to eql(12)
+    end
+
+    it 'can get unchecked extrinsic type id' do
+      expect(@metadata.unchecked_extrinsic_type_id).to eql(681)
+      expect(@metadata.address_type_id).to eql(174)
+      expect(@metadata.call_type_id).to eql(159)
+      expect(@metadata.extrinsic_signature_type_id).to eql(682)
     end
 
     # it 'can get signature type' do

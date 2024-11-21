@@ -36,5 +36,3 @@ require 'address'
 # clients
 require 'scale_rb/client/http_client'
 require 'scale_rb/client/ws_client'
-
-require 'scale_rb/metadata/types_helper'
