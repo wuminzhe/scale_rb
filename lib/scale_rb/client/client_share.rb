@@ -1,11 +1,11 @@
 module ScaleRb
   # This module is used to add extra methods to both the ScaleRb::WsClient ScaleRb::HttpClient
-  module ClientExt
+  module ClientShare
     # get decoded metadata at block_hash
     def get_metadata(block_hash = nil)
       block_hash ||= chain_getHead
       metadata_hex = state_getMetadata(block_hash)
-      Metadata.decode_metadata(metadata_hex)
+      Metadata::Metadata.from_hex(metadata_hex)
     end
 
     # Get decoded storage at block_hash
@@ -134,10 +134,8 @@ module ScaleRb
     def get_storage2(block_hash, pallet_name, item_name, params, metadata)
       raise 'Metadata should not be nil' if metadata.nil?
 
-      registry = Metadata.build_registry(metadata)
-      item = Metadata.get_storage_item(
-        pallet_name, item_name, metadata
-      )
+      registry = metadata.build_registry
+      item = metadata.storage(pallet_name, item_name)
       raise "No such storage item: `#{pallet_name}`.`#{item_name}`" if item.nil?
 
       modifier = item._get(:modifier) # Default | Optional

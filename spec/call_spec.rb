@@ -6,10 +6,7 @@ require 'json'
 module ScaleRb
   RSpec.describe CallHelper do
     it 'can decode call' do
-      metadata = JSON.parse(
-        File.read('./spec/assets/pangolin2.json'),
-        symbolize_names: true
-      )
+      metadata = Metadata::Metadata.from_json(File.read('./spec/assets/pangolin2.json'))
 
       callbytes = Utils.hex_to_u8a('0x0901')
       decoded = CallHelper.decode_call(callbytes, metadata)
@@ -57,10 +54,7 @@ module ScaleRb
     end
 
     it 'can encode call' do
-      metadata = JSON.parse(
-        File.read('./spec/assets/pangolin2.json'),
-        symbolize_names: true
-      )
+      metadata = Metadata::Metadata.from_json(File.read('./spec/assets/pangolin2.json'))
 
       call = { pallet_name: 'Deposit', call_name: 'claim', call: :claim }
       encoded = CallHelper.encode_call(call, metadata)

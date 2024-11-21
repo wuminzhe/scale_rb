@@ -2,7 +2,7 @@ require 'async'
 require 'async/websocket/client'
 require 'async/http/endpoint'
 
-require_relative 'client_ext'
+require_relative 'client_share'
 
 module ScaleRb
   class WsClient
@@ -52,7 +52,7 @@ end
 
 module ScaleRb
   class WsClient
-    include ClientExt
+    include ClientShare
     attr_accessor :supported_methods
 
     def initialize(connection)
