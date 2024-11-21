@@ -13,7 +13,11 @@ module ScaleRb
   module Metadata
     class Metadata
       attr_reader :magic_number, :version, :metadata, :registry
+
+      # Runtime type ids
       attr_reader :unchecked_extrinsic_type_id, :address_type_id, :call_type_id, :extrinsic_signature_type_id
+      attr_reader :digest_type_id, :digest_item_type_id, :event_record_list_type_id, :event_record_type_id, :event_type_id
+      attr_reader :signature_type_id
 
       def initialize(metadata_prefixed, unchecked_extrinsic_type_id = nil)
         @metadata_prefixed = metadata_prefixed
@@ -29,6 +33,15 @@ module ScaleRb
         @address_type_id = find_address_type_id
         @call_type_id = find_call_type_id
         @extrinsic_signature_type_id = find_extrinsic_signature_type_id
+
+        @digest_type_id = find_digest_type_id
+        @digest_item_type_id = find_digest_item_type_id
+
+        @event_record_list_type_id = find_event_record_list_type_id
+        @event_record_type_id = find_event_record_type_id
+        @event_type_id = find_event_type_id
+
+        @signature_type_id = build_signature_type_id
       end
 
       def self.from_hex(hex)
@@ -117,6 +130,67 @@ module ScaleRb
         @registry[@unchecked_extrinsic_type_id].params.find do |param|
           param.name.downcase == 'signature'
         end.type
+      end
+
+      def find_digest_type_id
+        storage_item = storage('System', 'Digest')
+        storage_item.dig(:type, :plain)
+      end
+
+      def find_digest_item_type_id
+        # #<ScaleRb::Types::StructType registry=a_portable_registry path=["sp_runtime", "generic", "digest", "Digest"] params=[] fields=[#<ScaleRb::Types::Field name="logs" type=14>]>
+        digest_type = @registry[@digest_type_id]
+
+        field = digest_type.fields.find do |field|
+          field.name == 'logs'
+        end
+        seq = @registry[field.type]
+        raise 'Type is not correct' unless seq.is_a?(ScaleRb::Types::SequenceType)
+
+        seq.type
+      end
+
+      def find_event_record_list_type_id
+        storage_item = storage('System', 'Events')
+        storage_item.dig(:type, :plain)
+      end
+
+      def find_event_record_type_id
+        seq = @registry[@event_record_list_type_id]
+        raise 'Type is not correct' unless seq.is_a?(ScaleRb::Types::SequenceType)
+
+        seq.type
+      end
+
+      def find_event_type_id
+        @registry[@event_record_type_id].fields.find do |field|
+          field.name == 'event'
+        end.type
+      end
+
+      def build_signature_type_id
+        signed_extensions_type = ScaleRb::Types::StructType.new(
+          path: ['SignedExtensions'],
+          fields: @metadata[:extrinsic][:signedExtensions].map do |signed_extension|
+            ScaleRb::Types::Field.new(
+              name: signed_extension[:identifier],
+              type: signed_extension[:type]
+            )
+          end
+        )
+
+        signed_extensions_type_id = @registry.add_type(signed_extensions_type)
+
+        signature_type = ScaleRb::Types::StructType.new(
+          path: ['ExtrinsicSignature'],
+          fields: [
+            ScaleRb::Types::Field.new(name: 'address', type: @address_type_id),
+            ScaleRb::Types::Field.new(name: 'signature', type: @extrinsic_signature_type_id),
+            ScaleRb::Types::Field.new(name: 'signedExtensions', type: signed_extensions_type_id)
+          ]
+        )
+
+        @registry.add_type(signature_type)
       end
     end
 

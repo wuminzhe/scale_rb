@@ -29,7 +29,9 @@ module ScaleRb
     end
 
     def add_type(type)
+      type_id = @types.size
       @types << type
+      type_id
     end
 
     private

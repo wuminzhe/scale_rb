@@ -61,6 +61,15 @@ module ScaleRb
       expect(@metadata.address_type_id).to eql(174)
       expect(@metadata.call_type_id).to eql(159)
       expect(@metadata.extrinsic_signature_type_id).to eql(682)
+
+      expect(@metadata.digest_type_id).to eql(13)
+      expect(@metadata.digest_item_type_id).to eql(15)
+
+      expect(@metadata.event_record_list_type_id).to eql(17)
+      expect(@metadata.event_record_type_id).to eql(18)
+      expect(@metadata.event_type_id).to eql(19)
+
+      expect(@metadata.signature_type_id).to eql(@metadata.registry.types.size - 1)
     end
 
     # it 'can get signature type' do
