@@ -19,7 +19,7 @@ module ScaleRb
 
     attr_reader :old_types
 
-    # % initialize :: Hash<Symbol, Any> -> void
+    # % initialize :: Hash<String, Any> -> void
     def initialize(old_types)
       @old_types = old_types
       @lookup = {}
@@ -31,7 +31,7 @@ module ScaleRb
 
     def build()
       @old_types.keys.each do |name|
-        use(name.to_s)
+        use(name)
       end
     end
 
@@ -94,7 +94,7 @@ module ScaleRb
       name = named_type.name
       params = named_type.params
 
-      definition = @old_types[name.to_sym]
+      definition = @old_types[name]
       return build_from_definition(name, definition) if definition
 
       primitive = as_primitive(name)
@@ -155,9 +155,9 @@ module ScaleRb
         # p "alias_type_id: #{alias_type_id}"
         types[alias_type_id]
       when Hash
-        if definition[:_enum]
+        if definition['_enum']
           _build_portable_type_from_enum_definition(definition)
-        elsif definition[:_set]
+        elsif definition['_set']
           raise 'Sets are not supported'
         else
           _build_portable_type_from_struct_definition(definition)
@@ -168,48 +168,49 @@ module ScaleRb
     private
 
     def _indexed_enum?(definition)
-      definition[:_enum].is_a?(::Hash) && definition[:_enum].values.all? { |value| value.is_a?(::Integer) }
+      definition['_enum'].is_a?(::Hash) && definition['_enum'].values.all? { |value| value.is_a?(::Integer) }
     end
 
     # % _build_portable_type_from_enum_definition :: Hash<Symbol, Any> -> VariantType
+    # { '_enum' => ['A', 'B', 'C'] }
     def _build_portable_type_from_enum_definition(definition)
       variants =
-        if definition[:_enum].is_a?(::Array)
+        if definition['_enum'].is_a?(::Array)
           # Simple array enum:
           # {
-          #   _enum: ['A', 'B', 'C']
+          #   '_enum' => ['A', 'B', 'C']
           # }
-          definition[:_enum].map.with_index do |variant_name, index|
+          definition['_enum'].map.with_index do |variant_name, index|
             SimpleVariant.new(name: variant_name.to_sym, index:)
           end
-        elsif definition[:_enum].is_a?(::Hash)
+        elsif definition['_enum'].is_a?(::Hash)
           if _indexed_enum?(definition)
             # Indexed enum:
             # {
-            #   _enum: {
-            #     Variant1: 0,
-            #     Variant2: 1,
-            #     Variant3: 2
+            #   '_enum' => {
+            #     'Variant1' => 0,
+            #     'Variant2' => 1,
+            #     'Variant3' => 2
             #   }
             # }
-            definition[:_enum].map do |variant_name, index|
-              SimpleVariant.new(name: variant_name, index:)
+            definition['_enum'].map do |variant_name, index|
+              SimpleVariant.new(name: variant_name.to_sym, index:)
             end
           else
             # Mixed enum:
             # {
-            #   _enum: {
-            #     A: 'u32',
-            #     B: {a: 'u32', b: 'u32'},
-            #     C: null,
-            #     D: ['u32', 'u32']
+            #   '_enum' => {
+            #     'A' => 'u32',
+            #     'B' => {a: 'u32', b: 'u32'},
+            #     'C' => null,
+            #     'D' => ['u32', 'u32']
             #   }
             # }
-            definition[:_enum].map.with_index do |(variant_name, variant_def), index|
+            definition['_enum'].map.with_index do |(variant_name, variant_def), index|
               case variant_def
               when ::String
                 TupleVariant.new(
-                  name: variant_name,
+                  name: variant_name.to_sym,
                   index:,
                   tuple: TupleType.new(
                     tuple: [use(variant_def)],
@@ -218,7 +219,7 @@ module ScaleRb
                 )
               when ::Array
                 TupleVariant.new(
-                  name: variant_name,
+                  name: variant_name.to_sym,
                   index:,
                   tuple: TupleType.new(
                     tuple: variant_def.map { |field_type| use(field_type) },
@@ -227,7 +228,7 @@ module ScaleRb
                 )
               when ::Hash
                 StructVariant.new(
-                  name: variant_name,
+                  name: variant_name.to_sym,
                   index:,
                   struct: StructType.new(
                     fields: variant_def.map do |field_name, field_type|
@@ -245,7 +246,7 @@ module ScaleRb
       VariantType.new(variants:, registry: self)
     end
 
-    # % _build_portable_type_from_struct_definition :: Hash<Symbol, Any> -> StructType
+    # % _build_portable_type_from_struct_definition :: Hash<String, Any> -> StructType
     def _build_portable_type_from_struct_definition(definition)
       fields = definition.map do |field_name, field_type|
         Field.new(name: field_name.to_s, type: use(field_type))

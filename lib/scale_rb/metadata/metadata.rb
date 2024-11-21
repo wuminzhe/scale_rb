@@ -83,30 +83,30 @@ module ScaleRb
     end
 
     TYPES = {
-      Type: 'Str',
-      Bytes: 'Vec<u8>',
-      MetadataPrefixed: {
-        magicNumber: 'U32',
-        metadata: 'Metadata'
+      'Type' => 'Str',
+      'Bytes' => 'Vec<u8>',
+      'MetadataPrefixed' => {
+        'magicNumber' => 'U32',
+        'metadata' => 'Metadata'
       },
-      Placeholder: 'Null',
-      Metadata: {
-        _enum: {
-          V0: 'Placeholder',
-          V1: 'Placeholder',
-          V2: 'Placeholder',
-          V3: 'Placeholder',
-          V4: 'Placeholder',
-          V5: 'Placeholder',
-          V6: 'Placeholder',
-          V7: 'Placeholder',
-          V8: 'Placeholder',
-          V9: 'MetadataV9',
-          V10: 'MetadataV10',
-          V11: 'MetadataV11',
-          V12: 'MetadataV12',
-          V13: 'MetadataV13',
-          V14: 'MetadataV14'
+      'Placeholder' => 'Null',
+      'Metadata' => {
+        '_enum' => {
+          'V0' => 'Placeholder',
+          'V1' => 'Placeholder',
+          'V2' => 'Placeholder',
+          'V3' => 'Placeholder',
+          'V4' => 'Placeholder',
+          'V5' => 'Placeholder',
+          'V6' => 'Placeholder',
+          'V7' => 'Placeholder',
+          'V8' => 'Placeholder',
+          'V9' => 'MetadataV9',
+          'V10' => 'MetadataV10',
+          'V11' => 'MetadataV11',
+          'V12' => 'MetadataV12',
+          'V13' => 'MetadataV13',
+          'V14' => 'MetadataV14'
         }
       }
     }.merge(MetadataV14::TYPES)
