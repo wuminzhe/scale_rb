@@ -29,6 +29,7 @@ module ScaleRb
         @metadata = metadata[@version]
         @registry = ScaleRb::PortableRegistry.new(@metadata.dig(:lookup, :types))
 
+        # Runtime type ids
         @unchecked_extrinsic_type_id = unchecked_extrinsic_type_id || find_unchecked_extrinsic_type_id
         @address_type_id = find_address_type_id
         @call_type_id = find_call_type_id

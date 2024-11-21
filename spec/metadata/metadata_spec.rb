@@ -48,6 +48,10 @@ module ScaleRb
       expect(system_module.keys).to eql(%i[name storage calls events constants errors index])
     end
 
+    it 'can get calls type id' do
+      expect(@metadata.calls_type_id('System')).to eql(141)
+    end
+
     it 'can get call type' do
       call_type = @metadata.call_type('System', 'remark')
       expect(call_type).to be_a(ScaleRb::Types::StructType)
