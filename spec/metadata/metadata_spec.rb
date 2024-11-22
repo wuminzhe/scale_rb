@@ -48,16 +48,9 @@ module ScaleRb
       expect(system_module.keys).to eql(%i[name storage calls events constants errors index])
     end
 
-    it 'can get calls type id' do
-      expect(@metadata.calls_type_id('System')).to eql(141)
-    end
-
-    it 'can get call type' do
-      call_type = @metadata.call_type('System', 'remark')
-      expect(call_type).to be_a(ScaleRb::Types::StructType)
-      expect(call_type.fields.size).to eql(1)
-      expect(call_type.fields[0].name).to eql('remark')
-      expect(call_type.fields[0].type).to eql(12)
+    it 'can get pallet call type' do
+      remark_type_id = @metadata.pallet_call_type_id('System', 'remark')
+      expect(remark_type_id).to eql(12)
     end
 
     it 'can get unchecked extrinsic type id' do
@@ -75,19 +68,5 @@ module ScaleRb
 
       expect(@metadata.signature_type_id).to eql(@metadata.registry.types.size - 1)
     end
-
-    # it 'can get signature type' do
-    #   expect = [
-    #     { identifier: 'CheckNonZeroSender', type: 686, additionalSigned: 31 },
-    #     { identifier: 'CheckSpecVersion', type: 687, additionalSigned: 4 },
-    #     { identifier: 'CheckTxVersion', type: 688, additionalSigned: 4 },
-    #     { identifier: 'CheckGenesis', type: 689, additionalSigned: 11 },
-    #     { identifier: 'CheckMortality', type: 690, additionalSigned: 11 },
-    #     { identifier: 'CheckNonce', type: 692, additionalSigned: 31 },
-    #     { identifier: 'CheckWeight', type: 693, additionalSigned: 31 },
-    #     { identifier: 'ChargeAssetTxPayment', type: 694, additionalSigned: 31 }
-    #   ]
-    #   expect(ScaleRb::Metadata.signed_extensions_type(@metadata)).to eq(expect)
-    # end
   end
 end

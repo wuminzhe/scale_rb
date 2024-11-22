@@ -82,16 +82,9 @@ module ScaleRb
 
       #########################################################################
 
-      def calls_type_id(pallet_name)
-        pallet = pallet(pallet_name)
-        raise "Pallet `#{pallet_name}` not found" if pallet.nil?
-
-        pallet.dig(:calls, :type)
-      end
-
-      # % call_type :: String -> String -> ScaleRb::Types::StructType
-      def call_type(pallet_name, call_name)
-        calls_type_id = calls_type_id(pallet_name)
+      # % pallet_call_type_id :: String -> String -> Ti
+      def pallet_call_type_id(pallet_name, call_name)
+        calls_type_id = pallet_calls_type_id(pallet_name)
 
         calls_type = @registry[calls_type_id] # #<ScaleRb::Types::VariantType ...>
         raise 'Calls type is not correct' if calls_type.nil?
@@ -102,7 +95,7 @@ module ScaleRb
 
         raise "Call `#{call_name}` not found" if v.nil?
 
-        v.struct
+        v.struct.fields.first.type
       end
 
       private
@@ -192,6 +185,20 @@ module ScaleRb
         )
 
         @registry.add_type(signature_type)
+      end
+
+      # equals to:
+      #  pallet = pallet(pallet_name)
+      #  raise "Pallet `#{pallet_name}` not found" if pallet.nil?
+      #  pallet.dig(:calls, :type)
+      def pallet_calls_type_id(pallet_name)
+        call_type = @registry[@call_type_id]
+        v = call_type.variants.find do |variant|
+          variant.name.to_s.downcase == pallet_name.downcase
+        end
+        raise "Call `#{pallet_name}` not found" if v.nil?
+
+        v.tuple.tuple.first
       end
     end
 
