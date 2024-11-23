@@ -171,7 +171,8 @@ module ScaleRb
               name: signed_extension[:identifier],
               type: signed_extension[:type]
             )
-          end
+          end,
+          registry: @registry
         )
 
         signed_extensions_type_id = @registry.add_type(signed_extensions_type)
@@ -182,7 +183,8 @@ module ScaleRb
             ScaleRb::Types::Field.new(name: 'address', type: @address_type_id),
             ScaleRb::Types::Field.new(name: 'signature', type: find_extrinsic_signature_type_id),
             ScaleRb::Types::Field.new(name: 'signedExtensions', type: signed_extensions_type_id)
-          ]
+          ],
+          registry: @registry
         )
 
         @registry.add_type(signature_type)

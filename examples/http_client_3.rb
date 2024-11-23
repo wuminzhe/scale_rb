@@ -37,17 +37,17 @@ def decode_extrinsic(bytes, metadata)
   meta, remaining_bytes = [remaining_bytes[0], remaining_bytes[1..]]
   signed = (meta & 0x80) == 0x80
   version = (meta & 0x7f)
-  p version
 
   raise "Unsupported version: #{version}" unless version == 4
 
   if signed
+    puts "signed"
     signature, remaining_bytes = ScaleRb::Codec.decode(
       metadata.signature_type_id, 
-      bytes[1..], 
+      remaining_bytes, 
       metadata.registry
     )
-    call, _ = ScaleRb::Codec.decode(
+    call, remaining_bytes = ScaleRb::Codec.decode(
       metadata.call_type_id, 
       remaining_bytes, 
       metadata.registry
@@ -58,6 +58,7 @@ def decode_extrinsic(bytes, metadata)
       call: call
     }
   else
+    puts "unsigned"
     {
       version: 4,
       call: ScaleRb::Codec.decode(
@@ -70,8 +71,9 @@ def decode_extrinsic(bytes, metadata)
 end
 
 extrinsics = block[:extrinsics]
-extrinsics.each do |extrinsic|
-  p "extrinsic: #{extrinsic}"
+extrinsics.each_with_index do |extrinsic, index|
+  puts "extrinsic index: #{index}"
+  puts "extrinsic hex: #{extrinsic}"
   decoded = decode_extrinsic(ScaleRb::Utils.hex_to_u8a(extrinsic), metadata)
-  puts "decoded extrinsic: #{decoded}"
+  puts "extrinsic decoded: #{decoded}"
 end
