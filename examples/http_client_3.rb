@@ -1,7 +1,11 @@
 require 'scale_rb'
 
 client = ScaleRb::HttpClient.new('https://polkadot-rpc.dwellir.com')
-block_hash = client.chain_getBlockHash(22931689)
+
+block_number = 22931689
+puts sprintf('%20s: %d', "block_number", block_number)
+
+block_hash = client.chain_getBlockHash(block_number)
 metadata = client.get_metadata(block_hash)
 # puts client.supported_methods
 
@@ -13,23 +17,23 @@ justifications = blockResult[:justifications]
 header = block[:header]
 
 parent_hash = header[:parentHash]
-puts "parent_hash: #{parent_hash}"
+puts sprintf('%20s: %s', "parent_hash", parent_hash)
 
 state_root = header[:stateRoot]
-puts "state_root: #{state_root}"
+puts sprintf('%20s: %s', "state_root", state_root)
 
 extrinsics_root = header[:extrinsicsRoot]
-puts "extrinsics_root: #{extrinsics_root}"
+puts sprintf('%20s: %s', "extrinsics_root", extrinsics_root)
 
 digest_logs = header[:digest][:logs]
-digest_logs.each do |digest_log|
-  puts "digest_log: #{digest_log}"
+digest_logs.each_with_index do |digest_log, index|
   decoded, _ = ScaleRb::Codec.decode(
     metadata.digest_item_type_id, 
     ScaleRb::Utils.hex_to_u8a(digest_log), 
     metadata.registry
   )
-  puts "decoded log: #{decoded}"
+  puts sprintf('%20s: %d', "log index", index)
+  puts sprintf('%20s: %s', "log", decoded)
 end
 
 def decode_extrinsic(bytes, metadata)
@@ -41,7 +45,7 @@ def decode_extrinsic(bytes, metadata)
   raise "Unsupported version: #{version}" unless version == 4
 
   if signed
-    puts "signed"
+    # puts "signed"
     signature, remaining_bytes = ScaleRb::Codec.decode(
       metadata.signature_type_id, 
       remaining_bytes, 
@@ -58,7 +62,7 @@ def decode_extrinsic(bytes, metadata)
       call: call
     }
   else
-    puts "unsigned"
+    # puts "unsigned"
     {
       version: 4,
       call: ScaleRb::Codec.decode(
@@ -72,8 +76,7 @@ end
 
 extrinsics = block[:extrinsics]
 extrinsics.each_with_index do |extrinsic, index|
-  puts "extrinsic index: #{index}"
-  puts "extrinsic hex: #{extrinsic}"
+  puts sprintf('%20s: %d', "extrinsic index", index)
   decoded = decode_extrinsic(ScaleRb::Utils.hex_to_u8a(extrinsic), metadata)
-  puts "extrinsic decoded: #{decoded}"
+  puts sprintf('%20s: %s', "extrinsic", decoded)
 end
