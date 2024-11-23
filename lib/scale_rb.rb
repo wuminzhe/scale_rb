@@ -28,7 +28,7 @@ require 'scale_rb/metadata/metadata'
 
 require 'scale_rb/hasher'
 require 'scale_rb/storage_helper'
-require 'scale_rb/call_helper'
+require 'scale_rb/extrinsic_helper'
 
 require 'address'
 

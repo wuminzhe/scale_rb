@@ -2,33 +2,44 @@
 
 module ScaleRb
   module ExtrinsicHelper
-    def decode_extrinsic(bytes, metadata_prefixed)
-      meta = bytes[0]
-      signed = (meta & 0x80) == 0x80
-      version = (meta & 0x7f)
-
-      raise "Unsupported version: #{version}" unless version == 4
-
-      nil unless signed
-    end
-
-    def patch_types(registry, metadata_prefixed)
-      add_signed_extensions_type(metadata_prefixed.signed_extensions, registry)
-    end
-
-    private
-
-    def add_signed_extensions_type(signed_extensions, registry)
-      type = Types::StructType.new(
-        fields: signed_extensions.map do |signed_extension|
-          Types::Field.new(
-            name: Utils.camelize(signed_extension._get(:identifier)),
-            type: signed_extension._get(:type)
+    class << self
+      def decode_extrinsic(bytes, metadata)
+        _, remaining_bytes = ScaleRb::Codec.decode_compact(bytes)
+        meta, remaining_bytes = [remaining_bytes[0], remaining_bytes[1..]]
+        signed = (meta & 0x80) == 0x80
+        version = (meta & 0x7f)
+      
+        raise "Unsupported version: #{version}" unless version == 4
+      
+        if signed
+          # puts "signed"
+          signature, remaining_bytes = ScaleRb::Codec.decode(
+            metadata.signature_type_id, 
+            remaining_bytes, 
+            metadata.registry
           )
-        end,
-        registry:
-      )
-      registry.add_type(type)
+          call, remaining_bytes = ScaleRb::Codec.decode(
+            metadata.call_type_id, 
+            remaining_bytes, 
+            metadata.registry
+          )
+          {
+            version: 4,
+            signature: signature,
+            call: call
+          }
+        else
+          # puts "unsigned"
+          {
+            version: 4,
+            call: ScaleRb::Codec.decode(
+              metadata.call_type_id, 
+              remaining_bytes, 
+              metadata.registry
+            )
+          }
+        end
+      end
     end
   end
 end
