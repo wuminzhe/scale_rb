@@ -15,8 +15,10 @@ module ScaleRb
       attr_reader :magic_number, :version, :metadata, :registry
 
       # Runtime type ids
-      attr_reader :unchecked_extrinsic_type_id, :address_type_id, :call_type_id, :extrinsic_signature_type_id
-      attr_reader :digest_type_id, :digest_item_type_id, :event_record_list_type_id, :event_record_type_id, :event_type_id
+      attr_reader :unchecked_extrinsic_type_id
+      attr_reader :address_type_id, :call_type_id
+      attr_reader :digest_type_id, :digest_item_type_id
+      attr_reader :event_record_list_type_id, :event_record_type_id, :event_type_id
       attr_reader :signature_type_id
 
       def initialize(metadata_prefixed, unchecked_extrinsic_type_id = nil)
@@ -33,7 +35,6 @@ module ScaleRb
         @unchecked_extrinsic_type_id = unchecked_extrinsic_type_id || find_unchecked_extrinsic_type_id
         @address_type_id = find_address_type_id
         @call_type_id = find_call_type_id
-        @extrinsic_signature_type_id = find_extrinsic_signature_type_id
 
         @digest_type_id = find_digest_type_id
         @digest_item_type_id = find_digest_item_type_id
@@ -179,7 +180,7 @@ module ScaleRb
           path: ['ExtrinsicSignature'],
           fields: [
             ScaleRb::Types::Field.new(name: 'address', type: @address_type_id),
-            ScaleRb::Types::Field.new(name: 'signature', type: @extrinsic_signature_type_id),
+            ScaleRb::Types::Field.new(name: 'signature', type: find_extrinsic_signature_type_id),
             ScaleRb::Types::Field.new(name: 'signedExtensions', type: signed_extensions_type_id)
           ]
         )

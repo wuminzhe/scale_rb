@@ -29,8 +29,49 @@ digest_logs.each do |digest_log|
     ScaleRb::Utils.hex_to_u8a(digest_log), 
     metadata.registry
   )
-  p decoded
+  puts "decoded log: #{decoded}"
 end
 
-# extrinsics = block[:extrinsics]
-# puts "Extrinsics count: #{extrinsics.size}"
+def decode_extrinsic(bytes, metadata)
+  _, remaining_bytes = ScaleRb::Codec.decode_compact(bytes)
+  meta, remaining_bytes = [remaining_bytes[0], remaining_bytes[1..]]
+  signed = (meta & 0x80) == 0x80
+  version = (meta & 0x7f)
+  p version
+
+  raise "Unsupported version: #{version}" unless version == 4
+
+  if signed
+    signature, remaining_bytes = ScaleRb::Codec.decode(
+      metadata.signature_type_id, 
+      bytes[1..], 
+      metadata.registry
+    )
+    call, _ = ScaleRb::Codec.decode(
+      metadata.call_type_id, 
+      remaining_bytes, 
+      metadata.registry
+    )
+    {
+      version: 4,
+      signature: signature,
+      call: call
+    }
+  else
+    {
+      version: 4,
+      call: ScaleRb::Codec.decode(
+        metadata.call_type_id, 
+        remaining_bytes, 
+        metadata.registry
+      )
+    }
+  end
+end
+
+extrinsics = block[:extrinsics]
+extrinsics.each do |extrinsic|
+  p "extrinsic: #{extrinsic}"
+  decoded = decode_extrinsic(ScaleRb::Utils.hex_to_u8a(extrinsic), metadata)
+  puts "decoded extrinsic: #{decoded}"
+end
