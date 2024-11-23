@@ -134,7 +134,7 @@ module ScaleRb
     def get_storage2(block_hash, pallet_name, item_name, params, metadata)
       raise 'Metadata should not be nil' if metadata.nil?
 
-      registry = metadata.build_registry
+      registry = metadata.registry
       item = metadata.storage(pallet_name, item_name)
       raise "No such storage item: `#{pallet_name}`.`#{item_name}`" if item.nil?
 
