@@ -30,6 +30,14 @@ module ScaleRb
       )
     end
 
+    def respond_to_missing?(*_args)
+      true
+    end
+
+    def method_missing(method, *args)
+      request(method.to_s, args)
+    end
+
     private
 
     def query_storage_at(block_hash, storage_keys, type_id, default, registry)

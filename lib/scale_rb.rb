@@ -33,5 +33,6 @@ require 'scale_rb/extrinsic_helper'
 require 'address'
 
 # clients
+require 'scale_rb/client/client_share'
 require 'scale_rb/client/http_client'
 require 'scale_rb/client/ws_client'
