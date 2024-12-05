@@ -33,13 +33,14 @@ module ScaleRb
           }
         else
           # puts "unsigned"
+          call, = ScaleRb::Codec.decode(
+            metadata.call_type_id, 
+            remaining_bytes, 
+            metadata.registry
+          )
           {
             version: 4,
-            call: ScaleRb::Codec.decode(
-              metadata.call_type_id, 
-              remaining_bytes, 
-              metadata.registry
-            ),
+            call: call,
             extrinsic_hash: extrinsic_hash
           }
         end
