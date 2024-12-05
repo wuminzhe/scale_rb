@@ -4,13 +4,15 @@ module ScaleRb
   module ExtrinsicHelper
     class << self
       def decode_extrinsic(bytes, metadata)
+        extrinsic_hash = "0x#{Blake2b.hex(bytes, 32)}"
+
         _, remaining_bytes = ScaleRb::Codec.decode_compact(bytes)
         meta, remaining_bytes = [remaining_bytes[0], remaining_bytes[1..]]
         signed = (meta & 0x80) == 0x80
         version = (meta & 0x7f)
-      
+
         raise "Unsupported version: #{version}" unless version == 4
-      
+
         if signed
           # puts "signed"
           signature, remaining_bytes = ScaleRb::Codec.decode(
@@ -18,7 +20,7 @@ module ScaleRb
             remaining_bytes, 
             metadata.registry
           )
-          call, remaining_bytes = ScaleRb::Codec.decode(
+          call, = ScaleRb::Codec.decode(
             metadata.call_type_id, 
             remaining_bytes, 
             metadata.registry
@@ -26,7 +28,8 @@ module ScaleRb
           {
             version: 4,
             signature: signature,
-            call: call
+            call: call,
+            extrinsic_hash: extrinsic_hash
           }
         else
           # puts "unsigned"
@@ -36,7 +39,8 @@ module ScaleRb
               metadata.call_type_id, 
               remaining_bytes, 
               metadata.registry
-            )
+            ),
+            extrinsic_hash: extrinsic_hash
           }
         end
       end
