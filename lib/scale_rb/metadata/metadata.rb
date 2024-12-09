@@ -81,6 +81,22 @@ module ScaleRb
         end
       end
 
+      def error(pallet_index, error_index)
+        pallet = pallet_by_index(pallet_index)
+        raise "Pallet `#{pallet_index}` not found" if pallet.nil?
+
+        errors_type_id = pallet.dig(:errors, :type)
+        errors_type = @registry[errors_type_id]
+        error_variant = errors_type.variants.find do |variant|
+          variant.index == error_index
+        end
+        raise "Error `#{error_index}` not found" if errors_type.nil?
+
+        [
+          pallet[:name], error_variant.name.to_s
+        ]
+      end
+
       #########################################################################
 
       # % pallet_call_type_id :: String -> String -> Ti
