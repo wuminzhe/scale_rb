@@ -24,6 +24,16 @@ module ScaleRb
       "a_portable_registry"
     end
 
+    def to_s
+      "a_portable_registry"
+    end
+
+    def add_type(type)
+      type_id = @types.size
+      @types << type
+      type_id
+    end
+
     private
 
     __ :build_types, {}
@@ -36,33 +46,39 @@ module ScaleRb
         raise "No 'def' found: #{type}" if def_.nil?
 
         path = type._get(:type, :path)
+        params = type._get(:type, :params).map do |p|
+          name = p._get(:name)
+          type = p._get(:type)
+          type.nil? ? Param.new(name: name) : Param.new(name: name, type: type)
+        end
 
         type_name = def_.keys.first.to_sym
         type_def = def_._get(type_name)
-        @types[id] = _build_type(id, type_name, type_def, path)
+        @types[id] = _build_type(id, type_name, type_def, path, params)
       end
     end
 
     # TODO: type_def better type definition
-    __ :_build_type, { id: Ti, type_name: Symbol, type_def: Hash | String | Array, path: TypedArray[String] }, PortableType
-    def _build_type(id, type_name, type_def, path)
+    __ :_build_type, { id: Ti, type_name: Symbol, type_def: Hash | String | Array, path: TypedArray[String], params: TypedArray[Field] }, PortableType
+    def _build_type(id, type_name, type_def, path, params)
       case type_name
       when :primitive
         # type_def: 'I32'
-        PrimitiveType.new(primitive: type_def.to_sym, path: path)
+        PrimitiveType.new(primitive: type_def.to_sym, path: path, params: params)
       when :compact
         # type_def: { type: 1 }
-        CompactType.new(type: type_def._get(:type), registry: self, path: path)
+        CompactType.new(type: type_def._get(:type), registry: self, path: path, params: params)
       when :sequence
         # type_def: { type: 9 }
-        SequenceType.new(type: type_def._get(:type), registry: self, path: path)
+        SequenceType.new(type: type_def._get(:type), registry: self, path: path, params: params)
       when :bitSequence
         # type_def: {"bitStoreType"=>2, "bitOrderType"=>502}
         BitSequenceType.new(
           bit_store_type: type_def._get(:bitStoreType),
           bit_order_type: type_def._get(:bitOrderType),
           registry: self,
-          path: path
+          path: path,
+          params: params
         )
       when :array
         # type_def: { len: 3, type: 1 }
@@ -70,11 +86,12 @@ module ScaleRb
           len: type_def._get(:len),
           type: type_def._get(:type),
           registry: self,
-          path: path
+          path: path,
+          params: params
         )
       when :tuple
         # type_def: [1, 2, 3]
-        TupleType.new(tuple: type_def, registry: self, path: path)
+        TupleType.new(tuple: type_def, registry: self, path: path, params: params)
       when :composite
         fields = type_def._get(:fields)
         first_field = fields.first
@@ -83,7 +100,7 @@ module ScaleRb
         return UnitType.new(path: path) if first_field.nil?
 
         # type_def: {"fields"=>[{"name"=>nil, "type"=>1}, {"name"=>nil, "type"=>2}]}
-        return TupleType.new(tuple: fields.map { |f| f._get(:type) }, registry: self, path: path) unless first_field._get(:name)
+        return TupleType.new(tuple: fields.map { |f| f._get(:type) }, registry: self, path: path, params: params) unless first_field._get(:name)
 
         # type_def: { fields: [{ name: 'name', type: 1 }, { name: 'age', type: 2 }] }
         StructType.new(
@@ -91,7 +108,8 @@ module ScaleRb
             Field.new(name: field._get(:name), type: field._get(:type))
           end,
           registry: self,
-          path: path
+          path: path,
+          params: params
         )
       when :variant
         variants = type_def._get(:variants)
@@ -126,7 +144,7 @@ module ScaleRb
             )
           end
         end
-        VariantType.new(variants: variant_list, path: path)
+        VariantType.new(variants: variant_list, path: path, params: params)
       end
     end
   end

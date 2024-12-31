@@ -2,7 +2,7 @@
 
 require 'scale_rb'
 
-RSpec.describe ScaleRb::Metadata::TypeExp do
+RSpec.describe ScaleRb::OldRegistry::TypeExp do
   def self.ast(exp, type)
     it "AST: #{exp}" do
       parsed = described_class.parse(exp)
@@ -19,33 +19,34 @@ RSpec.describe ScaleRb::Metadata::TypeExp do
   end
 
   describe 'AST parsing' do
-    ast('A', ScaleRb::Metadata::TypeExp::NamedType.new('A', []))
+    ast('A', ScaleRb::OldRegistry::TypeExp::NamedType.new('A', []))
 
     ast('Compact',
-        ScaleRb::Metadata::TypeExp::NamedType.new('Compact', []))
+        ScaleRb::OldRegistry::TypeExp::NamedType.new('Compact', []))
 
     ast('Compact<u8>',
-        ScaleRb::Metadata::TypeExp::NamedType.new('Compact', [ScaleRb::Metadata::TypeExp::NamedType.new('u8', [])]))
+        ScaleRb::OldRegistry::TypeExp::NamedType.new('Compact',
+                                                     [ScaleRb::OldRegistry::TypeExp::NamedType.new('u8', [])]))
 
     ast('Vec<u8>',
-        ScaleRb::Metadata::TypeExp::NamedType.new('Vec', [ScaleRb::Metadata::TypeExp::NamedType.new('u8', [])]))
+        ScaleRb::OldRegistry::TypeExp::NamedType.new('Vec', [ScaleRb::OldRegistry::TypeExp::NamedType.new('u8', [])]))
 
     ast('[A; 10]',
-        ScaleRb::Metadata::TypeExp::ArrayType.new(ScaleRb::Metadata::TypeExp::NamedType.new('A', []), 10))
+        ScaleRb::OldRegistry::TypeExp::ArrayType.new(ScaleRb::OldRegistry::TypeExp::NamedType.new('A', []), 10))
 
     ast('[u8; 16; H128]',
-        ScaleRb::Metadata::TypeExp::ArrayType.new(ScaleRb::Metadata::TypeExp::NamedType.new('u8', []), 16))
+        ScaleRb::OldRegistry::TypeExp::ArrayType.new(ScaleRb::OldRegistry::TypeExp::NamedType.new('u8', []), 16))
 
     ast(
       '(A, B, [u8; 5])',
-      ScaleRb::Metadata::TypeExp::TupleType.new(
+      ScaleRb::OldRegistry::TypeExp::TupleType.new(
         [
-          ScaleRb::Metadata::TypeExp::NamedType.new('A', []),
-          ScaleRb::Metadata::TypeExp::NamedType.new(
+          ScaleRb::OldRegistry::TypeExp::NamedType.new('A', []),
+          ScaleRb::OldRegistry::TypeExp::NamedType.new(
             'B', []
           ),
-          ScaleRb::Metadata::TypeExp::ArrayType.new(
-            ScaleRb::Metadata::TypeExp::NamedType.new(
+          ScaleRb::OldRegistry::TypeExp::ArrayType.new(
+            ScaleRb::OldRegistry::TypeExp::NamedType.new(
               'u8', []
             ), 5
           )

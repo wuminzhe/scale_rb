@@ -19,6 +19,7 @@ module ScaleRb
       when CompactType then decode_compact(bytes)
       when ArrayType then decode_array(type, bytes, registry)
       when SequenceType then decode_sequence(type, bytes, registry)
+      when BitSequenceType then decode_bit_sequence(type, bytes)
       when TupleType then decode_tuple(type, bytes, registry)
       when StructType then decode_struct(type, bytes, registry)
       when UnitType then [[], bytes]
@@ -63,6 +64,22 @@ module ScaleRb
 
       len, remaining_bytes = decode_compact(bytes)
       _decode_types([sequence_type.type] * len, remaining_bytes, registry)
+    end
+
+    __ :decode_bit_sequence, { sequence_type: BitSequenceType, bytes: U8Array }, DecodeResult[TypedArray[Any]]
+    def decode_bit_sequence(sequence_type, bytes)
+      ScaleRb.logger.debug("Decoding bit sequence: #{sequence_type}, bytes: #{bytes.length} bytes")
+
+      bit_len, remaining_bytes = decode_compact(bytes)
+      byte_len = (bit_len / 8.0).ceil
+      the_bytes, remaining_bytes = [remaining_bytes[0...byte_len], remaining_bytes[byte_len..]]
+      [
+        {
+          bytes: the_bytes,
+          bit_len: bit_len
+        },
+        remaining_bytes
+      ]
     end
 
     __ :decode_tuple, { tuple_type: TupleType, bytes: U8Array, registry: Registry }, DecodeResult[TypedArray[Any] | Any]

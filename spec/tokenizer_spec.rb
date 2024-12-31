@@ -3,7 +3,7 @@
 require 'scale_rb'
 
 # rubocop:disable Metrics/BlockLength
-RSpec.describe ScaleRb::Metadata::TypeExp::Tokenizer do
+RSpec.describe ScaleRb::OldRegistry::TypeExp::Tokenizer do
   describe '.tokenize' do
     it 'tokenizes a simple type' do
       tokenizer = described_class.new('A')

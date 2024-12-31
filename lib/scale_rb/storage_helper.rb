@@ -53,11 +53,15 @@ module ScaleRb
       # data: hex string
       # type: portable type id
       # optional: boolean
-      # fallback: hex string
+      # fallback: hex string or u8array
       # returns nil or data
       def decode_storage(data, type, optional, fallback, registry)
-        data ||= (optional ? nil : fallback)
-        ScaleRb::Codec.decode(type, Utils.hex_to_u8a(data), registry)[0] if data
+        bytes = data.nil? ? nil : Utils.hex_to_u8a(data)
+        bytes = bytes.nil? ?
+          (optional ? nil : (fallback.is_a?(Array) ? fallback : Utils.hex_to_u8a(fallback))) :
+          bytes
+
+        ScaleRb::Codec.decode(type, bytes, registry)[0] if bytes
       end
 
       # storage_item: the storage item from metadata
@@ -69,8 +73,8 @@ module ScaleRb
       end
 
       def decode_storage3(data, pallet_name, item_name, metadata)
-        registry = Metadata.build_registry(metadata)
-        storage_item = Metadata.get_storage_item(pallet_name, item_name, metadata)
+        registry = metadata.build_registry
+        storage_item = metadata.storage(pallet_name, item_name)
         decode_storage2(data, storage_item, registry)
       end
     end

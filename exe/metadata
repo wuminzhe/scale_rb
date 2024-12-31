@@ -35,5 +35,5 @@ else
   end
 
   metadata = client.get_metadata(block_hash)
-  puts JSON.pretty_generate(metadata)
+  puts metadata.to_json
 end

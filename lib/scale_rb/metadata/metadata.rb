@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require_relative './registry'
-
 require_relative './metadata_v9'
 require_relative './metadata_v10'
 require_relative './metadata_v11'
@@ -13,94 +11,245 @@ require_relative './metadata_v14'
 # https://github.com/paritytech/frame-metadata/blob/main/frame-metadata/src/lib.rs#L85
 module ScaleRb
   module Metadata
-    class << self
-      def decode_metadata(hex)
-        bytes = ScaleRb::Utils.hex_to_u8a(hex)
+    class Metadata
+      attr_reader :magic_number, :version, :metadata, :registry, :address_type_id, :runtime_call_type_id, :digest_type_id,
+                  :digest_item_type_id, :event_record_list_type_id, :event_record_type_id, :event_type_id, :signature_type_id
 
-        registry = ScaleRb::Metadata::Registry.new TYPES
-        metadata, = ScaleRb::Codec.decode('MetadataPrefixed', bytes, registry)
-        metadata
+      # Runtime type ids
+      attr_reader :unchecked_extrinsic_type_id
+
+      def initialize(metadata_prefixed, unchecked_extrinsic_type_id = nil)
+        @metadata_prefixed = metadata_prefixed
+        @magic_number = @metadata_prefixed[:magicNumber]
+        metadata = @metadata_prefixed[:metadata]
+        @version = metadata.keys.first
+        raise "Unsupported metadata version: #{@version}" unless :V14 == @version
+
+        @metadata = metadata[@version]
+        @registry = ScaleRb::PortableRegistry.new(@metadata.dig(:lookup, :types))
+
+        # Runtime type ids
+        @unchecked_extrinsic_type_id = unchecked_extrinsic_type_id || find_unchecked_extrinsic_type_id
+        @address_type_id = find_address_type_id
+        @runtime_call_type_id = find_runtime_call_type_id
+
+        @digest_type_id = find_digest_type_id
+        @digest_item_type_id = find_digest_item_type_id
+
+        @event_record_list_type_id = find_event_record_list_type_id
+        @event_record_type_id = find_event_record_type_id
+        @event_type_id = find_event_type_id
+
+        @signature_type_id = build_signature_type_id
       end
 
-      def build_registry(metadata_prefixed)
-        types = ScaleRb::Utils.get(metadata_prefixed, :metadata, :V14, :lookup, :types)
-        ScaleRb::PortableRegistry.new(types)
+      def self.from_hex(hex)
+        metadata_prefixed, = ScaleRb::Codec.decode('MetadataPrefixed', Utils.hex_to_u8a(hex), OldRegistry.new(TYPES))
+        Metadata.new(metadata_prefixed)
       end
 
-      def get_module(pallet_name, metadata_prefixed)
-        metadata = Utils.get(metadata_prefixed, :metadata)
-        version = metadata.keys.first
-        raise NotImplementedError, version unless %i[V14].include?(version)
-
-        Metadata.const_get("Metadata#{version.upcase}").get_module(pallet_name, metadata_prefixed)
+      def self.from_json(str)
+        metadata_prefixed = JSON.parse(str, symbolize_names: true)
+        Metadata.new(metadata_prefixed)
       end
 
-      def get_module_by_index(pallet_index, metadata_prefixed)
-        metadata = Utils.get(metadata_prefixed, :metadata)
-        version = metadata.keys.first.to_sym
-        raise NotImplementedError, version unless %i[V14].include?(version)
-
-        Metadata.const_get("Metadata#{version.upcase}").get_module_by_index(pallet_index, metadata_prefixed)
+      def to_json(*_args)
+        JSON.pretty_generate(@metadata_prefixed)
       end
 
-      def get_storage_item(pallet_name, item_name, metadata_prefixed)
-        metadata = Utils.get(metadata_prefixed, :metadata)
-        version = metadata.keys.first.to_sym
-        raise NotImplementedError, version unless %i[V14].include?(version)
-
-        Metadata.const_get("Metadata#{version.upcase}").get_storage_item(pallet_name, item_name, metadata_prefixed)
+      def pallet(pallet_name)
+        @metadata[:pallets].find do |pallet|
+          pallet[:name] == pallet_name
+        end
       end
 
-      def get_calls_type(pallet_name, metadata_prefixed)
-        metadata = Utils.get(metadata_prefixed, :metadata)
-        version = metadata.keys.first.to_sym
-        raise NotImplementedError, version unless %i[V14].include?(version)
-
-        Metadata.const_get("Metadata#{version.upcase}").get_calls_type(pallet_name, metadata_prefixed)
+      def pallet_by_index(pallet_index)
+        @metadata[:pallets].find do |pallet|
+          pallet[:index] == pallet_index
+        end
       end
 
-      def get_calls_type_id(pallet_name, metadata_prefixed)
-        metadata = Utils.get(metadata_prefixed, :metadata)
-        version = metadata.keys.first.to_sym
-        raise NotImplementedError, version unless %i[V14].include?(version)
+      def storage(pallet_name, item_name)
+        pallet = pallet(pallet_name)
+        raise "Pallet `#{pallet_name}` not found" if pallet.nil?
 
-        Metadata.const_get("Metadata#{version.upcase}").get_calls_type_id(pallet_name, metadata_prefixed)
+        pallet.dig(:storage, :items).find do |item|
+          item[:name] == item_name
+        end
       end
 
-      def get_call_type(pallet_name, call_name, metadata_prefixed)
-        metadata = Utils.get(metadata_prefixed, :metadata)
-        version = metadata.keys.first.to_sym
-        raise NotImplementedError, version unless %i[V14].include?(version)
+      def error(pallet_index, error_index)
+        pallet = pallet_by_index(pallet_index)
+        raise "Pallet `#{pallet_index}` not found" if pallet.nil?
 
-        Metadata.const_get("Metadata#{version.upcase}").get_call_type(pallet_name, call_name, metadata_prefixed)
+        errors_type_id = pallet.dig(:errors, :type)
+        errors_type = @registry[errors_type_id]
+        error_variant = errors_type.variants.find do |variant|
+          variant.index == error_index
+        end
+        raise "Error `#{error_index}` not found" if errors_type.nil?
+
+        [
+          pallet[:name], error_variant.name.to_s
+        ]
+      end
+
+      #########################################################################
+
+      # % pallet_call_type :: [String, String] -> SimpleVariant | TupleVariant | StructVariant
+      def pallet_call_type(pallet_name, call_name)
+        calls_type_id = pallet_calls_type_id(pallet_name)
+
+        calls_type = @registry[calls_type_id] # #<ScaleRb::Types::VariantType ...>
+        raise 'Calls type is not correct' if calls_type.nil?
+
+        calls_type.variants.find do |variant|
+          variant.name.to_s.downcase == call_name.downcase
+        end
+      end
+
+      def pallet_call_names(pallet_name)
+        calls_type_id = pallet_calls_type_id(pallet_name)
+        return [] if calls_type_id.nil?
+
+        calls_type = @registry[calls_type_id] # #<ScaleRb::Types::VariantType ...>
+        raise 'Calls type is not correct' if calls_type.nil?
+
+        calls_type.variants.map do |variant|
+          variant.name.to_s
+        end
+      end
+
+      private
+
+      def find_unchecked_extrinsic_type_id
+        @registry.types.each_with_index do |type, index|
+          return index if type.path.first == 'sp_runtime' && type.path.last == 'UncheckedExtrinsic'
+        end
+      end
+
+      def find_address_type_id
+        @registry[@unchecked_extrinsic_type_id].params.find do |param|
+          param.name.downcase == 'address'
+        end.type
+      end
+
+      def find_runtime_call_type_id
+        @registry[@unchecked_extrinsic_type_id].params.find do |param|
+          param.name.downcase == 'call'
+        end.type
+      end
+
+      def find_extrinsic_signature_type_id
+        @registry[@unchecked_extrinsic_type_id].params.find do |param|
+          param.name.downcase == 'signature'
+        end.type
+      end
+
+      def find_digest_type_id
+        storage_item = storage('System', 'Digest')
+        storage_item.dig(:type, :plain)
+      end
+
+      def find_digest_item_type_id
+        # #<ScaleRb::Types::StructType registry=a_portable_registry path=["sp_runtime", "generic", "digest", "Digest"] params=[] fields=[#<ScaleRb::Types::Field name="logs" type=14>]>
+        digest_type = @registry[@digest_type_id]
+
+        field = digest_type.fields.find do |field|
+          field.name == 'logs'
+        end
+        seq = @registry[field.type]
+        raise 'Type is not correct' unless seq.is_a?(ScaleRb::Types::SequenceType)
+
+        seq.type
+      end
+
+      def find_event_record_list_type_id
+        storage_item = storage('System', 'Events')
+        storage_item.dig(:type, :plain)
+      end
+
+      def find_event_record_type_id
+        seq = @registry[@event_record_list_type_id]
+        raise 'Type is not correct' unless seq.is_a?(ScaleRb::Types::SequenceType)
+
+        seq.type
+      end
+
+      def find_event_type_id
+        @registry[@event_record_type_id].fields.find do |field|
+          field.name == 'event'
+        end.type
+      end
+
+      def build_signature_type_id
+        signed_extensions_type = ScaleRb::Types::StructType.new(
+          path: ['SignedExtensions'],
+          fields: @metadata[:extrinsic][:signedExtensions].map do |signed_extension|
+            ScaleRb::Types::Field.new(
+              name: signed_extension[:identifier],
+              type: signed_extension[:type]
+            )
+          end,
+          registry: @registry
+        )
+
+        signed_extensions_type_id = @registry.add_type(signed_extensions_type)
+
+        signature_type = ScaleRb::Types::StructType.new(
+          path: ['ExtrinsicSignature'],
+          fields: [
+            ScaleRb::Types::Field.new(name: 'address', type: @address_type_id),
+            ScaleRb::Types::Field.new(name: 'signature', type: find_extrinsic_signature_type_id),
+            ScaleRb::Types::Field.new(name: 'signedExtensions', type: signed_extensions_type_id)
+          ],
+          registry: @registry
+        )
+
+        @registry.add_type(signature_type)
+      end
+
+      # equals to:
+      #  pallet = pallet(pallet_name)
+      #  raise "Pallet `#{pallet_name}` not found" if pallet.nil?
+      #  pallet.dig(:calls, :type)
+      def pallet_calls_type_id(pallet_name)
+        runtime_call_type = @registry[@runtime_call_type_id]
+        v = runtime_call_type.variants.find do |variant|
+          variant.name.to_s.downcase == pallet_name.downcase
+        end
+
+        v&.tuple&.tuple&.first
       end
     end
 
+    #########################################################################
+
     TYPES = {
-      Type: 'Str',
-      Bytes: 'Vec<u8>',
-      MetadataPrefixed: {
-        magicNumber: 'U32',
-        metadata: 'Metadata'
+      'Type' => 'Str',
+      'Bytes' => 'Vec<u8>',
+      'MetadataPrefixed' => {
+        'magicNumber' => 'U32',
+        'metadata' => 'Metadata'
       },
-      Placeholder: 'Null',
-      Metadata: {
-        _enum: {
-          V0: 'Placeholder',
-          V1: 'Placeholder',
-          V2: 'Placeholder',
-          V3: 'Placeholder',
-          V4: 'Placeholder',
-          V5: 'Placeholder',
-          V6: 'Placeholder',
-          V7: 'Placeholder',
-          V8: 'Placeholder',
-          V9: 'MetadataV9',
-          V10: 'MetadataV10',
-          V11: 'MetadataV11',
-          V12: 'MetadataV12',
-          V13: 'MetadataV13',
-          V14: 'MetadataV14'
+      'Placeholder' => 'Null',
+      'Metadata' => {
+        '_enum' => {
+          'V0' => 'Placeholder',
+          'V1' => 'Placeholder',
+          'V2' => 'Placeholder',
+          'V3' => 'Placeholder',
+          'V4' => 'Placeholder',
+          'V5' => 'Placeholder',
+          'V6' => 'Placeholder',
+          'V7' => 'Placeholder',
+          'V8' => 'Placeholder',
+          'V9' => 'MetadataV9',
+          'V10' => 'MetadataV10',
+          'V11' => 'MetadataV11',
+          'V12' => 'MetadataV12',
+          'V13' => 'MetadataV13',
+          'V14' => 'MetadataV14'
         }
       }
     }.merge(MetadataV14::TYPES)
