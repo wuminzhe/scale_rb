@@ -21,7 +21,7 @@ module ScaleRb
             metadata.registry
           )
           call, = ScaleRb::Codec.decode(
-            metadata.call_type_id, 
+            metadata.runtime_call_type_id, 
             remaining_bytes, 
             metadata.registry
           )
@@ -34,7 +34,7 @@ module ScaleRb
         else
           # puts "unsigned"
           call, = ScaleRb::Codec.decode(
-            metadata.call_type_id, 
+            metadata.runtime_call_type_id, 
             remaining_bytes, 
             metadata.registry
           )

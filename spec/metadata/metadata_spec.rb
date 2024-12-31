@@ -49,8 +49,8 @@ module ScaleRb
     end
 
     it 'can get pallet call type' do
-      remark_type_id = @metadata.pallet_call_type_id('System', 'remark')
-      expect(remark_type_id).to eql(12)
+      remark_type = @metadata.pallet_call_type('System', 'remark')
+      expect(remark_type.struct.fields.first.type).to eql(12)
     end
 
     it 'can get unchecked extrinsic type id' do

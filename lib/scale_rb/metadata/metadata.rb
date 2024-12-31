@@ -12,14 +12,11 @@ require_relative './metadata_v14'
 module ScaleRb
   module Metadata
     class Metadata
-      attr_reader :magic_number, :version, :metadata, :registry
+      attr_reader :magic_number, :version, :metadata, :registry, :address_type_id, :runtime_call_type_id, :digest_type_id,
+                  :digest_item_type_id, :event_record_list_type_id, :event_record_type_id, :event_type_id, :signature_type_id
 
       # Runtime type ids
       attr_reader :unchecked_extrinsic_type_id
-      attr_reader :address_type_id, :call_type_id
-      attr_reader :digest_type_id, :digest_item_type_id
-      attr_reader :event_record_list_type_id, :event_record_type_id, :event_type_id
-      attr_reader :signature_type_id
 
       def initialize(metadata_prefixed, unchecked_extrinsic_type_id = nil)
         @metadata_prefixed = metadata_prefixed
@@ -34,7 +31,7 @@ module ScaleRb
         # Runtime type ids
         @unchecked_extrinsic_type_id = unchecked_extrinsic_type_id || find_unchecked_extrinsic_type_id
         @address_type_id = find_address_type_id
-        @call_type_id = find_call_type_id
+        @runtime_call_type_id = find_runtime_call_type_id
 
         @digest_type_id = find_digest_type_id
         @digest_item_type_id = find_digest_item_type_id
@@ -99,29 +96,35 @@ module ScaleRb
 
       #########################################################################
 
-      # % pallet_call_type_id :: String -> String -> Ti
-      def pallet_call_type_id(pallet_name, call_name)
+      # % pallet_call_type :: [String, String] -> SimpleVariant | TupleVariant | StructVariant
+      def pallet_call_type(pallet_name, call_name)
         calls_type_id = pallet_calls_type_id(pallet_name)
 
         calls_type = @registry[calls_type_id] # #<ScaleRb::Types::VariantType ...>
         raise 'Calls type is not correct' if calls_type.nil?
 
-        v = calls_type.variants.find do |variant|
+        calls_type.variants.find do |variant|
           variant.name.to_s.downcase == call_name.downcase
         end
+      end
 
-        raise "Call `#{call_name}` not found" if v.nil?
+      def pallet_call_names(pallet_name)
+        calls_type_id = pallet_calls_type_id(pallet_name)
+        return [] if calls_type_id.nil?
 
-        v.struct.fields.first.type
+        calls_type = @registry[calls_type_id] # #<ScaleRb::Types::VariantType ...>
+        raise 'Calls type is not correct' if calls_type.nil?
+
+        calls_type.variants.map do |variant|
+          variant.name.to_s
+        end
       end
 
       private
 
       def find_unchecked_extrinsic_type_id
         @registry.types.each_with_index do |type, index|
-          if type.path.first == 'sp_runtime' && type.path.last == 'UncheckedExtrinsic'
-            return index
-          end
+          return index if type.path.first == 'sp_runtime' && type.path.last == 'UncheckedExtrinsic'
         end
       end
 
@@ -131,7 +134,7 @@ module ScaleRb
         end.type
       end
 
-      def find_call_type_id
+      def find_runtime_call_type_id
         @registry[@unchecked_extrinsic_type_id].params.find do |param|
           param.name.downcase == 'call'
         end.type
@@ -211,13 +214,12 @@ module ScaleRb
       #  raise "Pallet `#{pallet_name}` not found" if pallet.nil?
       #  pallet.dig(:calls, :type)
       def pallet_calls_type_id(pallet_name)
-        call_type = @registry[@call_type_id]
-        v = call_type.variants.find do |variant|
+        runtime_call_type = @registry[@runtime_call_type_id]
+        v = runtime_call_type.variants.find do |variant|
           variant.name.to_s.downcase == pallet_name.downcase
         end
-        raise "Call `#{pallet_name}` not found" if v.nil?
 
-        v.tuple.tuple.first
+        v&.tuple&.tuple&.first
       end
     end
 
